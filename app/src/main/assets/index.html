@@ -67,7 +67,20 @@ button:active{transform:scale(.97)}
 .bar{height:6px;border-radius:3px;background:rgba(255,255,255,.2);margin-top:6px;width:100%;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2b7cff,#7fd0ff);border-radius:3px}
 
-/* Carte CarPlay (vrai CarPlay dans ZLink : aucune simulation) */
+
+/* Météo animée (carte de droite) */
+#cardR{overflow:hidden;padding:0}
+#wx{position:absolute;left:0;top:0;width:390px;height:258px;border-radius:inherit}
+#wxTop{position:absolute;left:20px;top:12px;text-shadow:0 2px 10px rgba(0,0,0,.35)}
+#wxT{font-size:72px;font-weight:300;line-height:80px;letter-spacing:-2px}
+#wxC{font-size:21px;font-weight:600;margin-top:-2px}
+#wxInfo{position:absolute;right:18px;top:20px;text-align:right;font-size:15px;line-height:23px;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.4)}
+#wxHours{position:absolute;left:12px;right:12px;bottom:10px;height:78px;display:flex;gap:6px}
+.wh{flex:1;border-radius:16px;background:rgba(10,16,28,.32);border:1px solid rgba(255,255,255,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:14px}
+.wh svg{width:30px;height:30px}
+.wh b{font-size:17px;font-weight:600}
+
+/* (ancienne carte CarPlay) (vrai CarPlay dans ZLink : aucune simulation) */
 #cardR{right:28px;top:170px;width:390px;height:258px}
 #cpHead{position:absolute;left:14px;top:10px;height:56px;display:flex;align-items:center;gap:12px;font-size:26px;font-weight:600;padding:0 8px;border-radius:16px}
 .cpi{width:38px;height:38px;border-radius:10px;background:#2ad14f;display:flex;align-items:center;justify-content:center;flex:none}
@@ -82,14 +95,14 @@ button:active{transform:scale(.97)}
 #zline{font-size:13px}
 
 /* Navigation du bas : 4 vrais raccourcis */
-#tiles{position:absolute;left:50%;margin-left:-463px;bottom:89px;width:926px;height:140px;display:flex;gap:26px;z-index:4}
-.tile{position:relative;width:212px;height:140px;border-radius:30px;background:var(--tile);border:1px solid var(--stroke);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:24px;font-weight:500;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.12)}
-.tile svg{width:56px;height:56px;stroke:#fff;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.tile .cpi{width:58px;height:58px;border-radius:15px}
-.tile .cpi svg{width:38px;height:38px}
+#tiles{position:absolute;left:50%;margin-left:-370px;bottom:46px;width:740px;height:84px;display:flex;gap:20px;z-index:4}
+.tile{position:relative;width:170px;height:84px;border-radius:24px;background:var(--tile);border:1px solid var(--stroke);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:18px;font-weight:500;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.12)}
+.tile svg{width:34px;height:34px;stroke:#fff;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.tile .cpi{width:36px;height:36px;border-radius:10px}
+.tile .cpi svg{width:24px;height:24px}
 .tile.act{border-color:rgba(120,190,255,.7);box-shadow:0 8px 24px rgba(0,0,0,.22),0 0 0 1px rgba(120,190,255,.35),inset 0 1px 0 rgba(255,255,255,.18)}
-.tile.act::after{content:"";position:absolute;bottom:9px;left:50%;margin-left:-17px;width:34px;height:4px;border-radius:2px;background:var(--accent)}
-#homebar{position:absolute;left:50%;margin-left:-135px;bottom:14px;width:270px;height:48px;display:flex;align-items:center;justify-content:center;z-index:4}
+.tile.act::after{content:"";position:absolute;bottom:5px;left:50%;margin-left:-17px;width:34px;height:4px;border-radius:2px;background:var(--accent)}
+#homebar{position:absolute;left:50%;margin-left:-135px;bottom:6px;width:270px;height:48px;display:flex;align-items:center;justify-content:center;z-index:4}
 #homebar i{display:block;width:260px;height:6px;border-radius:3px;background:rgba(255,255,255,.9);box-shadow:0 1px 8px rgba(0,0,0,.3)}
 #stage[data-page="apps"] #top,#stage[data-page="menu"] #top,
 #stage[data-page="apps"] #tiles,#stage[data-page="menu"] #tiles,
@@ -103,6 +116,12 @@ button:active{transform:scale(.97)}
 #stage[data-page="home"] #lights{display:flex}
 #pill{position:absolute;left:50%;top:162px;transform:translateX(-50%);z-index:5;padding:8px 18px;border-radius:18px;background:rgba(255,159,10,.92);color:#1a1200;font-size:16px;font-weight:600;opacity:0;transition:opacity .3s ease;pointer-events:none;white-space:nowrap}
 #pill.on{opacity:1}
+
+/* Bouton Accueil (barre du haut, hors page d'accueil) */
+#homeBtn{pointer-events:auto;width:56px;height:56px;border-radius:28px;background:var(--tile);border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;margin-right:6px}
+#homeBtn svg{width:28px;height:28px}
+#stage[data-page="home"] #homeBtn{display:none}
+#top button{pointer-events:auto}
 
 /* Page Véhicule (informative : aucune commande de climatisation) */
 #cardD{right:28px;top:150px;width:390px;height:330px}
@@ -159,6 +178,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 .step .val{min-width:62px;text-align:center;font-size:20px;font-weight:600}
 .txt{white-space:pre-line;font-size:14px;color:var(--sub);margin:-2px 8px 12px;display:none}
 .ok{color:#57e08a!important}
+#canOut{font-size:13px;line-height:1.35;color:#e6edff;margin:-2px 8px 12px}
 
 /* Démarrage : photo de face, les phares clignotent, puis fondu vers l'accueil */
 #splash{position:absolute;left:0;top:0;width:100%;height:100%;z-index:60;background:#090c12;animation:splashOut .8s ease 3.9s forwards}
@@ -190,10 +210,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 </div>
 
 <div class="gc" id="cardR">
-<button id="cpHead" data-id="carplay" data-kw="zlink,carplay,carlink" aria-label="Ouvrir CarPlay"><span class="cpi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z" fill="#fff"/></svg></span>CarPlay</button>
-<button id="expand" data-id="carplay" data-kw="zlink,carplay,carlink" aria-label="CarPlay en plein écran"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-<button class="pa" data-id="carplay" data-kw="zlink,carplay,carlink" aria-label="Navigation dans CarPlay"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg><b>Navigation</b><span>Waze s'affiche dans CarPlay</span></button>
-<button class="pb" data-id="carplay" data-kw="zlink,carplay,carlink" aria-label="Musique dans CarPlay"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.5"/><circle cx="17" cy="16" r="2.5"/></svg><b id="mTitle">Musique</b><span id="mSub">Indisponible</span></button>
+<canvas id="wx" width="390" height="258"></canvas>
+<div id="wxTop"><div id="wxT">--°</div><div id="wxC">Météo…</div></div>
+<div id="wxInfo"><div id="wxF">Ressenti --°</div><div id="wxW">Vent -- km/h</div><div id="wxH">Humidité --%</div><div id="wxM">-- / --</div></div>
+<div id="wxHours"></div>
 </div>
 </section>
 
@@ -231,7 +251,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 <!-- APPLICATIONS (raccourcis avec icônes réelles + toutes les applis) -->
 <section id="p-apps" class="page">
 <div class="tint"></div>
-<button class="backBtn" data-go="home" aria-label="Retour à l'accueil"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+<button class="backBtn" data-go="home" aria-label="Accueil"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
 <div class="hdr"><div class="t1">--:--</div><div class="d1"></div></div>
 <div class="card panel"><div id="dock"></div><div id="appsGrid"></div></div>
 </section>
@@ -239,7 +259,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 <!-- RÉGLAGES -->
 <section id="p-menu" class="page">
 <div class="tint"></div>
-<button class="backBtn" data-go="home" aria-label="Retour à l'accueil"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+<button class="backBtn" data-go="home" aria-label="Accueil"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
 <div class="hdr"><div class="t1">--:--</div><div class="d1"></div></div>
 
 <div class="card sub">
@@ -262,6 +282,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 <div class="sr"><div class="l">Opacité des cartes<small>Plus opaque = plus lisible en plein soleil</small></div><input type="range" id="opRange" min="40" max="95" step="5" value="70"></div>
 <div class="sr"><div class="l">Phares sur l'image<small>Change la photo de fond, sur le poste seulement</small></div><div class="seg" data-seg="lights"><button data-val="0">Éteints</button><button data-val="1">Allumés</button></div></div>
 <div class="sr"><div class="l">Animations</div><div class="seg" data-seg="anim"><button data-val="full">Complètes</button><button data-val="reduced">Réduites</button></div></div>
+<div class="sr"><div class="l">Animation de démarrage<small>Phares qui clignotent, puis retour à l'accueil</small></div><button class="mini" id="replaySplash">Rejouer</button></div>
 </div></div>
 
 <!-- Audio -->
@@ -289,6 +310,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 <div class="sec" id="sec-system"><div class="rows">
 <div class="sr"><div class="l">Résolution de l'écran<small>Ce que voit réellement Android et l'interface</small></div><button class="mini" id="resBtn">Afficher</button></div>
 <div class="txt" id="rinfo"></div>
+<div class="sr"><div class="l">Diagnostic CAN (lecture seule)<small>Cherche comment le poste connaît les portes et le chauffage. N'envoie rien à la voiture.</small></div><button class="mini" id="canScan">Analyser</button></div>
+<div class="sr"><div class="l">Écouter pendant 60 secondes<small>Appuie, puis ouvre une porte et monte le chauffage</small></div><button class="mini" id="canListen">Écouter</button></div>
+<div class="txt" id="canOut"></div>
 <div class="sr"><div class="l">Diagnostic ZLink<small>Version et informations du système</small></div><button class="mini" id="zdiag">Afficher</button></div>
 <div class="txt" id="zinfo"></div>
 <div class="sr"><div class="l">Réglages Android<small>Ouvre les vrais paramètres du poste</small></div><button class="mini" id="openAndroid">Ouvrir</button></div>
@@ -302,6 +326,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 <div id="clock">--:--</div><div id="date"></div>
 <div id="ident"><img src="vw_logo.png" alt="Volkswagen"><div class="sep"></div><div><b>Golf 6</b><span>TDI 105</span></div></div>
 <div id="st">
+<button id="homeBtn" data-go="home" aria-label="Accueil"><svg viewBox="0 0 24 24" style="stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
 <svg id="icBt" viewBox="0 0 24 24"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></svg>
 <svg id="icWifi" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r=".8"/></svg>
 <span class="t" id="temp">--°C</span>
@@ -309,6 +334,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 </div>
 <button id="lights" aria-label="Allumer ou éteindre les phares sur l'image"><svg viewBox="0 0 24 24"><path d="M10 6a6 6 0 1 0 0 12M10 6c4 0 4 12 0 12M14 9h7M14 12h7M14 15h7"/></svg><span id="lightsT">Allumer les phares</span></button>
 <div id="pill"></div>
+
 
 <div id="tiles">
 <button class="tile" data-tile="home" data-id="carplay" data-kw="zlink,carplay,carlink" aria-label="CarPlay"><span class="cpi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z" fill="#fff"/></svg></span>CarPlay</button>
@@ -547,6 +573,28 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
   }
   refreshStatus();setInterval(refreshStatus,15000);
 
+  /* Rejouer l'animation de démarrage */
+  $('#replaySplash').addEventListener('click',function(){
+    go('home');
+    var was=stage.classList.contains('reduced');
+    stage.classList.remove('reduced');
+    var s=$('#splash'),c=s.cloneNode(true);c.style.display='';
+    s.parentNode.replaceChild(c,s);
+    if(was)setTimeout(applyAnim,4900);
+  });
+
+  /* Diagnostic CAN (lecture seule) */
+  $('#canScan').addEventListener('click',function(){
+    if(!A){showTxt('#canOut','Disponible uniquement sur le poste.');return}
+    showTxt('#canOut','Analyse en cours…');call(function(){A.canScan()});
+  });
+  $('#canListen').addEventListener('click',function(){
+    if(!A){showTxt('#canOut','Disponible uniquement sur le poste.');return}
+    showTxt('#canOut','Écoute pendant 60 secondes : ouvre une porte, monte le chauffage… Le résultat s\'affichera ici.');
+    call(function(){A.canListen()});
+  });
+  window.setCanReport=function(type,txt){showTxt('#canOut',txt)};
+
   /* Diagnostics (lecture seule) */
   function showTxt(id,txt){var z=$(id);z.textContent=txt;z.style.display='block'}
   $('#zdiag').addEventListener('click',function(){showTxt('#zinfo',A?A.zlinkInfo():'Disponible uniquement sur le poste.')});
@@ -615,17 +663,115 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 
   /* Météo : température extérieure affichée comme « météo », pas comme capteur de la voiture */
   var lat=null,lon=null;
+  var WX={cat:'clear',night:false,loaded:false};
+  function wcat(c){
+    if(c===0)return 'clear';if(c<=2)return 'part';if(c===3)return 'cloud';if(c===45||c===48)return 'fog';
+    if(c>=51&&c<=57)return 'rain';if((c>=61&&c<=67)||(c>=80&&c<=82))return 'rain';
+    if((c>=71&&c<=77)||c===85||c===86)return 'snow';if(c>=95)return 'storm';return 'cloud'}
+  var WL={clear:'Ciel dégagé',part:'Éclaircies',cloud:'Nuageux',fog:'Brouillard',rain:'Pluie',snow:'Neige',storm:'Orage'};
+  function wicon(cat,night){
+    var s='stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+    var cl='<path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z" '+s+'/>';
+    var sun='<circle cx="12" cy="12" r="4" fill="#ffd45e" stroke="#ffd45e"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6L19 19M5 19l1.4-1.4M17.6 6.4L19 5" stroke="#ffd45e" stroke-width="1.6" stroke-linecap="round"/>';
+    var moon='<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" fill="#dfe8ff" stroke="#dfe8ff" stroke-width="1"/>';
+    var g='<svg viewBox="0 0 24 24">';
+    if(cat==='clear')return g+(night?moon:sun)+'</svg>';
+    if(cat==='part')return g+'<g transform="translate(-3 -3) scale(.75)">'+(night?moon:sun)+'</g><g transform="translate(3 3) scale(.8)">'+cl+'</g></svg>';
+    if(cat==='cloud')return g+cl+'</svg>';
+    if(cat==='fog')return g+'<path d="M4 9h16M3 13h18M6 17h12" '+s+'/></svg>';
+    if(cat==='rain')return g+cl+'<path d="M8 20l1-2M12 21l1-2M16 20l1-2" stroke="#7fd0ff" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    if(cat==='snow')return g+cl+'<path d="M8 20h.01M12 21h.01M16 20h.01" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>';
+    return g+cl+'<path d="M12 14l-2 4h3l-1 4 3-5h-3z" fill="#ffd45e" stroke="#ffd45e" stroke-width=".8"/></svg>';
+  }
   function loadWeather(){
     if(lat===null)return;
-    fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m&timezone=auto')
+    fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day&hourly=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&forecast_days=2&timezone=auto')
       .then(function(r){return r.json()})
       .then(function(j){
-        var t=j.current.temperature_2m;
+        var c=j.current,t=c.temperature_2m;
         $('#temp').textContent=t.toFixed(1)+'°C';
         setK('ext',t.toFixed(1)+' °C');
+        WX.cat=wcat(c.weather_code);WX.night=!c.is_day;WX.loaded=true;
+        $('#wxT').textContent=Math.round(t)+'°';
+        $('#wxC').textContent=WL[WX.cat];
+        $('#wxF').textContent='Ressenti '+Math.round(c.apparent_temperature)+'°';
+        $('#wxW').textContent='Vent '+Math.round(c.wind_speed_10m)+' km/h';
+        $('#wxH').textContent='Humidité '+c.relative_humidity_2m+'%';
+        $('#wxM').textContent='Min '+Math.round(j.daily.temperature_2m_min[0])+'° · Max '+Math.round(j.daily.temperature_2m_max[0])+'°';
+        var h=j.hourly,now=new Date(c.time).getTime(),out='',n=0;
+        for(var i=0;i<h.time.length&&n<4;i++){
+          var d=new Date(h.time[i]);
+          if(d.getTime()>now+1800000||(n===0&&d.getTime()>now-3600000&&d.getTime()<=now+1800000&&false)){
+            if(n===0&&i>0&&false){}
+          }
+          if(d.getTime()>=now+1800000){
+            out+='<div class="wh"><span>'+d.getHours()+' h</span>'+wicon(wcat(h.weather_code[i]),!h.is_day[i])+'<b>'+Math.round(h.temperature_2m[i])+'°</b></div>';n++;
+            i+=1;
+          }
+        }
+        $('#wxHours').innerHTML=out;
+        initParts();
       })
       .catch(function(){setTimeout(loadWeather,60000)});
   }
+  /* Animation météo (canvas léger, seulement visible sur l'accueil) */
+  var cv=$('#wx'),cx=cv.getContext('2d'),P=[],CL=[],fl=0,ST=[],tt=0;
+  function initParts(){
+    P=[];var cat=WX.cat,n=cat==='rain'?70:cat==='storm'?95:cat==='snow'?50:0;
+    for(var i=0;i<n;i++)P.push({x:Math.random()*390,y:Math.random()*258,v:cat==='snow'?.5+Math.random()*.8:6+Math.random()*4,r:1+Math.random()*2});
+    CL=[];var m=cat==='clear'?0:cat==='part'?3:cat==='fog'?4:6;
+    for(var k=0;k<m;k++)CL.push({x:Math.random()*460-40,y:15+Math.random()*100,s:.7+Math.random()*.9,v:.08+Math.random()*.12});
+    ST=[];for(var q=0;q<40;q++)ST.push({x:Math.random()*390,y:Math.random()*150,p:Math.random()*6});
+  }
+  initParts();
+  function cloud(x,y,s,a,col){
+    cx.save();cx.globalAlpha=a;cx.fillStyle=col;
+    [[0,0,34],[30,-12,40],[66,0,32],[34,10,34]].forEach(function(c){
+      var g=cx.createRadialGradient(x+c[0]*s,y+c[1]*s,2,x+c[0]*s,y+c[1]*s,c[2]*s);
+      g.addColorStop(0,col);g.addColorStop(1,'rgba(255,255,255,0)');cx.fillStyle=g;
+      cx.beginPath();cx.arc(x+c[0]*s,y+c[1]*s,c[2]*s,0,6.3);cx.fill()});
+    cx.restore()}
+  function draw(){
+    var cat=WX.cat,night=WX.night,dark=(cat==='rain'||cat==='storm'||cat==='cloud'||cat==='fog');
+    var top,bot;
+    if(night){top=dark?'#141a2b':'#0a1536';bot=dark?'#252d44':'#1c3066'}
+    else if(cat==='clear'||cat==='part'){top='#2f8cff';bot='#8fd0ff'}
+    else if(cat==='snow'){top='#7d93ad';bot='#c7d6e6'}
+    else{top=dark&&cat!=='fog'?'#4a5f7a':'#7f93a8';bot=dark&&cat!=='fog'?'#7c8ea3':'#b4c1ce'}
+    var g=cx.createLinearGradient(0,0,0,258);g.addColorStop(0,top);g.addColorStop(1,bot);
+    cx.globalAlpha=1;cx.fillStyle=g;cx.fillRect(0,0,390,258);
+    tt+=.03;
+    if(night&&(cat==='clear'||cat==='part')){
+      cx.fillStyle='#fff';ST.forEach(function(s){cx.globalAlpha=.4+.5*Math.abs(Math.sin(tt+s.p));cx.fillRect(s.x,s.y,1.6,1.6)});
+      cx.globalAlpha=1;cx.fillStyle='#eef3ff';cx.beginPath();cx.arc(215,62,17,0,6.3);cx.fill();
+      cx.fillStyle=top==='#0a1536'?'#0f2050':'#161e36';cx.beginPath();cx.arc(223,56,15,0,6.3);cx.fill();
+    }else if(!night&&(cat==='clear'||cat==='part')){
+      var sg=cx.createRadialGradient(215,60,4,215,60,110);sg.addColorStop(0,'rgba(255,240,170,.95)');sg.addColorStop(.25,'rgba(255,220,120,.5)');sg.addColorStop(1,'rgba(255,220,120,0)');
+      cx.fillStyle=sg;cx.fillRect(95,0,230,200);
+      cx.save();cx.translate(215,60);cx.rotate(tt*.25);cx.strokeStyle='rgba(255,240,180,.35)';cx.lineWidth=3;
+      for(var r=0;r<12;r++){cx.rotate(.5236);cx.beginPath();cx.moveTo(30,0);cx.lineTo(62+(r%2)*14,0);cx.stroke()}
+      cx.restore();
+      cx.fillStyle='#fff5c2';cx.beginPath();cx.arc(215,60,22,0,6.3);cx.fill();
+    }
+    var col=dark?(night?'rgba(120,135,165,1)':'rgba(235,240,247,1)'):'rgba(255,255,255,1)';
+    CL.forEach(function(c){c.x+=c.v;if(c.x>400)c.x=-130;cloud(c.x,c.y,c.s,dark?.8:.7,col)});
+    cx.globalAlpha=1;
+    if(cat==='rain'||cat==='storm'){
+      cx.strokeStyle='rgba(190,225,255,.7)';cx.lineWidth=1.4;cx.beginPath();
+      P.forEach(function(p){cx.moveTo(p.x,p.y);cx.lineTo(p.x-2,p.y+11);p.y+=p.v;p.x-=.5;if(p.y>258){p.y=-12;p.x=Math.random()*400}});
+      cx.stroke();
+      if(cat==='storm'){if(fl>0){cx.fillStyle='rgba(255,255,255,'+(fl/12)+')';cx.fillRect(0,0,390,258);fl--}else if(Math.random()<.008)fl=10}
+    }else if(cat==='snow'){
+      cx.fillStyle='rgba(255,255,255,.9)';
+      P.forEach(function(p){cx.beginPath();cx.arc(p.x+Math.sin(tt+p.y/30)*6,p.y,p.r,0,6.3);cx.fill();p.y+=p.v;if(p.y>258){p.y=-4;p.x=Math.random()*390}});
+    }
+    cx.globalAlpha=1;
+  }
+  setInterval(function(){
+    if(stage.getAttribute('data-page')!=='home')return;
+    if(stage.classList.contains('reduced')&&(tt*100|0)%3)tt+=.03;
+    draw()},50);
+  draw();
   window.addEventListener('online',loadWeather);
   window.setLocation=function(a,b){lat=a;lon=b;loadWeather()};
   setInterval(loadWeather,1800000);

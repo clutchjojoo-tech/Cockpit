@@ -17,7 +17,16 @@ import android.view.WindowManager;
 import android.app.ActivityOptions;
 import android.graphics.Rect;
 import android.util.DisplayMetrics;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.ComponentInfo;
+import android.content.res.XmlResourceParser;
+import android.database.Cursor;
+import org.xmlpull.v1.XmlPullParser;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -596,6 +605,227 @@ public class MainActivity extends Activity {
         }).start();
     }
 
+    // ------------------------------------------------------------------
+    // Diagnostic CAN : LECTURE SEULE. On regarde ce que le poste expose,
+    // on n'envoie aucune commande à la voiture ni au boîtier CAN.
+    // ------------------------------------------------------------------
+    private static final String[] MOTS_PAQUETS = {
+            "canbus", ".can", "can.", "mcu", "vehicle", "carinfo", "hvac", "tpms",
+            "obd", "door", "climate", "syu", "fyt", "zjinnova", "carset", "cardata"};
+    private static final String[] MOTS_REGLAGES = {
+            "door", "canbus", "can_", "volt", "fuel", "hvac", "mcu", "reverse",
+            "tpms", "brake", "car_", "vehicle", "outtemp", "ac_"};
+    private final List<String> actionsCan = new ArrayList<String>();
+    private BroadcastReceiver recepteurCan;
+
+    private static boolean contientUn(String texte, String[] mots) {
+        String b = texte.toLowerCase(Locale.ROOT);
+        for (String m : mots) {
+            if (b.contains(m)) return true;
+        }
+        return false;
+    }
+
+    private void envoyerRapportCan(String type, String texte) {
+        final String js = "window.setCanReport && window.setCanReport("
+                + JSONObject.quote(type) + "," + JSONObject.quote(texte) + ")";
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                web.evaluateJavascript(js, null);
+            }
+        });
+    }
+
+    private void listerComposants(StringBuilder sb, String titre, ComponentInfo[] liste) {
+        if (liste == null || liste.length == 0) return;
+        sb.append("  ").append(titre).append(" : ");
+        int n = 0;
+        for (ComponentInfo c : liste) {
+            if (n++ >= 12) {
+                sb.append("… (+").append(liste.length - 12).append(")");
+                break;
+            }
+            String nom = c.name == null ? "?" : c.name;
+            int i = nom.lastIndexOf('.');
+            sb.append(i >= 0 ? nom.substring(i + 1) : nom).append(c.exported ? "[ext] " : " ");
+        }
+        sb.append('\n');
+    }
+
+    private void actionsDuManifeste(String paquet) {
+        try {
+            Context c = createPackageContext(paquet, 0);
+            XmlResourceParser p = c.getAssets().openXmlResourceParser("AndroidManifest.xml");
+            int ev;
+            while ((ev = p.next()) != XmlPullParser.END_DOCUMENT) {
+                if (ev == XmlPullParser.START_TAG && "action".equals(p.getName())) {
+                    String a = p.getAttributeValue("http://schemas.android.com/apk/res/android", "name");
+                    if (a != null && !a.startsWith("android.intent.action.MAIN")
+                            && !actionsCan.contains(a) && actionsCan.size() < 250) {
+                        actionsCan.add(a);
+                    }
+                }
+            }
+            p.close();
+        } catch (Exception e) {
+            // Manifeste illisible : on passe.
+        }
+    }
+
+    private String rapportCan() {
+        StringBuilder sb = new StringBuilder();
+        PackageManager pm = getPackageManager();
+        actionsCan.clear();
+        sb.append("1) APPLICATIONS LIÉES AU VÉHICULE\n");
+        try {
+            List<PackageInfo> toutes = pm.getInstalledPackages(PackageManager.GET_SERVICES
+                    | PackageManager.GET_RECEIVERS | PackageManager.GET_PROVIDERS);
+            int n = 0;
+            for (PackageInfo pi : toutes) {
+                String pkg = pi.packageName;
+                if (!contientUn(pkg, MOTS_PAQUETS)) continue;
+                if (pkg.startsWith("com.android.") || pkg.startsWith("com.google.")) continue;
+                if (n++ >= 14) {
+                    sb.append("… (liste coupée)\n");
+                    break;
+                }
+                String nom = "";
+                try {
+                    nom = String.valueOf(pm.getApplicationLabel(pi.applicationInfo));
+                } catch (Exception e) {
+                    // Pas de nom.
+                }
+                sb.append("• ").append(pkg).append(" (").append(nom).append(") v")
+                        .append(pi.versionName).append('\n');
+                listerComposants(sb, "Services", pi.services);
+                listerComposants(sb, "Récepteurs", pi.receivers);
+                listerComposants(sb, "Fournisseurs", pi.providers);
+                actionsDuManifeste(pkg);
+            }
+            if (n == 0) sb.append("Aucune application évidente trouvée.\n");
+        } catch (Exception e) {
+            sb.append("Erreur : ").append(e).append('\n');
+        }
+
+        sb.append("\n2) MESSAGES SYSTÈME ÉCOUTABLES (").append(actionsCan.size()).append(")\n");
+        int k = 0;
+        for (String a : actionsCan) {
+            if (k++ >= 40) {
+                sb.append("…\n");
+                break;
+            }
+            sb.append(a).append('\n');
+        }
+
+        sb.append("\n3) RÉGLAGES ANDROID UTILES\n");
+        Uri[] uris = {Settings.System.CONTENT_URI, Settings.Global.CONTENT_URI, Settings.Secure.CONTENT_URI};
+        String[] noms = {"system", "global", "secure"};
+        int total = 0;
+        for (int i = 0; i < uris.length; i++) {
+            Cursor cur = null;
+            try {
+                cur = getContentResolver().query(uris[i], new String[]{"name", "value"}, null, null, null);
+                while (cur != null && cur.moveToNext() && total < 40) {
+                    String n = cur.getString(0);
+                    if (n != null && contientUn(n, MOTS_REGLAGES)) {
+                        String v = String.valueOf(cur.getString(1));
+                        if (v.length() > 40) v = v.substring(0, 40);
+                        sb.append(noms[i]).append(": ").append(n).append('=').append(v).append('\n');
+                        total++;
+                    }
+                }
+            } catch (Exception e) {
+                // Table illisible : on passe.
+            } finally {
+                if (cur != null) cur.close();
+            }
+        }
+        if (total == 0) sb.append("Rien de trouvé.\n");
+
+        sb.append("\n4) PROPRIÉTÉS DU POSTE\n");
+        try {
+            Process pr = Runtime.getRuntime().exec(new String[]{"getprop"});
+            BufferedReader r = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+            String ligne;
+            int m = 0;
+            while ((ligne = r.readLine()) != null && m < 30) {
+                String b = ligne.toLowerCase(Locale.ROOT);
+                if (b.contains("canbus") || b.contains("mcu") || b.contains("vehicle")
+                        || b.contains("door") || b.contains("hvac") || b.contains("syu")
+                        || b.contains("fyt") || b.contains("zjinnova")) {
+                    sb.append(ligne).append('\n');
+                    m++;
+                }
+            }
+            r.close();
+            if (m == 0) sb.append("Rien de trouvé.\n");
+        } catch (Exception e) {
+            sb.append("Illisible.\n");
+        }
+        return sb.toString();
+    }
+
+    // Écoute 60 s des messages système liés au véhicule (porte, chauffage...).
+    @SuppressWarnings("deprecation")
+    private void ecouterCan() {
+        if (recepteurCan != null) return;
+        if (actionsCan.isEmpty()) {
+            rapportCan();
+        }
+        if (actionsCan.isEmpty()) {
+            envoyerRapportCan("listen", "Aucun message à écouter : fais d'abord l'analyse du poste.");
+            return;
+        }
+        final StringBuilder journal = new StringBuilder();
+        final long debut = System.currentTimeMillis();
+        recepteurCan = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context ctx, Intent in) {
+                if (journal.length() > 6000) return;
+                long s = (System.currentTimeMillis() - debut) / 1000;
+                journal.append(s).append(" s  ").append(in.getAction()).append('\n');
+                Bundle ex = in.getExtras();
+                if (ex != null) {
+                    int c = 0;
+                    for (String cle : ex.keySet()) {
+                        if (c++ >= 8) break;
+                        String v = String.valueOf(ex.get(cle));
+                        if (v.length() > 60) v = v.substring(0, 60);
+                        journal.append("    ").append(cle).append('=').append(v).append('\n');
+                    }
+                }
+            }
+        };
+        IntentFilter f = new IntentFilter();
+        for (String a : actionsCan) f.addAction(a);
+        try {
+            if (Build.VERSION.SDK_INT >= 33) {
+                registerReceiver(recepteurCan, f, Context.RECEIVER_EXPORTED);
+            } else {
+                registerReceiver(recepteurCan, f);
+            }
+        } catch (Exception e) {
+            recepteurCan = null;
+            envoyerRapportCan("listen", "Écoute impossible : " + e);
+            return;
+        }
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (recepteurCan != null) unregisterReceiver(recepteurCan);
+                } catch (Exception e) {
+                    // Déjà arrêté.
+                }
+                recepteurCan = null;
+                envoyerRapportCan("listen", journal.length() == 0
+                        ? "Aucun message reçu pendant 60 s."
+                        : journal.toString());
+            }
+        }, 60000);
+    }
+
     private class Bridge {
         @JavascriptInterface
         public void open(final String id, final String keywords) {
@@ -779,6 +1009,27 @@ public class MainActivity extends Activity {
                 @Override
                 public void run() {
                     ouvrirReglagesBluetooth();
+                }
+            });
+        }
+
+        // Diagnostic CAN (lecture seule).
+        @JavascriptInterface
+        public void canScan() {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    envoyerRapportCan("scan", rapportCan());
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void canListen() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ecouterCan();
                 }
             });
         }
