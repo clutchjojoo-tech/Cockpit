@@ -6,9 +6,17 @@ import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.media.AudioManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.provider.Settings;
+import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.app.ActivityOptions;
+import android.graphics.Rect;
+import android.util.DisplayMetrics;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
@@ -54,6 +62,10 @@ public class MainActivity extends Activity {
 
     // Une seule annonce par démarrage de l'autoradio (tant que le processus vit).
     private static boolean dejaSalue = false;
+
+    // L'animation de démarrage ne se joue qu'une fois par démarrage du poste :
+    // si Android recrée l'écran (retour de ZLink), on retrouve la dernière page.
+    private static boolean demarrageJoue = false;
 
     private WebView web;
     private SharedPreferences prefs;
@@ -108,7 +120,63 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        pleinEcran();
         sendLocation();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            pleinEcran();
+        }
+    }
+
+    // Cache les barres du système pour utiliser tout l'écran.
+    @SuppressWarnings("deprecation")
+    private void pleinEcran() {
+        try {
+            if (Build.VERSION.SDK_INT >= 30) {
+                getWindow().setDecorFitsSystemWindows(false);
+                WindowInsetsController c = getWindow().getInsetsController();
+                if (c != null) {
+                    c.hide(WindowInsets.Type.systemBars());
+                    c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                }
+            } else {
+                getWindow().getDecorView().setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+            }
+        } catch (Exception e) {
+            // On garde les barres du système.
+        }
+    }
+
+    // Essai : lance ZLink dans la moitié droite de l'écran (nécessite le mode fenêtres du système).
+    private void essaiFenetreZlink() {
+        String pkg = prefs.getString("app_carplay", null);
+        if (pkg == null) pkg = zlinkPackage();
+        if (pkg == null) {
+            Toast.makeText(this, "ZLink introuvable", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
+        if (i == null) return;
+        try {
+            DisplayMetrics dm = getResources().getDisplayMetrics();
+            int w = dm.widthPixels, h = dm.heightPixels;
+            ActivityOptions ao = ActivityOptions.makeBasic();
+            ao.setLaunchBounds(new Rect(w / 3, 0, w, h));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
+            startActivity(i, ao.toBundle());
+        } catch (Exception e) {
+            Toast.makeText(this, "Fenêtre non prise en charge par ce poste", Toast.LENGTH_LONG).show();
+        }
     }
 
     // ---------- Voix : message de bienvenue ----------
@@ -441,8 +509,14 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             // version inconnue
         }
+        PackageManager pm = getPackageManager();
+        String fen = "\nFenêtres libres : " + (pm.hasSystemFeature("android.software.freeform_window_management") ? "oui" : "non")
+                + "\nImage dans l'image : " + (pm.hasSystemFeature("android.software.picture_in_picture") ? "oui" : "non");
+        DisplayMetrics dm = getResources().getDisplayMetrics();
         return "Paquet : " + pkg + "\nVersion : " + version
-                + "\nAndroid : " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")";
+                + "\nAndroid : " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")"
+                + "\nÉcran : " + dm.widthPixels + "x" + dm.heightPixels + fen
+                + "\nModèle : " + Build.MANUFACTURER + " " + Build.MODEL;
     }
 
     // ---------- Luminosité, volume, Bluetooth ----------
@@ -709,9 +783,78 @@ public class MainActivity extends Activity {
             });
         }
 
+        // Ouvre les vrais réglages Android du poste.
+        @JavascriptInterface
+        public void androidSettings() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent i = new Intent(Settings.ACTION_SETTINGS);
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(i);
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "Réglages indisponibles", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void testFloat() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    essaiFenetreZlink();
+                }
+            });
+        }
+
         @JavascriptInterface
         public String zlinkInfo() {
             return MainActivity.this.zlinkInfo();
+        }
+
+        // Vrai la première fois seulement (animation de démarrage), faux ensuite.
+        @JavascriptInterface
+        public boolean splashNeeded() {
+            if (demarrageJoue) return false;
+            demarrageJoue = true;
+            return true;
+        }
+
+        // Résolution réelle de l'écran vue par Android (lecture seule).
+        @JavascriptInterface
+        @SuppressWarnings("deprecation")
+        public String screenInfo() {
+            try {
+                DisplayMetrics real = new DisplayMetrics();
+                getWindowManager().getDefaultDisplay().getRealMetrics(real);
+                DisplayMetrics app = getResources().getDisplayMetrics();
+                return "Écran réel (Android) : " + real.widthPixels + " × " + real.heightPixels
+                        + " px, " + real.densityDpi + " dpi\n"
+                        + "Zone de l'application : " + app.widthPixels + " × " + app.heightPixels
+                        + " px (densité " + app.density + ")";
+            } catch (Exception e) {
+                return "Indisponible";
+            }
+        }
+
+        // "wifi", "mobile", "none" ou "na" : lecture seule de l'état du réseau.
+        @JavascriptInterface
+        @SuppressWarnings("deprecation")
+        public String netInfo() {
+            try {
+                ConnectivityManager cm =
+                        (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+                if (cm == null) return "na";
+                NetworkInfo ni = cm.getActiveNetworkInfo();
+                if (ni == null || !ni.isConnected()) return "none";
+                if (ni.getType() == ConnectivityManager.TYPE_WIFI) return "wifi";
+                return "mobile";
+            } catch (Exception e) {
+                return "na";
+            }
         }
     }
 }
