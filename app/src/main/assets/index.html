@@ -311,7 +311,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 <div class="sr"><div class="l">Résolution de l'écran<small>Ce que voit réellement Android et l'interface</small></div><button class="mini" id="resBtn">Afficher</button></div>
 <div class="txt" id="rinfo"></div>
 <div class="sr"><div class="l">Diagnostic CAN (lecture seule)<small>Cherche comment le poste connaît les portes et le chauffage. N'envoie rien à la voiture.</small></div><button class="mini" id="canScan">Analyser</button></div>
-<div class="sr"><div class="l">Écouter pendant 60 secondes<small>Appuie, puis ouvre une porte et monte le chauffage</small></div><button class="mini" id="canListen">Écouter</button></div>
+<div class="sr"><div class="l">Observer 60 secondes<small>Appuie, puis ouvre une porte et monte le chauffage</small></div><button class="mini" id="canListen">Observer</button></div>
 <div class="txt" id="canOut"></div>
 <div class="sr"><div class="l">Diagnostic ZLink<small>Version et informations du système</small></div><button class="mini" id="zdiag">Afficher</button></div>
 <div class="txt" id="zinfo"></div>
@@ -590,8 +590,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
   });
   $('#canListen').addEventListener('click',function(){
     if(!A){showTxt('#canOut','Disponible uniquement sur le poste.');return}
-    showTxt('#canOut','Écoute pendant 60 secondes : ouvre une porte, monte le chauffage… Le résultat s\'affichera ici.');
-    call(function(){A.canListen()});
+    showTxt('#canOut','Observation 60 s : ouvre une porte, monte le chauffage… Les changements s\'affichent ici.');
+    call(function(){A.canWatch()});
   });
   window.setCanReport=function(type,txt){showTxt('#canOut',txt)};
 

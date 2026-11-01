@@ -637,6 +637,78 @@ public class MainActivity extends Activity {
         });
     }
 
+    // Photographie de toutes les propriétés du poste et des réglages Android (lecture seule).
+    private java.util.Map<String, String> photoEtat() {
+        java.util.Map<String, String> m = new java.util.HashMap<String, String>();
+        try {
+            Process pr = Runtime.getRuntime().exec("getprop");
+            BufferedReader br = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+            String l;
+            while ((l = br.readLine()) != null) {
+                int a = l.indexOf("]: [");
+                if (l.startsWith("[") && a > 0) {
+                    m.put("prop " + l.substring(1, a), l.substring(a + 4, l.length() - (l.endsWith("]") ? 1 : 0)));
+                }
+            }
+            br.close();
+        } catch (Exception e) { }
+        String[] tables = {"system", "global", "secure"};
+        for (String tb : tables) {
+            try {
+                Cursor c = getContentResolver().query(Uri.parse("content://settings/" + tb),
+                        new String[]{"name", "value"}, null, null, null);
+                if (c != null) {
+                    while (c.moveToNext()) m.put(tb + " " + c.getString(0), c.getString(1));
+                    c.close();
+                }
+            } catch (Exception e) { }
+        }
+        return m;
+    }
+
+    private boolean cleBruyante(String k) {
+        String s = k.toLowerCase(Locale.ROOT);
+        return s.contains("statistics") || s.contains("time") || s.contains("uptime")
+                || s.contains("ticks") || s.contains("wifi") || s.contains("ble_") || s.contains("battery_stats")
+                || s.contains("sys.") || s.contains("boot") || s.contains("netd");
+    }
+
+    // Observe 60 s : note toute propriété qui change quand tu ouvres une porte / changes le chauffage.
+    private void observerCan() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                java.util.Map<String, String> avant = photoEtat();
+                StringBuilder sb = new StringBuilder();
+                long debut = System.currentTimeMillis();
+                int dernierEnvoi = 0;
+                while (System.currentTimeMillis() - debut < 60000) {
+                    try { Thread.sleep(900); } catch (Exception e) { }
+                    java.util.Map<String, String> apres = photoEtat();
+                    long s = (System.currentTimeMillis() - debut) / 1000;
+                    for (java.util.Map.Entry<String, String> en : apres.entrySet()) {
+                        String k = en.getKey(), v = en.getValue(), o = avant.get(k);
+                        if (cleBruyante(k)) continue;
+                        if (o == null || !o.equals(v)) {
+                            if (sb.length() < 5000) {
+                                sb.append("+").append(s).append("s ").append(k).append(" : ")
+                                  .append(o == null ? "(nouveau)" : o).append(" -> ").append(v).append("\n");
+                            }
+                        }
+                    }
+                    avant = apres;
+                    if (sb.length() != dernierEnvoi) {
+                        dernierEnvoi = sb.length();
+                        envoyerRapportCan("watch", "Observation en cours…\n" + sb);
+                    }
+                }
+                envoyerRapportCan("watch", sb.length() == 0
+                        ? "Observation terminée : aucun changement détecté."
+                        : "Observation terminée. Changements :\n" + sb);
+            }
+        }).start();
+    }
+
     private void listerComposants(StringBuilder sb, String titre, ComponentInfo[] liste) {
         if (liste == null || liste.length == 0) return;
         sb.append("  ").append(titre).append(" : ");
@@ -1032,6 +1104,11 @@ public class MainActivity extends Activity {
                     ecouterCan();
                 }
             });
+        }
+
+        @JavascriptInterface
+        public void canWatch() {
+            observerCan();
         }
 
         // Ouvre les vrais réglages Android du poste.
