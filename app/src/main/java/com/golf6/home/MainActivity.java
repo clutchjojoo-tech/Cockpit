@@ -6,6 +6,8 @@ import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
+import java.io.File;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -35,9 +37,24 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.BitmapFactory;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Paint;
+import android.content.ActivityNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
+import android.content.ComponentName;
+import android.media.session.MediaController;
+import android.media.session.PlaybackState;
+import android.media.MediaMetadata;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -65,9 +82,9 @@ import java.util.Set;
 public class MainActivity extends Activity {
 
     // Prénom prononcé dans le message d'accueil.
-    private static final String PRENOM = "Jonathan";
+    private static final String PRENOM = "Jonathan"; // valeur par défaut, modifiable dans Réglages > Ma voiture
     // Délai (ms) avant la phrase, pour la caler sur l'animation de démarrage.
-    private static final long DELAI_VOIX = 1400;
+    private static final long DELAI_VOIX = 300;
 
     // Une seule annonce par démarrage de l'autoradio (tant que le processus vit).
     private static boolean dejaSalue = false;
@@ -184,7 +201,7 @@ public class MainActivity extends Activity {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
             startActivity(i, ao.toBundle());
         } catch (Exception e) {
-            Toast.makeText(this, "Fenêtre non prise en charge par ce poste", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, L("Fenêtre non prise en charge par ce poste", "Window not supported by this unit"), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -198,13 +215,21 @@ public class MainActivity extends Activity {
                     return;
                 }
                 try {
-                    int r = tts.setLanguage(Locale.FRANCE);
+                    int r = tts.setLanguage(localeVoix());
                     if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
                         return;
                     }
-                    choisirVoixFeminine();
+                    if ("fr".equals(langue())) {
+                        choisirVoixFeminine();
+                    }
                     tts.setSpeechRate(0.95f);
                     ttsPret = true;
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            preparerSalutations();
+                        }
+                    }, 6000);
                     if (salutationEnAttente) {
                         salutationEnAttente = false;
                         saluer();
@@ -223,6 +248,9 @@ public class MainActivity extends Activity {
                     if (!prefs.getBoolean("voice_on", true)) {
                         return;
                     }
+                    if (jouerSalutCache()) {
+                        return;
+                    }
                     if (ttsPret) {
                         saluer();
                     } else {
@@ -233,24 +261,131 @@ public class MainActivity extends Activity {
         }
     }
 
+    private String langue() {
+        String l = prefs.getString("lang", "fr");
+        return l == null ? "fr" : l;
+    }
+
+    /** Petit utilitaire : texte français ou anglais selon la langue choisie. */
+    private String L(String fr, String en) {
+        return "fr".equals(langue()) ? fr : en;
+    }
+
+    private String prenom() {
+        String s = prefs.getString("prenom", PRENOM);
+        return s == null ? "" : s.trim();
+    }
+
+    private Locale localeVoix() {
+        String l = langue();
+        return "fr".equals(l) ? Locale.FRANCE : new Locale(l);
+    }
+
     private String phraseSalutation() {
         int h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
-        String mot;
-        if (h >= 5 && h < 12) {
-            mot = "Bonjour";
-        } else if (h >= 12 && h < 18) {
-            mot = "Bon après-midi";
+        return phrasePour((h >= 5 && h < 12) ? 0 : ((h >= 12 && h < 18) ? 1 : 2));
+    }
+
+    private String phrasePour(int p) {
+        String l = langue();
+        String[] mots;
+        if ("en".equals(l)) {
+            mots = new String[]{"Good morning", "Good afternoon", "Good evening"};
+        } else if ("es".equals(l)) {
+            mots = new String[]{"Buenos días", "Buenas tardes", "Buenas noches"};
+        } else if ("de".equals(l)) {
+            mots = new String[]{"Guten Morgen", "Guten Tag", "Guten Abend"};
+        } else if ("it".equals(l)) {
+            mots = new String[]{"Buongiorno", "Buon pomeriggio", "Buonasera"};
+        } else if ("pt".equals(l)) {
+            mots = new String[]{"Bom dia", "Boa tarde", "Boa noite"};
+        } else if ("nl".equals(l)) {
+            mots = new String[]{"Goedemorgen", "Goedemiddag", "Goedenavond"};
+        } else if ("pl".equals(l)) {
+            mots = new String[]{"Dzień dobry", "Dzień dobry", "Dobry wieczór"};
+        } else if ("ro".equals(l)) {
+            mots = new String[]{"Bună dimineața", "Bună ziua", "Bună seara"};
+        } else if ("tr".equals(l)) {
+            mots = new String[]{"Günaydın", "İyi günler", "İyi akşamlar"};
         } else {
-            mot = "Bonsoir";
+            mots = new String[]{"Bonjour", "Bon après-midi", "Bonsoir"};
         }
-        return mot + " " + PRENOM;
+        String n = prenom();
+        return n.isEmpty() ? mots[p] : mots[p] + " " + n;
+    }
+
+    // ---- Phrase pré-enregistrée : jouée tout de suite, sans attendre la voix de synthèse ----
+    private MediaPlayer salutPlayer;
+
+    private final Runnable regenerer = new Runnable() {
+        @Override
+        public void run() {
+            preparerSalutations();
+        }
+    };
+
+    private File fichierSalut(String phrase) {
+        return new File(getCacheDir(), "salut_" + Integer.toHexString((langue() + "|" + phrase).hashCode()) + ".wav");
+    }
+
+    private boolean jouerSalutCache() {
+        try {
+            File f = fichierSalut(phraseSalutation());
+            if (!f.exists() || f.length() < 2000) {
+                return false;
+            }
+            if (salutPlayer != null) {
+                try {
+                    salutPlayer.release();
+                } catch (Exception e) {
+                    // ignoré
+                }
+            }
+            salutPlayer = new MediaPlayer();
+            salutPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            salutPlayer.setDataSource(f.getAbsolutePath());
+            salutPlayer.prepare();
+            float vol = prefs.getInt("voice_vol", 90) / 100f;
+            salutPlayer.setVolume(vol, vol);
+            salutPlayer.start();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Enregistre les trois phrases (matin, après-midi, soir) pour les jouer instantanément au prochain démarrage. */
+    private void preparerSalutations() {
+        if (!ttsPret || tts == null) {
+            return;
+        }
+        try {
+            tts.setLanguage(localeVoix());
+            for (int p = 0; p < 3; p++) {
+                String phrase = phrasePour(p);
+                File f = fichierSalut(phrase);
+                if (!f.exists() || f.length() < 2000) {
+                    tts.synthesizeToFile(phrase, new Bundle(), f, "cache" + p);
+                }
+            }
+        } catch (Exception e) {
+            // Facultatif : sans cache, la voix de synthèse prend le relais.
+        }
     }
 
     private void saluer() {
+        if (jouerSalutCache()) {
+            return;
+        }
         try {
             Bundle params = new Bundle();
             float vol = prefs.getInt("voice_vol", 90) / 100f;
             params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, vol);
+            try {
+                tts.setLanguage(localeVoix());
+            } catch (Exception e2) {
+                // On garde la langue actuelle de la voix.
+            }
             tts.speak(phraseSalutation(), TextToSpeech.QUEUE_FLUSH, params, "salut");
         } catch (Exception e) {
             // On ignore : la voix est facultative.
@@ -316,6 +451,331 @@ public class MainActivity extends Activity {
     @Override
     public void onBackPressed() {
         // Écran d'accueil : le bouton retour ne fait rien.
+    }
+
+    // ---------- Alerte de vitesse, parole ----------
+
+    private boolean alerteDeclenchee = false;
+
+    private String phraseAlerte() {
+        String l = langue();
+        if ("en".equals(l)) return "Warning, high speed";
+        if ("es".equals(l)) return "Atención, velocidad elevada";
+        if ("de".equals(l)) return "Achtung, hohe Geschwindigkeit";
+        if ("it".equals(l)) return "Attenzione, velocità elevata";
+        if ("pt".equals(l)) return "Atenção, velocidade elevada";
+        if ("nl".equals(l)) return "Let op, hoge snelheid";
+        if ("pl".equals(l)) return "Uwaga, wysoka prędkość";
+        if ("ro".equals(l)) return "Atenție, viteză ridicată";
+        if ("tr".equals(l)) return "Dikkat, yüksek hız";
+        return "Attention, vitesse élevée";
+    }
+
+    private void parler(String texte) {
+        if (!ttsPret || tts == null || texte == null || !prefs.getBoolean("voice_on", true)) {
+            return;
+        }
+        try {
+            Bundle params = new Bundle();
+            float vol = prefs.getInt("voice_vol", 90) / 100f;
+            params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, vol);
+            try {
+                tts.setLanguage(localeVoix());
+            } catch (Exception e2) {
+                // On garde la langue actuelle de la voix.
+            }
+            tts.speak(texte, TextToSpeech.QUEUE_FLUSH, params, "alerte");
+        } catch (Exception e) {
+            // La voix est facultative.
+        }
+    }
+
+    // ---------- Fond d'écran personnalisé ----------
+
+    private static final int REQ_FOND = 7711;
+    private static final int REQ_EXPORT = 7712;
+    private static final int REQ_IMPORT = 7713;
+    private String exportEnAttente = null;
+    private String fondSlot = "jour";
+
+    private void fondJs(final String js) {
+        web.post(new Runnable() {
+            @Override
+            public void run() {
+                web.evaluateJavascript(js, null);
+            }
+        });
+    }
+
+    private void enregistrerFond(Bitmap src, String nom, float r, float g, float b) throws Exception {
+        Bitmap out = src;
+        if (r != 1f || g != 1f || b != 1f) {
+            out = Bitmap.createBitmap(src.getWidth(), src.getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas c = new Canvas(out);
+            ColorMatrix cm = new ColorMatrix(new float[]{
+                    r, 0, 0, 0, 0,
+                    0, g, 0, 0, 0,
+                    0, 0, b, 0, 0,
+                    0, 0, 0, 1, 0});
+            Paint p = new Paint();
+            p.setColorFilter(new ColorMatrixColorFilter(cm));
+            c.drawBitmap(src, 0, 0, p);
+        }
+        FileOutputStream fo = new FileOutputStream(new File(getFilesDir(), nom));
+        try {
+            out.compress(Bitmap.CompressFormat.JPEG, 88, fo);
+        } finally {
+            fo.close();
+        }
+    }
+
+    private void traiterFond(final Uri uri) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    BitmapFactory.Options o = new BitmapFactory.Options();
+                    o.inJustDecodeBounds = true;
+                    InputStream in = getContentResolver().openInputStream(uri);
+                    BitmapFactory.decodeStream(in, null, o);
+                    in.close();
+                    int ech = 1;
+                    while (o.outWidth / (ech * 2) >= 1920 && o.outHeight / (ech * 2) >= 1080) {
+                        ech *= 2;
+                    }
+                    BitmapFactory.Options o2 = new BitmapFactory.Options();
+                    o2.inSampleSize = ech;
+                    in = getContentResolver().openInputStream(uri);
+                    Bitmap full = BitmapFactory.decodeStream(in, null, o2);
+                    in.close();
+                    if (full == null) {
+                        throw new Exception("image");
+                    }
+                    int w = full.getWidth(), h = full.getHeight();
+                    int cw = w, ch = h;
+                    if (w * 9 > h * 16) {
+                        cw = h * 16 / 9;
+                    } else {
+                        ch = w * 9 / 16;
+                    }
+                    Bitmap crop = Bitmap.createBitmap(full, (w - cw) / 2, (h - ch) / 2, cw, ch);
+                    Bitmap fin = Bitmap.createScaledBitmap(crop, 1280, 720, true);
+                    String slot = fondSlot;
+                    enregistrerFond(fin, "fond_" + slot + ".jpg", 1f, 1f, 1f);
+                    SharedPreferences.Editor ed = prefs.edit();
+                    ed.putBoolean("bg_u_" + slot, true);
+                    if ("jour".equals(slot)) {
+                        // Les versions de nuit non choisies sont déduites de la photo de jour.
+                        if (!prefs.getBoolean("bg_u_on", false)) {
+                            enregistrerFond(fin, "fond_on.jpg", 0.42f, 0.48f, 0.68f);
+                        }
+                        if (!prefs.getBoolean("bg_u_off", false)) {
+                            enregistrerFond(fin, "fond_off.jpg", 0.26f, 0.30f, 0.46f);
+                        }
+                    }
+                    ed.putLong("bg_stamp", System.currentTimeMillis()).apply();
+                    fondJs("window.bgDone&&window.bgDone(true)");
+                } catch (Throwable e) {
+                    fondJs("window.bgDone&&window.bgDone(false)");
+                }
+            }
+        }).start();
+    }
+
+    private String lireFondBase64(String nom) {
+        try {
+            File f = new File(getFilesDir(), nom);
+            if (!f.exists()) {
+                return "";
+            }
+            byte[] buf = new byte[(int) f.length()];
+            InputStream in = new java.io.FileInputStream(f);
+            int n = 0;
+            while (n < buf.length) {
+                int r = in.read(buf, n, buf.length - n);
+                if (r < 0) {
+                    break;
+                }
+                n += r;
+            }
+            in.close();
+            return "data:image/jpeg;base64," + Base64.encodeToString(buf, Base64.NO_WRAP);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (res != RESULT_OK || data == null || data.getData() == null) {
+            return;
+        }
+        final Uri uri = data.getData();
+        if (req == REQ_FOND) {
+            traiterFond(uri);
+        } else if (req == REQ_EXPORT) {
+            final String texte = exportEnAttente;
+            exportEnAttente = null;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    boolean ok = false;
+                    try {
+                        OutputStream os = getContentResolver().openOutputStream(uri);
+                        os.write(texte.getBytes("UTF-8"));
+                        os.close();
+                        ok = true;
+                    } catch (Exception e) {
+                        // message d'erreur côté page
+                    }
+                    fondJs("window.exportDone&&window.exportDone(" + ok + ")");
+                }
+            }).start();
+        } else if (req == REQ_IMPORT) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        InputStream in = getContentResolver().openInputStream(uri);
+                        ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                        byte[] b = new byte[4096];
+                        int n;
+                        while ((n = in.read(b)) > 0 && bo.size() < 300000) {
+                            bo.write(b, 0, n);
+                        }
+                        in.close();
+                        String t = bo.toString("UTF-8");
+                        fondJs("window.importDone&&window.importDone(" + JSONObject.quote(t) + ")");
+                    } catch (Exception e) {
+                        fondJs("window.importDone&&window.importDone(null)");
+                    }
+                }
+            }).start();
+        }
+    }
+
+    // ---------- Vitesse GPS (widget d'accueil) ----------
+
+    private LocationListener gpsListener;
+
+    private void gpsActif(boolean on) {
+        try {
+            LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+            if (gpsListener != null) {
+                lm.removeUpdates(gpsListener);
+                gpsListener = null;
+            }
+            if (!on || !lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                return;
+            }
+            gpsListener = new LocationListener() {
+                @Override
+                public void onLocationChanged(Location l) {
+                    float v = l.hasSpeed() ? l.getSpeed() * 3.6f : 0f;
+                    float b = l.hasBearing() ? l.getBearing() : -1f;
+                    double alt = l.hasAltitude() ? l.getAltitude() : -9999d;
+                    int seuil = prefs.getInt("speed_alert", 0);
+                    if (seuil > 0) {
+                        if (v > seuil && !alerteDeclenchee) {
+                            alerteDeclenchee = true;
+                            final String ph = phraseAlerte();
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    parler(ph);
+                                }
+                            });
+                        } else if (v < seuil - 5) {
+                            alerteDeclenchee = false;
+                        }
+                    }
+                    final String js = String.format(Locale.US,
+                            "window.setGps && window.setGps(%.1f,%.0f,%.0f)", v, b, alt);
+                    web.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            web.evaluateJavascript(js, null);
+                        }
+                    });
+                }
+
+                @Override
+                public void onStatusChanged(String provider, int status, Bundle extras) {
+                }
+
+                @Override
+                public void onProviderEnabled(String provider) {
+                }
+
+                @Override
+                public void onProviderDisabled(String provider) {
+                }
+            };
+            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, gpsListener);
+        } catch (SecurityException e) {
+            // Pas de permission de localisation : le widget affiche « -- ».
+        } catch (Exception e) {
+            // Le GPS est facultatif.
+        }
+    }
+
+    // ---------- Lecteur de musique (widget facultatif) ----------
+
+    private boolean accesNotifications() {
+        try {
+            String s = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+            return s != null && s.contains(getPackageName());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private MediaController controleurActif() {
+        try {
+            android.media.session.MediaSessionManager msm =
+                    (android.media.session.MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE);
+            java.util.List<MediaController> l = msm.getActiveSessions(new ComponentName(this, MediaListener.class));
+            MediaController premier = null;
+            for (MediaController c : l) {
+                if (premier == null) {
+                    premier = c;
+                }
+                PlaybackState st = c.getPlaybackState();
+                if (st != null && st.getState() == PlaybackState.STATE_PLAYING) {
+                    return c;
+                }
+            }
+            return premier;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String infosMusique() {
+        org.json.JSONObject o = new org.json.JSONObject();
+        try {
+            boolean acces = accesNotifications();
+            o.put("access", acces);
+            if (acces) {
+                MediaController c = controleurActif();
+                if (c != null) {
+                    MediaMetadata m = c.getMetadata();
+                    String titre = m == null ? null : m.getString(MediaMetadata.METADATA_KEY_TITLE);
+                    String artiste = m == null ? null : m.getString(MediaMetadata.METADATA_KEY_ARTIST);
+                    PlaybackState st = c.getPlaybackState();
+                    o.put("title", titre == null ? "" : titre);
+                    o.put("artist", artiste == null ? "" : artiste);
+                    o.put("playing", st != null && st.getState() == PlaybackState.STATE_PLAYING);
+                    o.put("has", true);
+                } else {
+                    o.put("has", false);
+                }
+            }
+        } catch (Exception e) {
+            // On renvoie ce qu'on a.
+        }
+        return o.toString();
     }
 
     // ---------- Localisation (météo) ----------
@@ -423,7 +883,7 @@ public class MainActivity extends Activity {
             pkgs[n] = all.get(n).activityInfo.packageName;
         }
         new AlertDialog.Builder(this)
-                .setTitle("Choisis l'application à ouvrir")
+                .setTitle(L("Choisis l'application à ouvrir", "Choose the app to open"))
                 .setItems(labels, new android.content.DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(android.content.DialogInterface d, int which) {
@@ -568,7 +1028,7 @@ public class MainActivity extends Activity {
         try {
             startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
         } catch (Exception e) {
-            Toast.makeText(this, "Réglages Bluetooth introuvables sur ce poste", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, L("Réglages Bluetooth introuvables sur ce poste", "Bluetooth settings not found on this unit"), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -679,32 +1139,36 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 java.util.Map<String, String> avant = photoEtat();
-                StringBuilder sb = new StringBuilder();
+                StringBuilder prio = new StringBuilder();
+                StringBuilder autres = new StringBuilder();
                 long debut = System.currentTimeMillis();
-                int dernierEnvoi = 0;
+                int dernier = 0;
                 while (System.currentTimeMillis() - debut < 60000) {
-                    try { Thread.sleep(900); } catch (Exception e) { }
+                    try { Thread.sleep(700); } catch (Exception e) { }
                     java.util.Map<String, String> apres = photoEtat();
                     long s = (System.currentTimeMillis() - debut) / 1000;
                     for (java.util.Map.Entry<String, String> en : apres.entrySet()) {
                         String k = en.getKey(), v = en.getValue(), o = avant.get(k);
-                        if (cleBruyante(k)) continue;
-                        if (o == null || !o.equals(v)) {
-                            if (sb.length() < 5000) {
-                                sb.append("+").append(s).append("s ").append(k).append(" : ")
-                                  .append(o == null ? "(nouveau)" : o).append(" -> ").append(v).append("\n");
-                            }
-                        }
+                        if (v == null || o == null || o.equals(v)) continue;
+                        String kl = k.toLowerCase(Locale.ROOT);
+                        if (cleBruyante(k) || kl.contains("gps")) continue;
+                        String ligne = "+" + s + "s " + k + " : " + o + " -> " + v + "\n";
+                        boolean important = kl.contains("cem") || kl.contains("door") || kl.contains("can")
+                                || kl.contains("air") || kl.contains("temp") || kl.contains("heat")
+                                || kl.contains("hvac") || kl.contains("fan") || kl.contains("vendor") || kl.contains("mcu");
+                        if (important) { if (prio.length() < 3500) prio.append(ligne); }
+                        else if (autres.length() < 1500) autres.append(ligne);
                     }
                     avant = apres;
-                    if (sb.length() != dernierEnvoi) {
-                        dernierEnvoi = sb.length();
-                        envoyerRapportCan("watch", "Observation en cours…\n" + sb);
+                    int n = prio.length() + autres.length();
+                    if (n != dernier) {
+                        dernier = n;
+                        envoyerRapportCan("watch", "Observation en cours…\n" + prio + (autres.length() > 0 ? "--- autres ---\n" + autres : ""));
                     }
                 }
-                envoyerRapportCan("watch", sb.length() == 0
+                envoyerRapportCan("watch", (prio.length() + autres.length() == 0)
                         ? "Observation terminée : aucun changement détecté."
-                        : "Observation terminée. Changements :\n" + sb);
+                        : "Observation terminée.\n" + prio + (autres.length() > 0 ? "--- autres ---\n" + autres : ""));
             }
         }).start();
     }
@@ -910,6 +1374,27 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void setApp(String id, String pkg) {
+            if (id != null && id.matches("[a-z]{2,12}") && pkg != null && pkg.matches("[A-Za-z0-9._]{3,120}")
+                    && getPackageManager().getLaunchIntentForPackage(pkg) != null) {
+                prefs.edit().putString("app_" + id, pkg).apply();
+            }
+        }
+
+        @JavascriptInterface
+        public String guessApp(String id, String keywords) {
+            try {
+                String pkg = prefs.getString("app_" + id, null);
+                if (pkg == null) {
+                    pkg = findByKeywords(keywords.split(","));
+                }
+                return pkg == null ? "" : pkg;
+            } catch (Exception e) {
+                return "";
+            }
+        }
+
+        @JavascriptInterface
         public void choose(final String id) {
             runOnUiThread(new Runnable() {
                 @Override
@@ -945,6 +1430,253 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void setLang(String code) {
+            if (code != null && code.matches("[a-z]{2}")) {
+                String ancien = prefs.getString("lang", "fr");
+                prefs.edit().putString("lang", code).apply();
+                if (!code.equals(ancien)) {
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            preparerSalutations();
+                        }
+                    }, 1500);
+                }
+            }
+        }
+
+        @JavascriptInterface
+        public void gpsOn(final boolean on) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    gpsActif(on);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String getMedia() {
+            return infosMusique();
+        }
+
+        @JavascriptInterface
+        public void mediaCmd(final String cmd) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        MediaController c = controleurActif();
+                        if (c == null) {
+                            return;
+                        }
+                        if ("next".equals(cmd)) {
+                            c.getTransportControls().skipToNext();
+                        } else if ("prev".equals(cmd)) {
+                            c.getTransportControls().skipToPrevious();
+                        } else {
+                            PlaybackState st = c.getPlaybackState();
+                            if (st != null && st.getState() == PlaybackState.STATE_PLAYING) {
+                                c.getTransportControls().pause();
+                            } else {
+                                c.getTransportControls().play();
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Commande ignorée.
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void openNotifAccess() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this,
+                                L("Réglage indisponible sur ce poste", "Setting not available on this unit"),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void checkUpdate(final String adresse) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    String texte = "";
+                    try {
+                        if (adresse != null && adresse.startsWith("https://")) {
+                            HttpURLConnection c = (HttpURLConnection) new URL(adresse).openConnection();
+                            c.setConnectTimeout(8000);
+                            c.setReadTimeout(8000);
+                            InputStream in = c.getInputStream();
+                            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                            byte[] b = new byte[2048];
+                            int n;
+                            while ((n = in.read(b)) > 0 && bo.size() < 20000) {
+                                bo.write(b, 0, n);
+                            }
+                            in.close();
+                            texte = bo.toString("UTF-8");
+                        }
+                    } catch (Exception e) {
+                        texte = "";
+                    }
+                    fondJs("window.updateInfo&&window.updateInfo(" + JSONObject.quote(texte) + ")");
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void openUrl(final String adresse) {
+            if (adresse == null || !adresse.startsWith("https://")) {
+                return;
+            }
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(adresse)));
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, L("Aucun navigateur sur ce poste",
+                                "No browser on this unit"), Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void pickBackground(final String slot) {
+            if ("jour".equals(slot) || "on".equals(slot) || "off".equals(slot)) {
+                fondSlot = slot;
+            } else {
+                fondSlot = "jour";
+            }
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+                        i.setType("image/*");
+                        i.addCategory(Intent.CATEGORY_OPENABLE);
+                        startActivityForResult(i, REQ_FOND);
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, L("Aucun sélecteur de photos sur ce poste",
+                                "No photo picker on this unit"), Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public long getBgStamp() {
+            return prefs.getLong("bg_stamp", 0L);
+        }
+
+        @JavascriptInterface
+        public String getBgFlags() {
+            return (prefs.getBoolean("bg_u_jour", false) ? "jour," : "")
+                    + (prefs.getBoolean("bg_u_on", false) ? "on," : "")
+                    + (prefs.getBoolean("bg_u_off", false) ? "off," : "");
+        }
+
+        @JavascriptInterface
+        public String getBg(String which) {
+            if ("jour".equals(which)) return lireFondBase64("fond_jour.jpg");
+            if ("on".equals(which)) return lireFondBase64("fond_on.jpg");
+            if ("off".equals(which)) return lireFondBase64("fond_off.jpg");
+            return "";
+        }
+
+        @JavascriptInterface
+        public void resetBackground() {
+            new File(getFilesDir(), "fond_jour.jpg").delete();
+            new File(getFilesDir(), "fond_on.jpg").delete();
+            new File(getFilesDir(), "fond_off.jpg").delete();
+            prefs.edit().remove("bg_stamp").remove("bg_u_jour").remove("bg_u_on").remove("bg_u_off").apply();
+        }
+
+        @JavascriptInterface
+        public void setSpeedAlert(int kmh) {
+            prefs.edit().putInt("speed_alert", Math.max(0, Math.min(300, kmh))).apply();
+            alerteDeclenchee = false;
+        }
+
+        @JavascriptInterface
+        public int getSpeedAlert() {
+            return prefs.getInt("speed_alert", 0);
+        }
+
+        @JavascriptInterface
+        public void speak(final String texte) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    parler(texte);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void exportSettings(final String json) {
+            exportEnAttente = json;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                        i.setType("application/json");
+                        i.addCategory(Intent.CATEGORY_OPENABLE);
+                        i.putExtra(Intent.EXTRA_TITLE, "accueil-golf6-reglages.json");
+                        startActivityForResult(i, REQ_EXPORT);
+                    } catch (Exception e) {
+                        fondJs("window.exportDone&&window.exportDone(false)");
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void importSettings() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        i.setType("*/*");
+                        i.addCategory(Intent.CATEGORY_OPENABLE);
+                        startActivityForResult(i, REQ_IMPORT);
+                    } catch (Exception e) {
+                        fondJs("window.importDone&&window.importDone(null)");
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String getPrenom() {
+            return prenom();
+        }
+
+        @JavascriptInterface
+        public void setPrenom(String nom) {
+            String n = nom == null ? "" : nom.replaceAll("[\\p{Cntrl}<>]", "").trim();
+            if (n.length() > 24) {
+                n = n.substring(0, 24);
+            }
+            prefs.edit().putString("prenom", n).apply();
+            handler.removeCallbacks(regenerer);
+            handler.postDelayed(regenerer, 2500);
+        }
+
+        @JavascriptInterface
         public void testVoice() {
             runOnUiThread(new Runnable() {
                 @Override
@@ -952,7 +1684,7 @@ public class MainActivity extends Activity {
                     if (ttsPret) {
                         saluer();
                     } else {
-                        Toast.makeText(MainActivity.this, "Voix indisponible : installe le français dans la synthèse vocale",
+                        Toast.makeText(MainActivity.this, L("Voix indisponible : installe la langue choisie dans la synthèse vocale", "Voice unavailable: install the chosen language in the text-to-speech settings"),
                                 Toast.LENGTH_LONG).show();
                     }
                 }
@@ -995,7 +1727,7 @@ public class MainActivity extends Activity {
                                 Uri.parse("package:" + getPackageName()));
                         startActivity(i);
                     } catch (Exception e) {
-                        Toast.makeText(MainActivity.this, "Réglage indisponible sur ce poste", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, L("Réglage indisponible sur ce poste", "Setting not available on this unit"), Toast.LENGTH_SHORT).show();
                     }
                 }
             });
@@ -1122,7 +1854,7 @@ public class MainActivity extends Activity {
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         startActivity(i);
                     } catch (Exception e) {
-                        Toast.makeText(MainActivity.this, "Réglages indisponibles", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, L("Réglages indisponibles", "Settings not available"), Toast.LENGTH_SHORT).show();
                     }
                 }
             });
