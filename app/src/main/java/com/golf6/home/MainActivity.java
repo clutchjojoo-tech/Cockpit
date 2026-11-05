@@ -450,7 +450,8 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        // Écran d'accueil : le bouton retour ne fait rien.
+        // Retour : ferme la fenêtre ouverte ou revient à l'accueil (géré par l'interface).
+        try { web.evaluateJavascript("window.goBack && window.goBack()", null); } catch (Exception e) { }
     }
 
     // ---------- Alerte de vitesse, parole ----------
@@ -1362,6 +1363,106 @@ public class MainActivity extends Activity {
         }, 60000);
     }
 
+
+    // ---------- Assistant de détection des infos de la voiture (lecture seule) ----------
+    private final java.util.concurrent.ConcurrentHashMap<String, String> etatBc =
+            new java.util.concurrent.ConcurrentHashMap<String, String>();
+    private BroadcastReceiver recepteurDetect;
+    private final java.util.Map<String, java.util.Map<String, String>> photosDetect =
+            new java.util.HashMap<String, java.util.Map<String, String>>();
+    private final Set<String> bruitDetect = java.util.Collections.synchronizedSet(new HashSet<String>());
+    private volatile boolean surveillance = false;
+    private final List<String> clesSurveillees = java.util.Collections.synchronizedList(new ArrayList<String>());
+
+    private java.util.Map<String, String> etatComplet() {
+        java.util.Map<String, String> m = photoEtat();
+        m.putAll(etatBc);
+        return m;
+    }
+
+    private void envoyerDetect(String type, String json) {
+        final String js = "window.onDetect && window.onDetect(" + JSONObject.quote(type) + "," + json + ")";
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                web.evaluateJavascript(js, null);
+            }
+        });
+    }
+
+    @SuppressWarnings("deprecation")
+    private void enregistrerRecepteurDetect() {
+        if (recepteurDetect != null || actionsCan.isEmpty()) return;
+        recepteurDetect = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context ctx, Intent in) {
+                String a = in.getAction();
+                if (a == null) return;
+                String n = etatBc.get("bc " + a);
+                int c = 0;
+                try { c = n == null ? 0 : Integer.parseInt(n); } catch (Exception e) { }
+                etatBc.put("bc " + a, String.valueOf(c + 1));
+                Bundle ex = in.getExtras();
+                if (ex != null) {
+                    int k = 0;
+                    for (String cle : ex.keySet()) {
+                        if (k++ >= 20) break;
+                        String v = String.valueOf(ex.get(cle));
+                        if (v.length() > 80) v = v.substring(0, 80);
+                        etatBc.put("bc " + a + " " + cle, v);
+                    }
+                }
+            }
+        };
+        IntentFilter f = new IntentFilter();
+        for (String a : actionsCan) f.addAction(a);
+        try {
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(recepteurDetect, f, Context.RECEIVER_EXPORTED);
+            else registerReceiver(recepteurDetect, f);
+        } catch (Exception e) {
+            recepteurDetect = null;
+        }
+    }
+
+    private void demarrerDetection() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (actionsCan.isEmpty()) {
+                    try { rapportCan(); } catch (Exception e) { }
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        enregistrerRecepteurDetect();
+                        envoyerDetect("ready", "{\"n\":" + actionsCan.size() + "}");
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private static boolean contientMot(String k, String[] mots) {
+        String b = k.toLowerCase(Locale.ROOT);
+        for (String m : mots) if (b.contains(m)) return true;
+        return false;
+    }
+
+    private static String[] motsPour(String id) {
+        if (id.startsWith("door")) return new String[]{"door", "porte", "cem", "dr_", "_dr", "open"};
+        if (id.startsWith("light")) return new String[]{"light", "lamp", "lgt", "head", "ill", "beam", "lowbeam", "dipped"};
+        if (id.equals("temp")) return new String[]{"temp", "outside", "out_", "outdoor", "amb", "ext"};
+        if (id.equals("odo")) return new String[]{"odo", "mile", "km", "total", "mileage", "distance"};
+        return new String[]{"can", "car", "vehicle"};
+    }
+
+    private static Double nombre(String v) {
+        if (v == null) return null;
+        String t = v.trim().replace(',', '.');
+        if (t.length() == 0 || t.length() > 14) return null;
+        try { return Double.valueOf(t); } catch (Exception e) { return null; }
+    }
+
     private class Bridge {
         @JavascriptInterface
         public void open(final String id, final String keywords) {
@@ -1841,6 +1942,198 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void canWatch() {
             observerCan();
+        }
+
+        @JavascriptInterface
+        public void detectStart() {
+            demarrerDetection();
+        }
+
+        @JavascriptInterface
+        public void detectCalm(final int ms) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    java.util.Map<String, String> base = etatComplet();
+                    long t0 = System.currentTimeMillis();
+                    while (System.currentTimeMillis() - t0 < Math.max(2000, ms)) {
+                        try { Thread.sleep(500); } catch (Exception e) { }
+                        java.util.Map<String, String> m = etatComplet();
+                        for (java.util.Map.Entry<String, String> en : m.entrySet()) {
+                            String o = base.get(en.getKey());
+                            if (o == null || !o.equals(en.getValue())) bruitDetect.add(en.getKey());
+                        }
+                        base = m;
+                    }
+                    envoyerDetect("calm", "{\"noise\":" + bruitDetect.size() + "}");
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void detectBegin(final String id) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    java.util.Map<String, String> m = etatComplet();
+                    synchronized (photosDetect) { photosDetect.put(id, m); }
+                    envoyerDetect("begin", "{\"id\":" + JSONObject.quote(id) + "}");
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void detectEnd(final String id) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    java.util.Map<String, String> base;
+                    synchronized (photosDetect) { base = photosDetect.get(id); }
+                    JSONArray out = new JSONArray();
+                    if (base != null) {
+                        final java.util.Map<String, String[]> ch = new java.util.LinkedHashMap<String, String[]>();
+                        for (int i = 0; i < 6; i++) {
+                            java.util.Map<String, String> m = etatComplet();
+                            for (java.util.Map.Entry<String, String> en : m.entrySet()) {
+                                String k = en.getKey();
+                                if (bruitDetect.contains(k) || cleBruyante(k)) continue;
+                                String o = base.get(k), v = en.getValue();
+                                if (v != null && !v.equals(o)) ch.put(k, new String[]{o == null ? "" : o, v});
+                            }
+                            try { Thread.sleep(500); } catch (Exception e) { }
+                        }
+                        final String[] mots = motsPour(id);
+                        List<String> cles = new ArrayList<String>(ch.keySet());
+                        Collections.sort(cles, new Comparator<String>() {
+                            @Override
+                            public int compare(String a, String b) {
+                                int sa = contientMot(a, mots) ? 0 : 1, sb = contientMot(b, mots) ? 0 : 1;
+                                return sa - sb;
+                            }
+                        });
+                        for (String k : cles) {
+                            if (out.length() >= 8) break;
+                            try {
+                                JSONObject o = new JSONObject();
+                                o.put("k", k);
+                                o.put("o", ch.get(k)[0]);
+                                o.put("v", ch.get(k)[1]);
+                                o.put("s", contientMot(k, mots) ? 1 : 0);
+                                out.put(o);
+                            } catch (Exception e) { }
+                        }
+                    }
+                    envoyerDetect("end", "{\"id\":" + JSONObject.quote(id) + ",\"c\":" + out.toString() + "}");
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void detectFind(final String id, final String num) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    JSONArray out = new JSONArray();
+                    Double cible = nombre(num);
+                    if (cible != null) {
+                        boolean temp = id.equals("temp");
+                        String[] mots = motsPour(id);
+                        String[] fs = temp ? new String[]{"x1", "x0.1", "m40", "h40", "x0.5"}
+                                : new String[]{"x1", "x0.1", "x10", "mi", "x0.01"};
+                        List<JSONObject> trouv = new ArrayList<JSONObject>();
+                        for (java.util.Map.Entry<String, String> en : etatComplet().entrySet()) {
+                            Double v = nombre(en.getValue());
+                            if (v == null) continue;
+                            for (String f : fs) {
+                                double c;
+                                if (f.equals("x1")) c = v;
+                                else if (f.equals("x0.1")) c = v * 0.1;
+                                else if (f.equals("x10")) c = v * 10;
+                                else if (f.equals("x0.01")) c = v * 0.01;
+                                else if (f.equals("x0.5")) c = v * 0.5;
+                                else if (f.equals("m40")) c = v - 40;
+                                else if (f.equals("h40")) c = v * 0.5 - 40;
+                                else c = v * 1.609344;
+                                double tol = temp ? 1.6 : Math.max(5, Math.abs(cible) * 0.002);
+                                if (Math.abs(c - cible) <= tol && (temp || Math.abs(cible) > 50)) {
+                                    try {
+                                        JSONObject o = new JSONObject();
+                                        o.put("k", en.getKey());
+                                        o.put("v", en.getValue());
+                                        o.put("f", f);
+                                        o.put("s", contientMot(en.getKey(), mots) ? 1 : 0);
+                                        trouv.add(o);
+                                    } catch (Exception e) { }
+                                    break;
+                                }
+                            }
+                        }
+                        Collections.sort(trouv, new Comparator<JSONObject>() {
+                            @Override
+                            public int compare(JSONObject a, JSONObject b) {
+                                return b.optInt("s") - a.optInt("s");
+                            }
+                        });
+                        for (JSONObject o : trouv) {
+                            if (out.length() >= 8) break;
+                            out.put(o);
+                        }
+                    }
+                    envoyerDetect("find", "{\"id\":" + JSONObject.quote(id) + ",\"c\":" + out.toString() + "}");
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void watchKeys(final String json) {
+            List<String> l = new ArrayList<String>();
+            try {
+                JSONArray a = new JSONArray(json);
+                for (int i = 0; i < a.length(); i++) l.add(a.getString(i));
+            } catch (Exception e) { }
+            synchronized (clesSurveillees) {
+                clesSurveillees.clear();
+                clesSurveillees.addAll(l);
+            }
+            if (l.isEmpty()) { surveillance = false; return; }
+            boolean bc = false;
+            for (String k : l) if (k.startsWith("bc ")) bc = true;
+            if (bc) demarrerDetection();
+            if (surveillance) return;
+            surveillance = true;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    java.util.Map<String, String> avant = new java.util.HashMap<String, String>();
+                    while (surveillance) {
+                        List<String> cles;
+                        synchronized (clesSurveillees) { cles = new ArrayList<String>(clesSurveillees); }
+                        boolean props = false;
+                        for (String k : cles) if (!k.startsWith("bc ")) props = true;
+                        java.util.Map<String, String> m = props ? etatComplet() : new java.util.HashMap<String, String>(etatBc);
+                        for (String k : cles) {
+                            String v = m.get(k);
+                            if (v == null) continue;
+                            if (!v.equals(avant.get(k))) {
+                                avant.put(k, v);
+                                final String js = "window.onCarVal && window.onCarVal(" + JSONObject.quote(k) + "," + JSONObject.quote(v) + ")";
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        web.evaluateJavascript(js, null);
+                                    }
+                                });
+                            }
+                        }
+                        try { Thread.sleep(1500); } catch (Exception e) { }
+                    }
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void detectStop() {
+            synchronized (photosDetect) { photosDetect.clear(); }
         }
 
         // Ouvre les vrais réglages Android du poste.
