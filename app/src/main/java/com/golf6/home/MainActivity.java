@@ -82,7 +82,7 @@ import java.util.Set;
 public class MainActivity extends Activity {
 
     // Prénom prononcé dans le message d'accueil.
-    private static final String PRENOM = "Jonathan"; // valeur par défaut, modifiable dans Réglages > Ma voiture
+    private static final String PRENOM = ""; // valeur par défaut, modifiable dans Réglages > Ma voiture
     // Délai (ms) avant la phrase, pour la caler sur l'animation de démarrage.
     private static final long DELAI_VOIX = 300;
 
@@ -2166,6 +2166,128 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String zlinkInfo() {
             return MainActivity.this.zlinkInfo();
+        }
+
+        // Ouvre les réglages wifi du poste (utilisé par l'écran d'activation).
+        @JavascriptInterface
+        public void openWifi() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent i = new Intent(Settings.ACTION_WIFI_SETTINGS);
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(i);
+                    } catch (Exception e) {
+                        try {
+                            Intent i2 = new Intent(Settings.ACTION_SETTINGS);
+                            i2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(i2);
+                        } catch (Exception e2) {
+                            Toast.makeText(MainActivity.this, L("Réglages indisponibles", "Settings not available"), Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+            });
+        }
+
+        // Wi-Fi : état et activation (sur Android récent, ouvre le panneau système).
+        @JavascriptInterface
+        public String wifiState() {
+            try {
+                android.net.wifi.WifiManager w = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                return w != null && w.isWifiEnabled() ? "on" : "off";
+            } catch (Exception e) {
+                return "na";
+            }
+        }
+
+        @JavascriptInterface
+        @SuppressWarnings("deprecation")
+        public void wifiSet(final boolean on) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (Build.VERSION.SDK_INT < 29) {
+                            android.net.wifi.WifiManager w = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                            w.setWifiEnabled(on);
+                        } else {
+                            Intent i = new Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY);
+                            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(i);
+                        }
+                    } catch (Exception e) {
+                        try {
+                            Intent i2 = new Intent(Settings.ACTION_WIFI_SETTINGS);
+                            i2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(i2);
+                        } catch (Exception e2) {
+                            Toast.makeText(MainActivity.this, L("Réglages indisponibles", "Settings not available"), Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+            });
+        }
+
+        // Capture d'écran enregistrée dans Images > Cockpit.
+        @JavascriptInterface
+        public void screenshot() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        final android.view.View root = getWindow().getDecorView();
+                        final android.graphics.Bitmap bm = android.graphics.Bitmap.createBitmap(root.getWidth(), root.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
+                        android.view.PixelCopy.request(getWindow(), bm, new android.view.PixelCopy.OnPixelCopyFinishedListener() {
+                            @Override
+                            public void onPixelCopyFinished(int r) {
+                                boolean ok = false;
+                                try {
+                                    if (r == android.view.PixelCopy.SUCCESS) {
+                                        android.content.ContentValues v = new android.content.ContentValues();
+                                        v.put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "Cockpit-" + System.currentTimeMillis() + ".png");
+                                        v.put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png");
+                                        if (Build.VERSION.SDK_INT >= 29) {
+                                            v.put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Cockpit");
+                                        }
+                                        android.net.Uri u = getContentResolver().insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                                        java.io.OutputStream o = getContentResolver().openOutputStream(u);
+                                        bm.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, o);
+                                        o.close();
+                                        ok = true;
+                                    }
+                                } catch (Exception e) {
+                                    ok = false;
+                                }
+                                fondJs("window.shotDone&&window.shotDone(" + ok + ")");
+                            }
+                        }, new android.os.Handler(android.os.Looper.getMainLooper()));
+                    } catch (Exception e) {
+                        fondJs("window.shotDone&&window.shotDone(false)");
+                    }
+                }
+            });
+        }
+
+        // Marque, modèle et version d'Android du poste (pour l'aide).
+        @JavascriptInterface
+        public String deviceInfo() {
+            return Build.MANUFACTURER + " " + Build.MODEL + " · Android " + Build.VERSION.RELEASE;
+        }
+
+        // Vrai si le poste a une connexion internet.
+        @JavascriptInterface
+        public boolean online() {
+            try {
+                android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                android.net.Network n = cm.getActiveNetwork();
+                if (n == null) return false;
+                android.net.NetworkCapabilities c = cm.getNetworkCapabilities(n);
+                return c != null && c.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET);
+            } catch (Exception e) {
+                return true;
+            }
         }
 
         // Vrai la première fois seulement (animation de démarrage), faux ensuite.
