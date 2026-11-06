@@ -2191,6 +2191,39 @@ public class MainActivity extends Activity {
             });
         }
 
+        // Définir Cockpit comme écran d'accueil par défaut.
+        @JavascriptInterface
+        public void setDefaultHome() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (Build.VERSION.SDK_INT >= 29) {
+                            android.app.role.RoleManager rm = (android.app.role.RoleManager) getSystemService(Context.ROLE_SERVICE);
+                            if (rm != null && rm.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME) && !rm.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) {
+                                startActivityForResult(rm.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME), 4242);
+                                return;
+                            }
+                        }
+                        Intent i = new Intent(Settings.ACTION_HOME_SETTINGS);
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(i);
+                    } catch (Exception e) {
+                        try {
+                            Intent i2 = new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
+                            i2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(i2);
+                        } catch (Exception e2) {
+                            Intent i3 = new Intent(Intent.ACTION_MAIN);
+                            i3.addCategory(Intent.CATEGORY_HOME);
+                            i3.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(i3);
+                        }
+                    }
+                }
+            });
+        }
+
         // Wi-Fi : état et activation (sur Android récent, ouvre le panneau système).
         @JavascriptInterface
         public String wifiState() {
