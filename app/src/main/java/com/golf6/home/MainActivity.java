@@ -1918,6 +1918,28 @@ public class MainActivity extends Activity {
             });
         }
 
+        // Sonde rapide : le poste transmet-il des infos de la voiture ?
+        @JavascriptInterface
+        public void canProbe() {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    int apps = 0;
+                    int actions = 0;
+                    try {
+                        String r = rapportCan();
+                        for (String l : r.split("\n")) {
+                            if (l.startsWith("\u2022 ")) apps++;
+                        }
+                        actions = actionsCan.size();
+                    } catch (Exception e) {
+                        // On laisse 0.
+                    }
+                    fondJs("window.onProbe&&window.onProbe(" + apps + "," + actions + ")");
+                }
+            }).start();
+        }
+
         // Diagnostic CAN (lecture seule).
         @JavascriptInterface
         public void canScan() {
