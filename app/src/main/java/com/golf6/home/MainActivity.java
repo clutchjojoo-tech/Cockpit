@@ -499,6 +499,25 @@ public class MainActivity extends Activity {
     private String exportEnAttente = null;
     private String fondSlot = "jour";
 
+    private void lancerInstallation() {
+        try {
+            if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+                fondJs("window.updErr&&window.updErr('droit')");
+                Intent r = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + getPackageName()));
+                startActivity(r);
+                return;
+            }
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(Uri.parse("content://com.golf6.home.maj/cockpit-maj.apk"),
+                    "application/vnd.android.package-archive");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            fondJs("window.updErr&&window.updErr('install')");
+        }
+    }
+
     private void fondJs(final String js) {
         web.post(new Runnable() {
             @Override
@@ -1633,6 +1652,69 @@ public class MainActivity extends Activity {
                     fondJs("window.updateInfo&&window.updateInfo(" + JSONObject.quote(texte) + ")");
                 }
             }).start();
+        }
+
+        @JavascriptInterface
+        public void downloadUpdate(final String adresse) {
+            if (adresse == null || !adresse.startsWith("https://")) {
+                fondJs("window.updErr&&window.updErr('adresse')");
+                return;
+            }
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        File out = new File(getCacheDir(), "cockpit-maj.apk");
+                        HttpURLConnection c = (HttpURLConnection) new URL(adresse).openConnection();
+                        c.setConnectTimeout(15000);
+                        c.setReadTimeout(20000);
+                        c.setInstanceFollowRedirects(true);
+                        if (c.getResponseCode() != 200) {
+                            throw new Exception("http " + c.getResponseCode());
+                        }
+                        long total = c.getContentLength();
+                        InputStream in = c.getInputStream();
+                        FileOutputStream fo = new FileOutputStream(out);
+                        byte[] b = new byte[16384];
+                        long fait = 0;
+                        int n;
+                        int dernier = -1;
+                        while ((n = in.read(b)) > 0) {
+                            fo.write(b, 0, n);
+                            fait += n;
+                            int pct = total > 0 ? (int) (fait * 100 / total) : -1;
+                            if (pct != dernier) {
+                                dernier = pct;
+                                fondJs("window.updProg&&window.updProg(" + pct + ")");
+                            }
+                        }
+                        fo.close();
+                        in.close();
+                        if (out.length() < 100000) {
+                            throw new Exception("fichier trop petit");
+                        }
+                        fondJs("window.updProg&&window.updProg(100)");
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                lancerInstallation();
+                            }
+                        });
+                    } catch (Exception e) {
+                        fondJs("window.updErr&&window.updErr('reseau')");
+                    }
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void installUpdate() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    lancerInstallation();
+                }
+            });
         }
 
         @JavascriptInterface

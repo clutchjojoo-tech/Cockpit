@@ -10,8 +10,17 @@ android {
         applicationId 'com.golf6.home'
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode 16
+        versionName '1.6'
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file('cockpit.keystore')
+            storePassword 'cockpit2026'
+            keyAlias 'cockpit'
+            keyPassword 'cockpit2026'
+        }
     }
 
     buildTypes {
