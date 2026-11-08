@@ -1775,7 +1775,41 @@ public class MainActivity extends Activity {
             if ("jour".equals(which)) return lireFondBase64("fond_jour.jpg");
             if ("on".equals(which)) return lireFondBase64("fond_on.jpg");
             if ("off".equals(which)) return lireFondBase64("fond_off.jpg");
+            if ("lock".equals(which)) return lireFondBase64("fond_lock.jpg");
             return "";
+        }
+
+        @JavascriptInterface
+        public void useLibBg(final String nom, final String cible) {
+            if (nom == null || !nom.matches("fond_lib[0-9]+\\.webp")) {
+                return;
+            }
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        InputStream in = getAssets().open(nom);
+                        Bitmap fin = BitmapFactory.decodeStream(in);
+                        in.close();
+                        if (fin == null) {
+                            throw new Exception("image");
+                        }
+                        SharedPreferences.Editor ed = prefs.edit();
+                        if ("lock".equals(cible)) {
+                            enregistrerFond(fin, "fond_lock.jpg", 1f, 1f, 1f);
+                        } else {
+                            enregistrerFond(fin, "fond_jour.jpg", 1f, 1f, 1f);
+                            enregistrerFond(fin, "fond_on.jpg", 0.42f, 0.48f, 0.68f);
+                            enregistrerFond(fin, "fond_off.jpg", 0.26f, 0.30f, 0.46f);
+                            ed.putBoolean("bg_u_jour", true).putBoolean("bg_u_on", false).putBoolean("bg_u_off", false);
+                        }
+                        ed.putLong("bg_stamp", System.currentTimeMillis()).apply();
+                        fondJs("window.bgDone&&window.bgDone(true)");
+                    } catch (Throwable e) {
+                        fondJs("window.bgDone&&window.bgDone(false)");
+                    }
+                }
+            }).start();
         }
 
         @JavascriptInterface
@@ -1783,6 +1817,7 @@ public class MainActivity extends Activity {
             new File(getFilesDir(), "fond_jour.jpg").delete();
             new File(getFilesDir(), "fond_on.jpg").delete();
             new File(getFilesDir(), "fond_off.jpg").delete();
+            new File(getFilesDir(), "fond_lock.jpg").delete();
             prefs.edit().remove("bg_stamp").remove("bg_u_jour").remove("bg_u_on").remove("bg_u_off").apply();
         }
 
@@ -2380,31 +2415,47 @@ public class MainActivity extends Activity {
                             @Override
                             public void onPixelCopyFinished(int r) {
                                 boolean ok = false;
-                                try {
-                                    if (r == android.view.PixelCopy.SUCCESS) {
-                                        android.content.ContentValues v = new android.content.ContentValues();
-                                        v.put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "Cockpit-" + System.currentTimeMillis() + ".png");
-                                        v.put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png");
-                                        if (Build.VERSION.SDK_INT >= 29) {
-                                            v.put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Cockpit");
-                                        }
-                                        android.net.Uri u = getContentResolver().insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
-                                        java.io.OutputStream o = getContentResolver().openOutputStream(u);
-                                        bm.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, o);
-                                        o.close();
-                                        ok = true;
-                                    }
-                                } catch (Exception e) {
-                                    ok = false;
-                                }
+                                if (r == android.view.PixelCopy.SUCCESS) ok = saveShot(bm);
+                                if (!ok) ok = screenshotView();
                                 fondJs("window.shotDone&&window.shotDone(" + ok + ")");
                             }
                         }, new android.os.Handler(android.os.Looper.getMainLooper()));
                     } catch (Exception e) {
-                        fondJs("window.shotDone&&window.shotDone(false)");
+                        boolean ok = screenshotView();
+                        fondJs("window.shotDone&&window.shotDone(" + ok + ")");
                     }
                 }
             });
+        }
+
+        // Plan B : dessine la vue directement (marche quand PixelCopy est refusé par le poste).
+        private boolean screenshotView() {
+            try {
+                android.view.View root = getWindow().getDecorView();
+                android.graphics.Bitmap bm = android.graphics.Bitmap.createBitmap(root.getWidth(), root.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
+                root.draw(new android.graphics.Canvas(bm));
+                return saveShot(bm);
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        private boolean saveShot(android.graphics.Bitmap bm) {
+            try {
+                android.content.ContentValues v = new android.content.ContentValues();
+                v.put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "Cockpit-" + System.currentTimeMillis() + ".png");
+                v.put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png");
+                if (Build.VERSION.SDK_INT >= 29) {
+                    v.put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Cockpit");
+                }
+                android.net.Uri u = getContentResolver().insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                java.io.OutputStream o = getContentResolver().openOutputStream(u);
+                bm.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, o);
+                o.close();
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
         }
 
         // Marque, modèle et version d'Android du poste (pour l'aide).
