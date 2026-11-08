@@ -1799,8 +1799,8 @@ public class MainActivity extends Activity {
                             enregistrerFond(fin, "fond_lock.jpg", 1f, 1f, 1f);
                         } else {
                             enregistrerFond(fin, "fond_jour.jpg", 1f, 1f, 1f);
-                            enregistrerFond(fin, "fond_on.jpg", 0.42f, 0.48f, 0.68f);
-                            enregistrerFond(fin, "fond_off.jpg", 0.26f, 0.30f, 0.46f);
+                            enregistrerFond(fin, "fond_on.jpg", 1f, 1f, 1f);
+                            enregistrerFond(fin, "fond_off.jpg", 0.9f, 0.9f, 0.92f);
                             ed.putBoolean("bg_u_jour", true).putBoolean("bg_u_on", false).putBoolean("bg_u_off", false);
                         }
                         ed.putLong("bg_stamp", System.currentTimeMillis()).apply();
@@ -2405,6 +2405,17 @@ public class MainActivity extends Activity {
         // Capture d'écran enregistrée dans Images > Cockpit.
         @JavascriptInterface
         public void screenshot() {
+            if (Build.VERSION.SDK_INT >= 23 && Build.VERSION.SDK_INT < 29 && checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try { requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 77); } catch (Exception e) { }
+                    }
+                });
+                fondJs("window.shotDone&&window.shotDone(false,'perm')");
+                return;
+            }
+            shotErr = "";
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -2417,12 +2428,12 @@ public class MainActivity extends Activity {
                                 boolean ok = false;
                                 if (r == android.view.PixelCopy.SUCCESS) ok = saveShot(bm);
                                 if (!ok) ok = screenshotView();
-                                fondJs("window.shotDone&&window.shotDone(" + ok + ")");
+                                fondJs("window.shotDone&&window.shotDone(" + ok + ",'" + shotErr.replace("'", " ") + "')");
                             }
                         }, new android.os.Handler(android.os.Looper.getMainLooper()));
                     } catch (Exception e) {
                         boolean ok = screenshotView();
-                        fondJs("window.shotDone&&window.shotDone(" + ok + ")");
+                        fondJs("window.shotDone&&window.shotDone(" + ok + ",'" + shotErr.replace("'", " ") + "')");
                     }
                 }
             });
@@ -2440,8 +2451,20 @@ public class MainActivity extends Activity {
             }
         }
 
+        private String shotErr = "";
+
         private boolean saveShot(android.graphics.Bitmap bm) {
             try {
+                if (Build.VERSION.SDK_INT < 29) {
+                    File dir = new File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "Cockpit");
+                    dir.mkdirs();
+                    File f = new File(dir, "Cockpit-" + System.currentTimeMillis() + ".png");
+                    java.io.FileOutputStream fo = new java.io.FileOutputStream(f);
+                    bm.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, fo);
+                    fo.close();
+                    android.media.MediaScannerConnection.scanFile(MainActivity.this, new String[]{f.getAbsolutePath()}, new String[]{"image/png"}, null);
+                    return true;
+                }
                 android.content.ContentValues v = new android.content.ContentValues();
                 v.put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "Cockpit-" + System.currentTimeMillis() + ".png");
                 v.put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png");
@@ -2449,11 +2472,13 @@ public class MainActivity extends Activity {
                     v.put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Cockpit");
                 }
                 android.net.Uri u = getContentResolver().insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                if (u == null) { shotErr = "galerie refusée"; return false; }
                 java.io.OutputStream o = getContentResolver().openOutputStream(u);
                 bm.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, o);
                 o.close();
                 return true;
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                shotErr = e.getClass().getSimpleName();
                 return false;
             }
         }
