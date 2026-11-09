@@ -1,1 +1,1 @@
-/* remplacé par m3p.js (version 2.2) */
+/* remplacé par les vidéos (version 2.4) */
