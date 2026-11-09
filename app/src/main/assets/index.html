@@ -746,10 +746,10 @@ body.dialCut #dKm.on{display:block}
 #wNext{background:var(--blue)!important;border-color:transparent!important;font-weight:600}
 #m3d{position:absolute;inset:0;display:none;background:#05080f url(m3d/fond0.webp) center/cover}
 body.m3dOn #m3d{display:block}
-#m3v{position:absolute;left:220px;top:130px;width:840px;height:430px;transition:opacity .18s}
+#m3v{position:absolute;left:220px;top:90px;width:840px;height:470px;transition:opacity .18s}
 #m3v img{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;opacity:1;transform:none!important}
 #m3v #m3b{opacity:0}
-#m3v img.glw{mix-blend-mode:screen;transition:opacity .25s}
+#m3v img.glw{transition:opacity .25s}
 #m3dv{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none;opacity:1!important;transform:none!important;object-fit:cover}
 body.m3dOn #p-veh .tint{background:rgba(6,10,20,.32)}
 #m3btn{position:absolute;right:28px;top:100px;display:flex;align-items:center;gap:6px;z-index:5;height:56px;padding:0 6px;border-radius:28px;background:var(--tile);border:1px solid var(--stroke);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
@@ -818,9 +818,12 @@ body.th-sport .si2.on{color:#fff!important}
 body.th-mini .vr img.vIc{filter:none}
 /* mode 3D : nom de la voiture centré sur le mur du fond, bouton des phares au-dessus */
 #ident,#lights{transition:top .5s cubic-bezier(.2,.8,.2,1),transform .5s}
-body.m3dOn #ident{top:150px;transform:translateX(-50%) scale(1.08)}
+body.m3dOn #ident{top:108px;transform:translateX(-50%) scale(1.08)}
 body.m3dOn #ident b,body.m3dOn #ident span{text-shadow:0 0 18px rgba(80,160,255,.45),0 2px 10px rgba(0,0,0,.6)}
 body.m3dOn #lights{top:22px}
+/* couleur des icônes (teinte réglable) */
+.dIco img,.si2 .siIco,.vr img.vIc,#pers .pRail button img,#m3btn button>img,.icTint{filter:hue-rotate(var(--icH,0deg)) drop-shadow(0 2px 5px rgba(0,0,0,.4))!important}
+.icSw{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.icSw i{width:36px;height:36px;border-radius:50%;cursor:pointer;box-shadow:inset 0 0 0 2px rgba(255,255,255,.3)}.icSw i.on{box-shadow:0 0 0 3px #fff,0 0 12px 3px currentColor}
 </style>
 </head>
 <body>
@@ -958,6 +961,7 @@ body.m3dOn #lights{top:22px}
 <div class="sr"><div class="l">Début du jour</div><div class="step"><button class="mini" data-step="df:-1" aria-label="Plus tôt">−</button><div class="val" id="dfv">7 h</div><button class="mini" data-step="df:1" aria-label="Plus tard">+</button></div></div>
 <div class="sr"><div class="l">Style<small>Un appui change tout le look : couleurs, formes, police et animations</small></div><div class="seg" data-seg="style"><button data-val="def">Défaut</button><button data-val="sport">Sport</button><button data-val="luxe">Luxe</button><button data-val="mini">Minimal</button></div></div>
 <div class="sr"><div class="l">Couleur<small>Boutons et éléments sélectionnés</small></div><div class="sw2" id="accSw"></div></div>
+<div class="sr"><div class="l">Couleur des icônes<small>Change le bleu des icônes et des boutons</small></div><div class="icSw" id="icSw"></div></div>
 <div class="sr"><div class="l">Opacité des cartes<small>Plus opaque = plus lisible en plein soleil</small></div><input type="range" id="opRange" min="40" max="95" step="5" value="70"></div>
 <div class="sh">Luminosité</div>
 <div class="sr"><div class="l">Luminosité<small id="brightNote">Réglage de l'écran du launcher</small></div><input type="range" id="brightRange" min="5" max="100" step="5" value="80"></div>
@@ -1133,7 +1137,7 @@ body.m3dOn #lights{top:22px}
 </div></div>
 </div>
 </section>
-<script>(function(){var M=[[/Remettre|&nbsp;/,null],[/Warnings/,'c40'],[/3D/,'a20'],[/Crédits/,'a32'],[/Nom affiché/,'a20'],[/Motorisation/,'c34'],[/Logo/,'c12'],[/Page Véhicule/,'c12'],[/statistiques/,'b31'],[/Infos de la voiture/,'c41'],[/Carburant|Autonomie/,'c21'],[/Batterie/,'c22'],[/Extérieur/,'b34'],[/Moteur/,'c34'],[/Kilométrage/,'c13'],[/Ceinture|Alerte sonore/,'c40'],[/Radar/,'b14'],[/Rappels|Entretien/,'c33'],[/coucher du soleil|Ambiances|Météo/,'c42'],[/Début de la nuit|Début du jour|Après|Format de l'heure|Horloges/,'b01'],[/^Thème|^Couleur|Thèmes/,'a02'],[/^Style/,'a23'],[/Opacité|Contraste|Résolution|Marges/,'a03'],[/Luminosité/,'a04'],[/Taille du texte|Taille de l'interface/,'a01'],[/Gros boutons|Disposition|Modifier l'écran|Ajouter un widget|accueil par défaut|Accueil par défaut|Appui long/,'a30'],[/Sons|Volume/,'a10'],[/Police/,'a34'],[/Galerie|Fonds/,'c02'],[/Jour, phares|Nuit, phares|Ma photo/,'a24'],[/Phares sur|Bouton des phares/,'b13'],[/Animation|Nouveautés|essai guidé|démo/,'c01'],[/Carte d'infos/,'a34'],[/Vitesse GPS|Compteurs de vitesse|Compteur de vitesse|Unités/,'b10'],[/Taille du compteur/,'b11'],[/Lecteur de musique/,'a11'],[/notifications|Guide|aide|Astuce/,'a32'],[/Compteur de trajet/,'c13'],[/Ville/,'b02'],[/verglas/,'c24'],[/Salut|Message|vocal|prénom|Tester la voix/,'b05'],[/pause/,'c25'],[/Alerte de vitesse|Limite/,'c20'],[/Bluetooth|Appareils|Associer/,'a13'],[/Navigation/,'a12'],[/pas CarPlay/,'c04'],[/CarPlay/,'b03'],[/Montres/,'c41'],[/Widgets voiture/,'c12'],[/Profils/,'a33'],[/Vérifier une mise à jour/,'b25'],[/Nouvelle version/,'b24'],[/Sauvegarder/,'b23'],[/Restaurer/,'b24'],[/Partager/,'b21'],[/Refaire l'assistant/,'c10'],[/Diagnostic|Observer/,'b00'],[/Android/,'a00'],[/./,'a00']];document.querySelectorAll('#secWrap .sr').forEach(function(r){if(r.style.display==='block')return;var l=r.querySelector('.l');if(!l||r.querySelector('.dIco'))return;var t=(l.childNodes[0]&&l.childNodes[0].textContent||'').trim();if(!t||t==='\u00a0')return;
+<script>(function(){var M=[[/Remettre|&nbsp;/,null],[/Couleur des icônes/,'a02'],[/Warnings/,'c40'],[/3D/,'a20'],[/Crédits/,'a32'],[/Nom affiché/,'a20'],[/Motorisation/,'c34'],[/Logo/,'c12'],[/Page Véhicule/,'c12'],[/statistiques/,'b31'],[/Infos de la voiture/,'c41'],[/Carburant|Autonomie/,'c21'],[/Batterie/,'c22'],[/Extérieur/,'b34'],[/Moteur/,'c34'],[/Kilométrage/,'c13'],[/Ceinture|Alerte sonore/,'c40'],[/Radar/,'b14'],[/Rappels|Entretien/,'c33'],[/coucher du soleil|Ambiances|Météo/,'c42'],[/Début de la nuit|Début du jour|Après|Format de l'heure|Horloges/,'b01'],[/^Thème|^Couleur|Thèmes/,'a02'],[/^Style/,'a23'],[/Opacité|Contraste|Résolution|Marges/,'a03'],[/Luminosité/,'a04'],[/Taille du texte|Taille de l'interface/,'a01'],[/Gros boutons|Disposition|Modifier l'écran|Ajouter un widget|accueil par défaut|Accueil par défaut|Appui long/,'a30'],[/Sons|Volume/,'a10'],[/Police/,'a34'],[/Galerie|Fonds/,'c02'],[/Jour, phares|Nuit, phares|Ma photo/,'a24'],[/Phares sur|Bouton des phares/,'b13'],[/Animation|Nouveautés|essai guidé|démo/,'c01'],[/Carte d'infos/,'a34'],[/Vitesse GPS|Compteurs de vitesse|Compteur de vitesse|Unités/,'b10'],[/Taille du compteur/,'b11'],[/Lecteur de musique/,'a11'],[/notifications|Guide|aide|Astuce/,'a32'],[/Compteur de trajet/,'c13'],[/Ville/,'b02'],[/verglas/,'c24'],[/Salut|Message|vocal|prénom|Tester la voix/,'b05'],[/pause/,'c25'],[/Alerte de vitesse|Limite/,'c20'],[/Bluetooth|Appareils|Associer/,'a13'],[/Navigation/,'a12'],[/pas CarPlay/,'c04'],[/CarPlay/,'b03'],[/Montres/,'c41'],[/Widgets voiture/,'c12'],[/Profils/,'a33'],[/Vérifier une mise à jour/,'b25'],[/Nouvelle version/,'b24'],[/Sauvegarder/,'b23'],[/Restaurer/,'b24'],[/Partager/,'b21'],[/Refaire l'assistant/,'c10'],[/Diagnostic|Observer/,'b00'],[/Android/,'a00'],[/./,'a00']];document.querySelectorAll('#secWrap .sr').forEach(function(r){if(r.style.display==='block')return;var l=r.querySelector('.l');if(!l||r.querySelector('.dIco'))return;var t=(l.childNodes[0]&&l.childNodes[0].textContent||'').trim();if(!t||t==='\u00a0')return;
 for(var i=0;i<M.length;i++)if(M[i][0].test(t)){if(!M[i][1])return;var d=document.createElement('div');d.className='dIco';d.innerHTML='<img src="ic/'+M[i][1]+'.webp" alt="">';r.insertBefore(d,l);break}});
 var SI={look:'a02',perso:'a23',car:'a20',home:'a30',conn:'a14',help:'a32',adv:'a01'};
 document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAttribute('data-sec')];var s=b.querySelector('svg');if(k&&s){var im=document.createElement('img');im.className='siIco';im.src='ic/'+k+'.webp';im.alt='';s.parentNode.replaceChild(im,s)}});
@@ -1813,7 +1817,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
 
   /* ===== Étape 8 : À propos, vitesse GPS, musique, raccourcis, luminosité auto, styles ===== */
-  var APP_VERSION='2.2';
+  var APP_VERSION='2.3';
   function updateAbout(){$('#aboutTxt').textContent=T('Version')+' '+APP_VERSION}
 
   /* Vitesse GPS */
@@ -2809,7 +2813,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     });
     if(CM.light&&CM.light.k===k){var lo=isOn(CM.light,v);if(lo!==null){$('#lampInd').classList.toggle('on',lo);setLights(lo)}}
     if(CM.belt&&CM.belt.k===k){var bo=isOn(CM.belt,v);if(bo!==null){belt=bo;setK('belt',bo?'Non bouclée':'Bouclée',bo);pillRefresh()}}
-    if(CM.rev&&CM.rev.k===k){var ro2=isOn(CM.rev,v);if(ro2!==null){setK('d6',ro2?'Marche arrière':'Libre',ro2);revShow(ro2)}}
+    if(CM.rev&&CM.rev.k===k){var ro2=CM.rev.on!==undefined?String(v)===String(CM.rev.on):isOn(CM.rev,v);if(ro2!==null){setK('d6',ro2?'Marche arrière':'Libre',ro2);revShow(ro2)}}
     if(CM.fuel&&CM.fuel.k===k){var fu=conv(v,CM.fuel.f);if(fu!==null&&fu>=0&&fu<=100)window.setVehicle({fuel:fu})}
     if(CM.range&&CM.range.k===k){var rg=conv(v,CM.range.f);if(rg!==null&&rg>=0&&rg<2000)setK('range',Math.round(UNIT==='imperial'?rg*.621:rg)+(UNIT==='imperial'?' mi':' km'))}
     if(CM.temp&&CM.temp.k===k){var t=conv(v,CM.temp.f);if(t!==null&&t>-60&&t<70){window.carT=t;var tv=tc(t);setK('ext',tv.toFixed(1)+' '+tU())}}
@@ -3462,7 +3466,11 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     pillRefresh();
   };
   var revOn=false;
-  function revShow(on){revOn=on;$('#rev').classList.toggle('on',on&&get('revOv','1')==='1')}
+  function revShow(on){revOn=on;revAt=Date.now();$('#rev').classList.toggle('on',on&&get('revOv','1')==='1')}
+  var revAt=0;
+  /* sécurités : le radar se ferme en roulant vers l'avant, et d'un appui */
+  $('#rev').addEventListener('click',function(){revShow(false)});
+  var _sgR=window.setGps;window.setGps=function(kmh,b,alt){_sgR&&_sgR(kmh,b,alt);if(revOn&&kmh>=12&&Date.now()-revAt>2500)revShow(false)};
   window.setRadar=function(a){/* a = [gauche,centre-gauche,centre-droit,droite] de 0 (loin) à 3 (très près) */
     $$('#rev .arc').forEach(function(e,i){e.setAttribute('data-l',a&&a[i]!==undefined?a[i]:0)})};
   setInterval(function(){var o=odo();if(o!==null){var t=Math.round(UNIT==='imperial'?o*.621:o).toLocaleString(locale()).replace(/,/g,' ')+(UNIT==='imperial'?' mi':' km');$$('[data-k="odoK"]').forEach(function(e){if(e.dataset.man!=='1'){e.textContent=t;e.classList.remove('na')}})}},2000);
@@ -3523,9 +3531,9 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
   /* ===== Profils (v1.8) ===== */
   [["Profil","Profile"],["Sélectionnez votre utilisateur","Select your user"],["Ajouter un profil","Add a profile"],["Invité","Guest"],["Entre ton code","Enter your code"],["Maintiens ton doigt","Hold your finger"],["Analyse en cours…","Scanning…"],["Code incorrect","Wrong code"],["Volant","Steering wheel"],["Couleur du halo","Halo color"],["Verrouillage","Lock"],["Aucun","None"],["Code","Code"],["Iron Scan","Iron Scan"],["Prénom ou nom","Name"],["Enregistrer","Save"],["Supprimer","Delete"],["Annuler","Cancel"],["Changer de profil","Switch profile"],["Mon profil","My profile"],["Profils","Profiles"],["Gérer les profils","Manage profiles"],["Code à 4 chiffres","4-digit code"],["Choisis un code à 4 chiffres","Pick a 4-digit code"],["Message d'accueil","Welcome message"],["Voir le message","Preview"],["Remettre par défaut","Reset"]].forEach(function(r){TR[r[0]]={en:r[1]}});
-  [["Ton compteur","Your speedometer"],["Ta météo","Your weather"],["Ton horloge","Your clock"],["Ta montre","Your watch"],["Ta voiture","Your car"],["Feux éteints : allume les feux de croisement","Lights off: switch on the dipped beams"],["Les feux sont éteints au départ. Allume les feux de croisement, puis appuie sur « C'est fait ».","Lights start off. Switch on the dipped beams, then tap “Done”."],["Allume les feux de route","Switch on the high beams"],["Allume les feux de route, puis appuie sur « C'est fait ».","Switch on the high beams, then tap “Done”."],["Éteins les feux","Switch the lights off"],["Éteins-les, puis appuie sur « C'est fait ».","Switch them off, then tap “Done”."],["Feux de route","High beams"],["Allume les warnings","Switch on the hazard lights"],["Éteins les warnings","Switch off the hazard lights"],["Warnings","Hazard lights"],["Appuie sur le bouton des warnings, puis sur « C'est fait ».","Press the hazard button, then tap “Done”."],["Volant choisi","Wheel chosen"],["Plus petit","Smaller"],["Plus grand","Bigger"],["Aucun","None"],["Choisis ton compteur de vitesse.","Pick your speedometer."],["Choisis un widget météo. Il s'ajoute sur l'accueil.","Pick a weather widget. It is added to the home screen."],["Choisis une horloge : elle remplace l'heure en haut à gauche.","Pick a clock: it replaces the time at the top left."],["Choisis une montre. Elle s'ajoute sur l'accueil.","Pick a watch. It is added to the home screen."],["Choisis un widget voiture. Il s'ajoute sur l'accueil.","Pick a car widget. It is added to the home screen."],["Tu pourras tout déplacer et changer la taille avec le bouton de modification de l'accueil.","You can move everything and resize it with the home edit button."],["Voiture 3D","3D car"],["Voiture 3D sur l'accueil","3D car on the home screen"],["Ta Golf en 3D dans un showroom. Elle tourne, ses portes s'ouvrent avec les vraies et la vue plonge dans l'habitacle sur la page Véhicule.","Your car in 3D in a showroom. It turns, its doors open with the real ones and the view dives into the cabin on the Vehicle page."],["Couleur de la voiture 3D","3D car colour"],["Warnings sur la voiture 3D","Hazard lights on the 3D car"],["Les clignotants de la 3D clignotent. Ils suivent aussi les vrais si ton poste les détecte.","The 3D indicators blink. They also follow the real ones if your unit detects them."],["Crédits","Credits"],["Touche un élément dans l'aperçu pour le déplacer","Tap an item in the preview to move it"],["Widget voiture","Car widget"],["Montre","Watch"],["Horloge","Clock"],["Aperçu en direct","Live preview"],["Assistant plus simple","Simpler wizard"],["Fermer","Close"],["Passer","Skip"],["Effacer","Clear"]].forEach(function(r){if(!TR[r[0]])TR[r[0]]={en:r[1]}});
+  [["Ton compteur","Your speedometer"],["Ta météo","Your weather"],["Ton horloge","Your clock"],["Ta montre","Your watch"],["Ta voiture","Your car"],["Feux éteints : allume les feux de croisement","Lights off: switch on the dipped beams"],["Les feux sont éteints au départ. Allume les feux de croisement, puis appuie sur « C'est fait ».","Lights start off. Switch on the dipped beams, then tap “Done”."],["Allume les feux de route","Switch on the high beams"],["Allume les feux de route, puis appuie sur « C'est fait ».","Switch on the high beams, then tap “Done”."],["Éteins les feux","Switch the lights off"],["Éteins-les, puis appuie sur « C'est fait ».","Switch them off, then tap “Done”."],["Feux de route","High beams"],["Allume les warnings","Switch on the hazard lights"],["Éteins les warnings","Switch off the hazard lights"],["Warnings","Hazard lights"],["Appuie sur le bouton des warnings, puis sur « C'est fait ».","Press the hazard button, then tap “Done”."],["Volant choisi","Wheel chosen"],["Plus petit","Smaller"],["Plus grand","Bigger"],["Aucun","None"],["Choisis ton compteur de vitesse.","Pick your speedometer."],["Choisis un widget météo. Il s'ajoute sur l'accueil.","Pick a weather widget. It is added to the home screen."],["Choisis une horloge : elle remplace l'heure en haut à gauche.","Pick a clock: it replaces the time at the top left."],["Choisis une montre. Elle s'ajoute sur l'accueil.","Pick a watch. It is added to the home screen."],["Choisis un widget voiture. Il s'ajoute sur l'accueil.","Pick a car widget. It is added to the home screen."],["Tu pourras tout déplacer et changer la taille avec le bouton de modification de l'accueil.","You can move everything and resize it with the home edit button."],["Voiture 3D","3D car"],["Voiture 3D sur l'accueil","3D car on the home screen"],["Ta Golf en 3D dans un showroom. Elle tourne, ses portes s'ouvrent avec les vraies et la vue plonge dans l'habitacle sur la page Véhicule.","Your car in 3D in a showroom. It turns, its doors open with the real ones and the view dives into the cabin on the Vehicle page."],["Couleur de la voiture 3D","3D car colour"],["Warnings sur la voiture 3D","Hazard lights on the 3D car"],["Les clignotants de la 3D clignotent. Ils suivent aussi les vrais si ton poste les détecte.","The 3D indicators blink. They also follow the real ones if your unit detects them."],["Crédits","Credits"],["Touche un élément dans l'aperçu pour le déplacer","Tap an item in the preview to move it"],["Widget voiture","Car widget"],["Montre","Watch"],["Horloge","Clock"],["Aperçu en direct","Live preview"],["Couleur des icônes","Icon colour"],["Change le bleu des icônes et des boutons","Changes the blue of icons and buttons"],["Assistant plus simple","Simpler wizard"],["Fermer","Close"],["Passer","Skip"],["Effacer","Clear"]].forEach(function(r){if(!TR[r[0]])TR[r[0]]={en:r[1]}});
   if(LANG!=='fr')trTree(document.body);
-  var PF_KEYS=['tiles','theme','fs','dialK','dial','smTitle','smLine1','smLine2','smart','snd','brand','prenom','mood','font','cws','wpos','dsz','lay','amb','big','hc','acc','mode','style','anim','cardOp','fclk','fall','radC','radCar','radS','m3d','m3dWarn','wgL','wgR','wgS','wgT','wgM','wgLt','wg','sunOn','nf','df','lN','lD','ice','brk','brkH','sa','saV','beep','revOv','vOn','vVol','lang','unit','clk'];
+  var PF_KEYS=['tiles','theme','fs','dialK','dial','smTitle','smLine1','smLine2','smart','snd','brand','prenom','mood','font','cws','wpos','dsz','lay','amb','big','hc','acc','mode','style','anim','cardOp','fclk','fall','radC','radCar','radS','m3d','m3dWarn','icHue','wgL','wgR','wgS','wgT','wgM','wgLt','wg','sunOn','nf','df','lN','lD','ice','brk','brkH','sa','saV','beep','revOv','vOn','vVol','lang','unit','clk'];
   var PF_HALO=['46,142,255','60,220,120','190,90,255','255,74,74','255,154,46','255,210,60','55,224,224','255,255,255'];
   function pfList(){try{var a=JSON.parse(get('profiles','[]'));return a instanceof Array?a:[]}catch(e){return[]}}
   function pfSave(a){put('profiles',JSON.stringify(a))}
@@ -3634,6 +3642,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     var cc=$('#ccProf');if(cc)cc.addEventListener('click',function(){ccClose();if(!pfList().length){toast('Crée un profil dans Réglages › Profils');return}pfShow('pick')});
     var mg=$('#profManage');if(mg)mg.addEventListener('click',function(){pfShow('manage')});
   })();
+  /* à chaque remise du contact (écran du poste rallumé après une coupure) : choix du profil */
+  window.onPowerOn=function(){try{sessionStorage.removeItem('profOk')}catch(e){}if(get('setup','0')==='1'&&pfList().length){try{go('home')}catch(e){}pfShow('pick')}};
   /* astuce centre de contrôle */
   (function(){
     var n=parseInt(get('hintN','0'),10)||0,h=$('#ccHint');if(!h)return;
@@ -4005,5 +4015,9 @@ var l=document.createElement('div');l.id='persLbl';l.innerHTML='Aperçu en direc
 window.__hw=hw})();</script>
 <script>(function(){var M={fuel:'v_fuel',volt:'v_bat',ext:'v_ext',eng:'v_eng',range:'v_range',odoK:'v_odo',belt:'v_belt'};
 document.querySelectorAll('.vr').forEach(function(r){var v=r.querySelector('[data-k]');if(!v)return;var k=v.getAttribute('data-k'),f=M[k];var sv=r.querySelector(':scope>svg');if(!f||!sv)return;var im=document.createElement('img');im.className='vIc';im.src='ic/'+f+'.webp';im.alt='';sv.parentNode.replaceChild(im,sv)})})();</script>
+<script>(function(){var H=[['0','#2f8bff'],['-25','#18c6e0'],['-95','#2fd15a'],['55','#9b5cff'],['115','#ff4fb0'],['145','#ff3b3b'],['175','#ff9a1f'],['200','#e8c33a']];
+function g(){try{return localStorage.getItem('icHue')||'0'}catch(e){return '0'}}
+function ap(){document.documentElement.style.setProperty('--icH',g()+'deg');var b=document.getElementById('icSw');if(!b)return;b.innerHTML='';H.forEach(function(h){var i=document.createElement('i');i.style.background=h[1];i.style.color=h[1];if(h[0]===g())i.className='on';i.addEventListener('click',function(){try{localStorage.setItem('icHue',h[0])}catch(e){}ap()});b.appendChild(i)})}
+ap()})();</script>
 </body>
 </html>

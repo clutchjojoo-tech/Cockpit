@@ -146,6 +146,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        ecouteEcran();
         pleinEcran();
         sendLocation();
     }
@@ -155,6 +156,35 @@ public class MainActivity extends Activity {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             pleinEcran();
+        }
+    }
+
+    // Mise hors tension / remise du contact : l'écran du poste s'éteint puis se rallume.
+    private BroadcastReceiver recepteurEcran = null;
+    private long ecranEteintA = 0;
+
+    private void ecouteEcran() {
+        if (recepteurEcran != null) return;
+        try {
+            recepteurEcran = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context c, Intent i) {
+                    String a = i.getAction();
+                    if (Intent.ACTION_SCREEN_OFF.equals(a)) {
+                        ecranEteintA = System.currentTimeMillis();
+                    } else if (Intent.ACTION_SCREEN_ON.equals(a) && ecranEteintA > 0
+                            && System.currentTimeMillis() - ecranEteintA > 20000) {
+                        ecranEteintA = 0;
+                        fondJs("window.onPowerOn&&window.onPowerOn()");
+                    }
+                }
+            };
+            IntentFilter f = new IntentFilter();
+            f.addAction(Intent.ACTION_SCREEN_OFF);
+            f.addAction(Intent.ACTION_SCREEN_ON);
+            registerReceiver(recepteurEcran, f);
+        } catch (Exception e) {
+            recepteurEcran = null;
         }
     }
 
