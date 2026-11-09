@@ -10,8 +10,8 @@ android {
         applicationId 'com.golf6.home'
         minSdk 21
         targetSdk 34
-        versionCode 24
-        versionName '2.4'
+        versionCode 25
+        versionName '2.4.1'
     }
 
     signingConfigs {
@@ -27,6 +27,11 @@ android {
         release {
             minifyEnabled false
         }
+    }
+
+    // Anciennes images 3D (dossiers d et dj) encore présentes dans le dépôt : pas mises dans l'APK
+    androidResources {
+        ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:<dir>d:<dir>dj:f_*.js:golf6.js:three3d.js:m3d.js'
     }
 
     compileOptions {
