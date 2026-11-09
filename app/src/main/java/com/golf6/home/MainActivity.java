@@ -170,6 +170,17 @@ public class MainActivity extends Activity {
                 @Override
                 public void onReceive(Context c, Intent i) {
                     String a = i.getAction();
+                    if ("android.media.VOLUME_CHANGED_ACTION".equals(a)) {
+                        int type = i.getIntExtra("android.media.EXTRA_VOLUME_STREAM_TYPE", -1);
+                        if (type != AudioManager.STREAM_MUSIC) return;
+                        int v = i.getIntExtra("android.media.EXTRA_VOLUME_STREAM_VALUE", -1);
+                        int old = i.getIntExtra("android.media.EXTRA_PREV_VOLUME_STREAM_VALUE", -2);
+                        if (v < 0 || v == old) return;
+                        int max = 30;
+                        try { max = ((AudioManager) getSystemService(AUDIO_SERVICE)).getStreamMaxVolume(AudioManager.STREAM_MUSIC); } catch (Exception e) { }
+                        fondJs("window.onVol&&window.onVol(" + v + "," + max + ")");
+                        return;
+                    }
                     if (Intent.ACTION_SCREEN_OFF.equals(a)) {
                         ecranEteintA = System.currentTimeMillis();
                     } else if (Intent.ACTION_SCREEN_ON.equals(a) && ecranEteintA > 0
@@ -182,6 +193,7 @@ public class MainActivity extends Activity {
             IntentFilter f = new IntentFilter();
             f.addAction(Intent.ACTION_SCREEN_OFF);
             f.addAction(Intent.ACTION_SCREEN_ON);
+            f.addAction("android.media.VOLUME_CHANGED_ACTION");
             registerReceiver(recepteurEcran, f);
         } catch (Exception e) {
             recepteurEcran = null;
@@ -403,7 +415,36 @@ public class MainActivity extends Activity {
         }
     }
 
+    // ---- Voix enregistrées (ElevenLabs), dans assets/voix ----
+    private MediaPlayer voixPlayer;
+
+    boolean jouerVoix(String nom) {
+        if (!prefs.getBoolean("voice_on", true) || !"fr".equals(langue())) return false;
+        if (nom == null || !nom.matches("[a-z0-9_]{2,30}")) return false;
+        try {
+            android.content.res.AssetFileDescriptor fd = getAssets().openFd("voix/" + nom + ".mp3");
+            if (voixPlayer != null) {
+                try { voixPlayer.release(); } catch (Exception e) { }
+            }
+            voixPlayer = new MediaPlayer();
+            voixPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            voixPlayer.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
+            fd.close();
+            voixPlayer.prepare();
+            float vol = prefs.getInt("voice_vol", 90) / 100f;
+            voixPlayer.setVolume(vol, vol);
+            voixPlayer.start();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private void saluer() {
+        int h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        if (jouerVoix((h >= 5 && h < 12) ? "bonjour" : ((h >= 12 && h < 18) ? "bonapresmidi" : "bonsoir"))) {
+            return;
+        }
         if (jouerSalutCache()) {
             return;
         }
@@ -476,6 +517,31 @@ public class MainActivity extends Activity {
                 web.evaluateJavascript(js, null);
             }
         });
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        // Touche Accueil du poste (Cockpit est l'écran d'accueil) : retour à l'accueil de Cockpit.
+        if (intent != null && intent.hasCategory(Intent.CATEGORY_HOME) && web != null) {
+            try { web.evaluateJavascript("window.goHome && window.goHome()", null); } catch (Exception e) { }
+        }
+    }
+
+    private long dernierRetour = 0;
+
+    @Override
+    public boolean dispatchKeyEvent(android.view.KeyEvent ev) {
+        // Touche Retour (écran, volant ou façade) : toujours gérée par Cockpit.
+        if (ev.getKeyCode() == android.view.KeyEvent.KEYCODE_BACK) {
+            if (ev.getAction() == android.view.KeyEvent.ACTION_UP && System.currentTimeMillis() - dernierRetour > 250) {
+                dernierRetour = System.currentTimeMillis();
+                try { web.evaluateJavascript("window.goBack && window.goBack()", null); } catch (Exception e) { }
+            }
+            return true;
+        }
+        return super.dispatchKeyEvent(ev);
     }
 
     @Override
@@ -961,7 +1027,33 @@ public class MainActivity extends Activity {
         }
     }
 
+    private String appsEnvoyees = null;
+
+    private void envoyerAppsJs(String json) {
+        final String js = "window.setApps && window.setApps(" + json + ")";
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                web.evaluateJavascript(js, null);
+            }
+        });
+    }
+
     private void envoyerApps() {
+        // 1) liste gardée en mémoire du poste : affichage instantané
+        try {
+            File cf = new File(getFilesDir(), "apps_cache.json");
+            if (appsEnvoyees == null && cf.exists() && cf.length() > 10) {
+                java.io.FileInputStream in = new java.io.FileInputStream(cf);
+                byte[] buf = new byte[(int) cf.length()];
+                int lu = 0;
+                while (lu < buf.length) { int r = in.read(buf, lu, buf.length - lu); if (r < 0) break; lu += r; }
+                in.close();
+                appsEnvoyees = new String(buf, 0, lu, "UTF-8");
+            }
+            if (appsEnvoyees != null) envoyerAppsJs(appsEnvoyees);
+        } catch (Exception e) { }
+        // 2) liste fraîche en arrière-plan, renvoyée seulement si elle a changé
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -986,13 +1078,16 @@ public class MainActivity extends Activity {
                         o.put("i", iconeEnBase64(ri.loadIcon(pm)));
                         arr.put(o);
                     }
-                    final String js = "window.setApps && window.setApps(" + arr.toString() + ")";
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            web.evaluateJavascript(js, null);
-                        }
-                    });
+                    String json = arr.toString();
+                    if (!json.equals(appsEnvoyees)) {
+                        appsEnvoyees = json;
+                        envoyerAppsJs(json);
+                        try {
+                            FileOutputStream out = new FileOutputStream(new File(getFilesDir(), "apps_cache.json"));
+                            out.write(json.getBytes("UTF-8"));
+                            out.close();
+                        } catch (Exception e2) { }
+                    }
                 } catch (Exception e) {
                     // La liste reste vide.
                 }
@@ -1429,6 +1524,69 @@ public class MainActivity extends Activity {
         return m;
     }
 
+    // ---------- Postes HCN (appli CarCAN) : infos partagées par CarCAN ----------
+    static final String[] HCN_ACTIONS = {"hcn.air.outdoor_temp", "android.mcu.device.action.REVSTATUS", "android.mcu.device.action.ACC"};
+    private static java.lang.reflect.Method spGet;
+    private static volatile boolean spKo = false;
+    private java.util.Map<String, String> cacheProps = new java.util.HashMap<String, String>();
+    private long cachePropsAt = 0;
+
+    // Secours si Android refuse la lecture directe : relit « getprop » au plus toutes les 1,5 s.
+    private synchronized String propSecours(String k) {
+        if (System.currentTimeMillis() - cachePropsAt > 1500) {
+            java.util.Map<String, String> m = new java.util.HashMap<String, String>();
+            try {
+                Process pr = Runtime.getRuntime().exec("getprop");
+                BufferedReader br = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+                String l;
+                while ((l = br.readLine()) != null) {
+                    int a = l.indexOf("]: [");
+                    if (l.startsWith("[") && a > 0) m.put(l.substring(1, a), l.substring(a + 4, l.length() - (l.endsWith("]") ? 1 : 0)));
+                }
+                br.close();
+            } catch (Exception e) { }
+            cacheProps = m;
+            cachePropsAt = System.currentTimeMillis();
+        }
+        String v = cacheProps.get(k);
+        return v == null || v.length() == 0 ? null : v;
+    }
+
+    static String lireProp(String k) {
+        try {
+            if (spGet == null) spGet = Class.forName("android.os.SystemProperties").getMethod("get", String.class, String.class);
+            String v = (String) spGet.invoke(null, k, "");
+            return v == null || v.length() == 0 ? null : v;
+        } catch (Throwable e) {
+            spKo = true;
+            return null;
+        }
+    }
+
+    // Lit une seule clé, sans tout relire (rapide).
+    private String lireCle(String k) {
+        try {
+            if (k.startsWith("bc ")) return etatBc.get(k);
+            if (k.startsWith("prop ")) {
+                String v = spKo ? null : lireProp(k.substring(5));
+                return v != null ? v : propSecours(k.substring(5));
+            }
+            if (k.startsWith("system ")) return Settings.System.getString(getContentResolver(), k.substring(7));
+            if (k.startsWith("global ")) return Settings.Global.getString(getContentResolver(), k.substring(7));
+            if (k.startsWith("secure ")) return Settings.Secure.getString(getContentResolver(), k.substring(7));
+        } catch (Throwable e) { }
+        return null;
+    }
+
+    private boolean posteHcn() {
+        try {
+            getPackageManager().getPackageInfo("com.hcn.autocan", 0);
+            return true;
+        } catch (Throwable e) {
+            return false;
+        }
+    }
+
     private void envoyerDetect(String type, String json) {
         final String js = "window.onDetect && window.onDetect(" + JSONObject.quote(type) + "," + json + ")";
         runOnUiThread(new Runnable() {
@@ -1441,7 +1599,8 @@ public class MainActivity extends Activity {
 
     @SuppressWarnings("deprecation")
     private void enregistrerRecepteurDetect() {
-        if (recepteurDetect != null || actionsCan.isEmpty()) return;
+        if (recepteurDetect != null) return;
+        for (String a : HCN_ACTIONS) if (!actionsCan.contains(a)) actionsCan.add(a);
         recepteurDetect = new BroadcastReceiver() {
             @Override
             public void onReceive(Context ctx, Intent in) {
@@ -2277,11 +2436,8 @@ public class MainActivity extends Activity {
                     while (surveillance) {
                         List<String> cles;
                         synchronized (clesSurveillees) { cles = new ArrayList<String>(clesSurveillees); }
-                        boolean props = false;
-                        for (String k : cles) if (!k.startsWith("bc ")) props = true;
-                        java.util.Map<String, String> m = props ? etatComplet() : new java.util.HashMap<String, String>(etatBc);
                         for (String k : cles) {
-                            String v = m.get(k);
+                            String v = lireCle(k);
                             if (v == null) continue;
                             if (!v.equals(avant.get(k))) {
                                 avant.put(k, v);
@@ -2294,10 +2450,43 @@ public class MainActivity extends Activity {
                                 });
                             }
                         }
-                        try { Thread.sleep(1500); } catch (Exception e) { }
+                        try { Thread.sleep(350); } catch (Exception e) { }
                     }
                 }
             }).start();
+        }
+
+        // Poste avec CarCAN : ce que Cockpit arrive à lire (diagnostic + réglage automatique).
+        // Joue une voix enregistrée ; sinon la voix de synthèse lit le texte.
+        @JavascriptInterface
+        public void playVoice(final String nom, final String texte) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!jouerVoix(nom) && texte != null && texte.length() > 0) parler(texte);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String hcnInfo() {
+            JSONObject o = new JSONObject();
+            try {
+                o.put("hcn", posteHcn());
+                o.put("can", String.valueOf(Settings.System.getString(getContentResolver(), "hcnhw/can_type_settings")));
+                o.put("ver", String.valueOf(Settings.System.getString(getContentResolver(), "hcn_can_version")));
+                o.put("spd", String.valueOf(Settings.System.getString(getContentResolver(), "car_speed_value")));
+                JSONObject p = new JSONObject();
+                String[] ks = {"cardoor1", "cardoor2", "cardoor3", "cardoor4", "cardoor5", "radar0", "radar1", "radar2", "radar3",
+                        "radar4", "radar5", "radar6", "radar7", "speed", "light0", "light1", "light2", "angle"};
+                for (String k : ks) p.put(k, String.valueOf(lireCle("prop persist.vendor.cem." + k)));
+                o.put("p", p);
+                JSONObject b = new JSONObject();
+                for (String a : HCN_ACTIONS) for (java.util.Map.Entry<String, String> e : etatBc.entrySet())
+                    if (e.getKey().startsWith("bc " + a)) b.put(e.getKey().substring(3), e.getValue());
+                o.put("bc", b);
+            } catch (Exception e) { }
+            return o.toString();
         }
 
         @JavascriptInterface
@@ -2411,12 +2600,23 @@ public class MainActivity extends Activity {
                 @Override
                 public void run() {
                     try {
-                        if (Build.VERSION.SDK_INT < 29) {
+                        boolean fait = false;
+                        try {
+                            // Beaucoup de postes autorisent encore l'interrupteur direct.
                             android.net.wifi.WifiManager w = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                            w.setWifiEnabled(on);
-                        } else {
-                            Intent i = new Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY);
+                            fait = w.setWifiEnabled(on) && w.isWifiEnabled() == on;
+                            if (!fait) {
+                                Thread.sleep(300);
+                                fait = w.isWifiEnabled() == on;
+                            }
+                        } catch (Throwable t) { fait = false; }
+                        if (!fait) {
+                            Intent i = new Intent(Settings.ACTION_WIFI_SETTINGS);
                             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            if (i.resolveActivity(getPackageManager()) == null) {
+                                i = new Intent(Settings.Panel.ACTION_WIFI);
+                                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            }
                             startActivity(i);
                         }
                     } catch (Exception e) {
