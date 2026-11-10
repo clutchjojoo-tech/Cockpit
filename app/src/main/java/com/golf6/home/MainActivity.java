@@ -108,6 +108,7 @@ public class MainActivity extends Activity {
 
         web = new WebView(this);
         web.setBackgroundColor(Color.BLACK);
+        web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -141,6 +142,18 @@ public class MainActivity extends Activity {
     public void onRequestPermissionsResult(int code, String[] perms, int[] results) {
         super.onRequestPermissionsResult(code, perms, results);
         sendLocation();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        try { web.evaluateJavascript("window.onBg&&onBg(false)", null); } catch (Exception e) { }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        try { web.evaluateJavascript("window.onBg&&onBg(true)", null); } catch (Exception e) { }
     }
 
     @Override

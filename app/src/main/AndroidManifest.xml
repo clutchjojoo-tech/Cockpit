@@ -22,6 +22,7 @@
     </queries>
 
     <application
+        android:hardwareAccelerated="true"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="Cockpit"

@@ -200,7 +200,7 @@ function layDraw(){
   $('#mn').onclick=function(){set({a:'w',id:w.id,ds:-.1}).then(layLoad)};$('#pl').onclick=function(){set({a:'w',id:w.id,ds:.1}).then(layLoad)};
   $('#hd').onclick=function(){set({a:'w',id:w.id,h:1}).then(function(){selW='';layLoad();done()})};$('#ok').onclick=function(){selW='';layDraw()};
 }
-function layLoad(){api('layout').then(function(l){layout=l||[];layDraw()}).catch(function(){})}
+function layLoad(n){api('layout').then(function(l){layout=l||[];if(!layout.length&&(n||0)<4){setTimeout(function(){layLoad((n||0)+1)},700)}layDraw()}).catch(function(){})}
 var thT=0,thF=null;function throttle(f){thF=f;if(thT)return;thT=setTimeout(function(){thT=0;var g=thF;thF=null;g&&g()},120)}
 function layBind(){
   var m=$('#mini'),drag=null;if(!m)return;
@@ -274,13 +274,13 @@ function render(){
     h='<button class="back" id="bk">‹ Retour</button><h1>'+CAT[sub][0]+'</h1>';
     if(sub==='lay')h+=layPage();else h+=catPage(sub);
     app.innerHTML=h;$('#bk').onclick=function(){sub=null;selW='';render()};
-    if(sub==='lay'){shot();layLoad();layBind()}else bindCat(sub);
+    if(sub==='lay'){set({a:'home'}).then(function(){setTimeout(function(){shot();layLoad()},500)},function(){shot();layLoad()});layBind()}else bindCat(sub);
     return;
   }
   if(view==='home'){
-    h=header()+'<div class="prev"><img id="shot" src="" alt="" style="opacity:0"><div class="live">EN DIRECT</div></div><h3>Personnaliser</h3><div class="grid3">'+['dial','wt','dk','wx','cw','bg'].map(catTile).join('')+'</div>';
+    h=header()+'<div class="prev"><img id="shot" src="" alt="" style="opacity:0"><div class="live">EN DIRECT</div></div><button class="row" id="goLay" style="margin-top:6px"><span>Déplacer les widgets<small>Fais glisser chaque widget avec ton doigt</small></span><span style="flex:0;color:#4aa3ff">›</span></button><h3>Personnaliser</h3><div class="grid3">'+['dial','wt','dk','wx','cw','bg'].map(catTile).join('')+'</div>';
     h+='<h3>Voiture 3D</h3>'+sw('t3d',S.m3d,'Voiture 3D')+sw('trot',S.auto,'Rotation voiture','',!S.m3d)+sw('tli',S.lights,'Phares')+sw('tdr',S.doors,'Ouverture des portes','',!S.m3d);
-    app.innerHTML=h;bindCats();lookBind();shot();
+    app.innerHTML=h;bindCats();lookBind();shot();var gl=$('#goLay');if(gl)gl.onclick=function(){view='style';sub='lay';render()};
   }else if(view==='style'){
     h=header()+'<h3>Thème</h3><div class="seg">'+[['auto','Automatique'],['day','Jour'],['night','Nuit']].map(function(x){return '<button data-m="'+x[0]+'" class="'+(S.mode===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div><h3>Accueil</h3><div class="grid3">'+['lay','rad','bg'].map(catTile).join('')+'</div>';
     app.innerHTML=h;bindCats();lookBind();

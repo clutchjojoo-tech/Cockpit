@@ -10,8 +10,8 @@ android {
         applicationId 'com.golf6.home'
         minSdk 21
         targetSdk 34
-        versionCode 26
-        versionName '2.5'
+        versionCode 27
+        versionName '2.6'
     }
 
     signingConfigs {
