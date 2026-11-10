@@ -1,0 +1,21 @@
+name: Idée
+description: Proposer une amélioration ou une nouvelle fonction
+labels: ["idée"]
+body:
+  - type: textarea
+    id: idee
+    attributes:
+      label: Ton idée
+      description: Qu'aimerais-tu pouvoir faire avec Cockpit ?
+    validations:
+      required: true
+  - type: textarea
+    id: pourquoi
+    attributes:
+      label: Pourquoi c'est utile ?
+      description: Dans quelle situation cela t'aiderait-il ?
+  - type: textarea
+    id: exemple
+    attributes:
+      label: Un exemple ou une inspiration
+      description: Une capture, un lien, une application que tu aimes.
