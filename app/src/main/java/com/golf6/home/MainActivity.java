@@ -187,6 +187,14 @@ public class MainActivity extends Activity {
                             && System.currentTimeMillis() - ecranEteintA > 20000) {
                         ecranEteintA = 0;
                         fondJs("window.onPowerOn&&window.onPowerOn()");
+                        if (prefs.getBoolean("voice_on", true)) {
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    saluer();
+                                }
+                            }, 2500);
+                        }
                     }
                 }
             };
@@ -288,6 +296,10 @@ public class MainActivity extends Activity {
                 @Override
                 public void run() {
                     if (!prefs.getBoolean("voice_on", true)) {
+                        return;
+                    }
+                    // Voix enregistrée (ElevenLabs) d'abord : ne dépend pas de la synthèse vocale.
+                    if (jouerVoix(nomSalut())) {
                         return;
                     }
                     if (jouerSalutCache()) {
@@ -427,7 +439,13 @@ public class MainActivity extends Activity {
                 try { voixPlayer.release(); } catch (Exception e) { }
             }
             voixPlayer = new MediaPlayer();
-            voixPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            if (Build.VERSION.SDK_INT >= 21) {
+                voixPlayer.setAudioAttributes(new android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build());
+            } else {
+                voixPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            }
             voixPlayer.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
             fd.close();
             voixPlayer.prepare();
@@ -440,9 +458,13 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void saluer() {
+    private String nomSalut() {
         int h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
-        if (jouerVoix((h >= 5 && h < 12) ? "bonjour" : ((h >= 12 && h < 18) ? "bonapresmidi" : "bonsoir"))) {
+        return (h >= 5 && h < 12) ? "bonjour" : ((h >= 12 && h < 18) ? "bonapresmidi" : "bonsoir");
+    }
+
+    private void saluer() {
+        if (jouerVoix(nomSalut())) {
             return;
         }
         if (jouerSalutCache()) {
@@ -490,8 +512,110 @@ public class MainActivity extends Activity {
         }
     }
 
+    // ---------- Personnalisation depuis le téléphone ----------
+    private PhoneServer tel;
+
+    private synchronized PhoneServer telephone() {
+        if (tel == null) {
+            String jt = prefs.getString("phone_tok", "");
+            tel = new PhoneServer(getAssets(), new PhoneServer.Hote() {
+                @Override
+                public String js(final String code) {
+                    final String[] res = {null};
+                    final java.util.concurrent.CountDownLatch fin = new java.util.concurrent.CountDownLatch(1);
+                    web.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                web.evaluateJavascript(code, new android.webkit.ValueCallback<String>() {
+                                    @Override
+                                    public void onReceiveValue(String v) {
+                                        try {
+                                            Object o = new org.json.JSONTokener(v).nextValue();
+                                            res[0] = o instanceof String ? (String) o : String.valueOf(o);
+                                        } catch (Exception e) {
+                                            res[0] = v;
+                                        }
+                                        fin.countDown();
+                                    }
+                                });
+                            } catch (Exception e) {
+                                fin.countDown();
+                            }
+                        }
+                    });
+                    try { fin.await(4, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception e) { }
+                    return res[0];
+                }
+
+                @Override
+                public byte[] apercu() {
+                    final byte[][] res = {null};
+                    final java.util.concurrent.CountDownLatch fin = new java.util.concurrent.CountDownLatch(1);
+                    web.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                int w = Math.max(1, web.getWidth() / 2), h = Math.max(1, web.getHeight() / 2);
+                                Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
+                                Canvas c = new Canvas(bm);
+                                c.scale(0.5f, 0.5f);
+                                web.draw(c);
+                                ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                                bm.compress(Bitmap.CompressFormat.JPEG, 70, bo);
+                                bm.recycle();
+                                res[0] = bo.toByteArray();
+                            } catch (Throwable e) {
+                                res[0] = null;
+                            }
+                            fin.countDown();
+                        }
+                    });
+                    try { fin.await(4, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception e) { }
+                    return res[0];
+                }
+
+                @Override
+                public boolean photo(byte[] jpeg, String cible) {
+                    try {
+                        Bitmap full = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length);
+                        if (full == null) return false;
+                        int w = full.getWidth(), h = full.getHeight(), cw = w, ch = h;
+                        if (w * 9 > h * 16) cw = h * 16 / 9; else ch = w * 9 / 16;
+                        Bitmap crop = Bitmap.createBitmap(full, (w - cw) / 2, (h - ch) / 2, cw, ch);
+                        Bitmap fin = Bitmap.createScaledBitmap(crop, 1280, 720, true);
+                        SharedPreferences.Editor ed = prefs.edit();
+                        if ("lock".equals(cible)) {
+                            enregistrerFond(fin, "fond_lock.jpg", 1f, 1f, 1f);
+                        } else if ("prof".equals(cible)) {
+                            enregistrerFond(fin, "fond_prof.jpg", 1f, 1f, 1f);
+                        } else {
+                            enregistrerFond(fin, "fond_jour.jpg", 1f, 1f, 1f);
+                            enregistrerFond(fin, "fond_on.jpg", 0.42f, 0.48f, 0.68f);
+                            enregistrerFond(fin, "fond_off.jpg", 0.26f, 0.30f, 0.46f);
+                            ed.putBoolean("bg_u_jour", true).putBoolean("bg_u_on", false).putBoolean("bg_u_off", false);
+                        }
+                        ed.putLong("bg_stamp", System.currentTimeMillis()).apply();
+                        fondJs("prof".equals(cible) ? "window.profBgPhoto&&window.profBgPhoto()" : "window.bgDone&&window.bgDone(true)");
+                        return true;
+                    } catch (Throwable e) {
+                        return false;
+                    }
+                }
+
+                @Override
+                public void connecte() {
+                    fondJs("window.onPhone&&window.onPhone()");
+                }
+            }, jt);
+            prefs.edit().putString("phone_tok", tel.jeton).apply();
+        }
+        return tel;
+    }
+
     @Override
     protected void onDestroy() {
+        if (tel != null) tel.arreter();
         handler.removeCallbacksAndMessages(null);
         if (tts != null) {
             tts.stop();
@@ -538,6 +662,26 @@ public class MainActivity extends Activity {
             if (ev.getAction() == android.view.KeyEvent.ACTION_UP && System.currentTimeMillis() - dernierRetour > 250) {
                 dernierRetour = System.currentTimeMillis();
                 try { web.evaluateJavascript("window.goBack && window.goBack()", null); } catch (Exception e) { }
+            }
+            return true;
+        }
+        // Touches volume (façade ou volant) quand Cockpit est affiché : on règle le son nous-mêmes,
+        // sans demander à Android d'afficher son propre panneau ; Cockpit affiche le sien.
+        int kc = ev.getKeyCode();
+        if (kc == android.view.KeyEvent.KEYCODE_VOLUME_UP || kc == android.view.KeyEvent.KEYCODE_VOLUME_DOWN
+                || kc == android.view.KeyEvent.KEYCODE_VOLUME_MUTE) {
+            if (ev.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                try {
+                    AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+                    int dir = kc == android.view.KeyEvent.KEYCODE_VOLUME_UP ? AudioManager.ADJUST_RAISE
+                            : kc == android.view.KeyEvent.KEYCODE_VOLUME_DOWN ? AudioManager.ADJUST_LOWER
+                            : AudioManager.ADJUST_TOGGLE_MUTE;
+                    am.adjustStreamVolume(AudioManager.STREAM_MUSIC, dir, 0);
+                    int v = am.getStreamVolume(AudioManager.STREAM_MUSIC), max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                    web.evaluateJavascript("window.onVol&&window.onVol(" + v + "," + max + ")", null);
+                } catch (Exception e) {
+                    return super.dispatchKeyEvent(ev);
+                }
             }
             return true;
         }
@@ -1965,6 +2109,7 @@ public class MainActivity extends Activity {
             if ("on".equals(which)) return lireFondBase64("fond_on.jpg");
             if ("off".equals(which)) return lireFondBase64("fond_off.jpg");
             if ("lock".equals(which)) return lireFondBase64("fond_lock.jpg");
+            if ("prof".equals(which)) return lireFondBase64("fond_prof.jpg");
             return "";
         }
 
@@ -2088,6 +2233,9 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    if (jouerVoix(nomSalut())) {
+                        return;
+                    }
                     if (ttsPret) {
                         saluer();
                     } else {
@@ -2457,6 +2605,19 @@ public class MainActivity extends Activity {
         }
 
         // Poste avec CarCAN : ce que Cockpit arrive à lire (diagnostic + réglage automatique).
+        // Démarre le mini serveur pour le téléphone et renvoie son adresse (vide si pas de réseau).
+        @JavascriptInterface
+        public String phoneUrl() {
+            PhoneServer p = telephone();
+            p.demarrer();
+            return p.url();
+        }
+
+        @JavascriptInterface
+        public boolean phoneConnected() {
+            return tel != null && tel.telephoneRecent();
+        }
+
         // Joue une voix enregistrée ; sinon la voix de synthèse lit le texte.
         @JavascriptInterface
         public void playVoice(final String nom, final String texte) {

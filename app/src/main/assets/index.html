@@ -956,6 +956,37 @@ body.m3dOn.clair .o3r.on .o3s{background:linear-gradient(90deg,#1f7bff,#3fa2ff);
 body.m3dOn.clair #tgTheme.day .tgC{width:118px!important;height:44px!important;padding:0 12px 0 2px!important}
 body.m3dOn.clair #tgTheme .tgC img{width:38px!important;height:38px!important}
 body.m3dOn.clair #tgTheme .tgC svg{width:22px!important;height:22px!important}
+.phW{display:flex;gap:30px;align-items:center}
+.phBox{flex:0 0 260px;height:260px;border-radius:22px;background:#fff;display:flex;align-items:center;justify-content:center;padding:14px;box-shadow:0 0 30px rgba(74,163,255,.35)}
+.phQ,.phQ svg{width:232px;height:232px;display:block}
+.phNo{color:#13233f;font-size:17px;text-align:center;line-height:1.35}
+.phTx ol{margin:0 0 0 20px;padding:0;display:flex;flex-direction:column;gap:12px;font-size:19px;line-height:1.35}
+.phSt{margin-top:18px;font-size:18px;color:#9fd0ff}.phSt.ok,#wPhSt.ok{color:#8ff0a8}
+.phU{margin-top:8px;font-size:14px;opacity:.5}
+.wPh{display:flex;gap:34px;align-items:center;padding:6px 6px 0}
+.wPh h4{font-size:26px;margin:0 0 10px}.wPh p{font-size:18px;opacity:.8;margin:0 0 14px;line-height:1.35}
+#wPhSt{font-size:18px;color:#9fd0ff;margin-top:6px}
+#wNoTel{margin-top:16px;background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:10px 18px;font-size:16px}
+.pGear{position:absolute;right:36px;top:36px;display:flex;align-items:center;gap:10px;font-size:22px;padding:10px 22px 10px 16px;border-radius:26px;background:#ffffff20;border:1px solid #ffffff44;color:#fff;z-index:3}
+.pGear svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.pGear.on{background:#2f7bff;border-color:#6fb1ff}
+#prof .pcard.cur{}
+#pfDel.sure{background:#ff3b30!important;color:#fff!important;border-color:#ff3b30!important}
+#rvAn{position:absolute;inset:0;border-radius:26px;overflow:hidden;pointer-events:none}
+#rvAn i{position:absolute;inset:0;background-size:600% 600%;background-repeat:no-repeat;opacity:0;transition:opacity .25s}
+#rvAn i[data-f="0"]{opacity:1}
+#rvAn i.on{opacity:1;filter:brightness(1.15) saturate(1.15)}
+#rvAn i.pu{animation:rvPu .7s ease-in-out infinite alternate}
+@keyframes rvPu{from{opacity:1;filter:brightness(1.35) drop-shadow(0 0 6px rgba(255,255,255,.5))}to{opacity:.45;filter:none}}
+#rev #rvImg{visibility:hidden}
+@media (prefers-reduced-motion:reduce){#rvAn i.pu{animation:none}}
+#m3sl{position:absolute;left:470px;top:541px;width:340px;height:34px;z-index:3;display:none;touch-action:none;cursor:grab}
+body.m3dOn #stage[data-page="home"] #m3sl{display:block}body.edit #m3sl,body.persOn #m3sl,body.m3dIn #m3sl{display:none!important}
+#m3sl .tr{position:absolute;left:0;right:0;top:15px;height:4px;border-radius:2px;background:linear-gradient(90deg,rgba(74,163,255,.15),rgba(74,163,255,.55),rgba(74,163,255,.15));box-shadow:0 0 8px rgba(74,163,255,.35)}
+#m3sl .kn{position:absolute;top:2px;width:44px;height:30px;margin-left:-22px;border-radius:15px;background:rgba(14,24,44,.85);border:1.5px solid rgba(110,180,255,.85);box-shadow:0 0 12px rgba(60,150,255,.55);display:flex;align-items:center;justify-content:center;transition:transform .15s}
+#m3sl .kn svg{width:20px;height:20px;fill:none;stroke:#cfe6ff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#m3sl.on .kn{transform:scale(1.15)}
+body.clair #m3sl .kn{background:rgba(255,255,255,.9);border-color:#3d8cff}body.clair #m3sl .kn svg{stroke:#2f6fd6}
 </style>
 </head>
 <body>
@@ -1059,6 +1090,7 @@ body.m3dOn.clair #tgTheme .tgC svg{width:22px!important;height:22px!important}
 <div id="secWrap">
 <!-- Personnalisation -->
 <div class="sec" id="sec-perso"><div class="rows">
+<div class="sr"><div class="l">Personnaliser depuis mon téléphone<small>Scanne un code : compteurs, montres, météo, fonds et disposition se règlent sur ton téléphone, en direct</small></div><button class="mini" id="phBtn" type="button">Afficher le code</button></div>
 <div class="sh" style="margin-top:4px">Accueil et widgets</div>
 <div class="sr"><div class="l">Modifier l'écran d'accueil<small>Déplacer, agrandir ou masquer les widgets</small></div><button class="mini" data-pgo="edit" type="button">Modifier</button></div>
 <div class="sr"><div class="l">Ajouter un widget<small>Note, chrono, boussole, horloge, vitesse max, ou un widget de style</small></div><button class="mini" data-pgo="add" type="button">Ajouter</button></div>
@@ -1115,6 +1147,7 @@ body.m3dOn.clair #tgTheme .tgC svg{width:22px!important;height:22px!important}
 <div class="sr"><div class="l">Jour, phares éteints</div><button class="mini bgp" data-slot="jour">Choisir</button></div>
 <div class="sr"><div class="l">Nuit, phares allumés</div><button class="mini bgp" data-slot="on">Choisir</button></div>
 <div class="sr"><div class="l">Nuit, phares éteints</div><button class="mini bgp" data-slot="off">Choisir</button></div>
+<div class="sr"><div class="l">Fond depuis mon téléphone<small>Choisis une photo ou un fond d'écran de ton téléphone et envoie-le sur le poste (accueil, verrouillage ou profils)</small></div><button class="mini" id="phBg" type="button">Afficher le code</button></div>
 <div class="sr" style="display:block"><div class="l">Galerie de fonds d'écran<small>Touche un fond pour l'utiliser en accueil, en écran de verrouillage ou pour l'écran des profils</small></div><div class="libG" id="libG"></div></div>
 <div class="sr"><div class="l">Ma photo en fond<small>Une image du poste ou d'une clé USB, recadrée en 16:9</small></div><button class="mini" id="bgReset">Retirer mes photos</button></div>
 <div class="txt" style="display:block;margin:0 8px 10px">Les photos que tu ne choisis pas sont déduites de celles que tu as choisies. L'animation de démarrage utilise la nuit, phares éteints puis allumés.</div>
@@ -1272,7 +1305,7 @@ body.m3dOn.clair #tgTheme .tgC svg{width:22px!important;height:22px!important}
 </div></div>
 </div>
 </section>
-<script>(function(){var M=[[/Remettre|&nbsp;/,null],[/Couleur des icônes/,'a02'],[/Warnings/,'c40'],[/3D/,'a20'],[/Crédits/,'a32'],[/Nom affiché/,'a20'],[/Motorisation/,'c34'],[/Logo/,'c12'],[/Page Véhicule/,'c12'],[/statistiques/,'b31'],[/Infos de la voiture/,'c41'],[/Carburant|Autonomie/,'c21'],[/Batterie/,'c22'],[/Extérieur/,'b34'],[/Moteur/,'c34'],[/Kilométrage/,'c13'],[/Ceinture|Alerte sonore/,'c40'],[/Radar/,'b14'],[/Rappels|Entretien/,'c33'],[/coucher du soleil|Ambiances|Météo/,'c42'],[/Début de la nuit|Début du jour|Après|Format de l'heure|Horloges/,'b01'],[/^Thème|^Couleur|Thèmes/,'a02'],[/^Style/,'a23'],[/Opacité|Contraste|Résolution|Marges/,'a03'],[/Luminosité/,'a04'],[/Taille du texte|Taille de l'interface/,'a01'],[/Gros boutons|Disposition|Modifier l'écran|Ajouter un widget|accueil par défaut|Accueil par défaut|Appui long/,'a30'],[/Sons|Volume/,'a10'],[/Police/,'a34'],[/Galerie|Fonds/,'c02'],[/Jour, phares|Nuit, phares|Ma photo/,'a24'],[/Phares sur|Bouton des phares/,'b13'],[/Animation|Nouveautés|essai guidé|démo/,'c01'],[/Carte d'infos/,'a34'],[/Vitesse GPS|Compteurs de vitesse|Compteur de vitesse|Unités/,'b10'],[/Taille du compteur/,'b11'],[/Lecteur de musique/,'a11'],[/notifications|Guide|aide|Astuce/,'a32'],[/Compteur de trajet/,'c13'],[/Ville/,'b02'],[/verglas/,'c24'],[/Salut|Message|vocal|prénom|Tester la voix/,'b05'],[/pause/,'c25'],[/Alerte de vitesse|Limite/,'c20'],[/Bluetooth|Appareils|Associer/,'a13'],[/Navigation/,'a12'],[/pas CarPlay/,'c04'],[/CarPlay/,'b03'],[/Montres/,'c41'],[/Widgets voiture/,'c12'],[/Profils/,'a33'],[/Vérifier une mise à jour/,'b25'],[/Nouvelle version/,'b24'],[/Sauvegarder/,'b23'],[/Restaurer/,'b24'],[/Partager/,'b21'],[/Refaire l'assistant/,'c10'],[/Diagnostic|Observer/,'b00'],[/Android/,'a00'],[/./,'a00']];document.querySelectorAll('#secWrap .sr').forEach(function(r){if(r.style.display==='block')return;var l=r.querySelector('.l');if(!l||r.querySelector('.dIco'))return;var t=(l.childNodes[0]&&l.childNodes[0].textContent||'').trim();if(!t||t==='\u00a0')return;
+<script>(function(){var M=[[/Remettre|&nbsp;/,null],[/Couleur des icônes/,'a02'],[/Warnings/,'c40'],[/3D/,'a20'],[/Crédits/,'a32'],[/Nom affiché/,'a20'],[/Motorisation/,'c34'],[/Logo/,'c12'],[/Page Véhicule/,'c12'],[/statistiques/,'b31'],[/Infos de la voiture/,'c41'],[/Carburant|Autonomie/,'c21'],[/Batterie/,'c22'],[/Extérieur/,'b34'],[/Moteur/,'c34'],[/Kilométrage/,'c13'],[/Ceinture|Alerte sonore/,'c40'],[/Radar/,'b14'],[/Rappels|Entretien/,'c33'],[/coucher du soleil|Ambiances|Météo/,'c42'],[/Début de la nuit|Début du jour|Après|Format de l'heure|Horloges/,'b01'],[/^Thème|^Couleur|Thèmes/,'a02'],[/^Style/,'a23'],[/Opacité|Contraste|Résolution|Marges/,'a03'],[/Luminosité/,'a04'],[/Taille du texte|Taille de l'interface/,'a01'],[/Gros boutons|Disposition|Modifier l'écran|Ajouter un widget|accueil par défaut|Accueil par défaut|Appui long/,'a30'],[/Sons|Volume/,'a10'],[/Police/,'a34'],[/Galerie|Fonds|Fond depuis/,'c02'],[/Jour, phares|Nuit, phares|Ma photo/,'a24'],[/Phares sur|Bouton des phares/,'b13'],[/Animation|Nouveautés|essai guidé|démo/,'c01'],[/Carte d'infos/,'a34'],[/Vitesse GPS|Compteurs de vitesse|Compteur de vitesse|Unités/,'b10'],[/Taille du compteur/,'b11'],[/Lecteur de musique/,'a11'],[/notifications|Guide|aide|Astuce/,'a32'],[/Compteur de trajet/,'c13'],[/Ville/,'b02'],[/verglas/,'c24'],[/Salut|Message|vocal|prénom|Tester la voix/,'b05'],[/pause/,'c25'],[/Alerte de vitesse|Limite/,'c20'],[/Bluetooth|Appareils|Associer/,'a13'],[/Navigation/,'a12'],[/pas CarPlay/,'c04'],[/CarPlay/,'b03'],[/Montres/,'c41'],[/Widgets voiture/,'c12'],[/Profils/,'a33'],[/Vérifier une mise à jour/,'b25'],[/Nouvelle version/,'b24'],[/Sauvegarder/,'b23'],[/Restaurer/,'b24'],[/Partager/,'b21'],[/Refaire l'assistant/,'c10'],[/Diagnostic|Observer/,'b00'],[/Android/,'a00'],[/./,'a00']];document.querySelectorAll('#secWrap .sr').forEach(function(r){if(r.style.display==='block')return;var l=r.querySelector('.l');if(!l||r.querySelector('.dIco'))return;var t=(l.childNodes[0]&&l.childNodes[0].textContent||'').trim();if(!t||t==='\u00a0')return;
 for(var i=0;i<M.length;i++)if(M[i][0].test(t)){if(!M[i][1])return;var d=document.createElement('div');d.className='dIco';d.innerHTML='<img src="ic/'+M[i][1]+'.webp" alt="">';r.insertBefore(d,l);break}});
 var SI={look:'a02',perso:'a23',car:'a20',home:'a30',conn:'a14',help:'a32',adv:'a01'};
 document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAttribute('data-sec')];var s=b.querySelector('svg');if(k&&s){var im=document.createElement('img');im.className='siIco';im.src='ic/'+k+'.webp';im.alt='';s.parentNode.replaceChild(im,s)}});
@@ -1969,7 +2002,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
 
   /* ===== Étape 8 : À propos, vitesse GPS, musique, raccourcis, luminosité auto, styles ===== */
-  var APP_VERSION='2.4.1';
+  var APP_VERSION='2.5';
   function updateAbout(){$('#aboutTxt').textContent=T('Version')+' '+APP_VERSION}
 
   /* Vitesse GPS */
@@ -2307,7 +2340,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     $$('.bgp').forEach(function(b){b.classList.toggle('picked',fl.indexOf(b.getAttribute('data-slot')+',')>=0)});
     $('#bgReset').style.opacity=st>0?'1':'.4';
   }
-  function profBgApply(){var e=$('#prof'),u=get('profBg','');if(e)e.style.backgroundImage=u?'url('+u+')':''}
+  function profBgApply(){var e=$('#prof'),u=get('profBg','');if(u==='photo'){try{u=A&&A.getBg?A.getBg('prof'):''}catch(x){u=''}}if(e)e.style.backgroundImage=u?'url('+u+')':''}
+  window.profBgApply=profBgApply;window.profBgPhoto=function(){put('profBg','photo');profBgApply();toast('Fond des profils changé')};
   profBgApply();
   /* Galerie de fonds d'écran */
   (function(){
@@ -2415,7 +2449,9 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     ['hyundai','Hyundai / Kia',['i20','i30','Tucson','Picanto','Ceed','Sportage']]
   ];
   var wz={step:0,brand:'',model:'',sub:'',pren:'',acc:null};
-  var WSTEPS=['Mon profil','Choisis ta langue','Taille du texte','Marque','Modèle','Motorisation ou puissance','Couleur','Ton application CarPlay','Ton compteur','Ta météo','Ton horloge','Ta montre','Ta voiture','Infos de ta voiture','Test de ton poste','Ma photo en fond'],WORD=[99,0,-1,2,3,4,5,6,70,71,72,73,74,8,9,10];
+  var WSTEPS=['Ton téléphone','Mon profil','Choisis ta langue','Taille du texte','Marque','Modèle','Motorisation ou puissance','Couleur','Ton application CarPlay','Ton compteur','Ta météo','Ton horloge','Ta montre','Ta voiture','Infos de ta voiture','Test de ton poste','Ma photo en fond'],WORD=[98,99,0,-1,2,3,4,5,6,70,71,72,73,74,8,9,10],WSKIP=[99,-1,5,70,71,72,73,74,10];
+  function wVis(i){return !(wz.phone&&WSKIP.indexOf(WORD[i])>=0)}
+  window.__wizPhone=function(){if(!$('#wiz').classList.contains('on'))return;wz.phone=true;if(wSt()===98)wRender()};window.__wizPren=function(n){wz.pren=n};
   var APPS=[],cpSel='';
   function wInput(id,val,ph,max){return '<input type="text" id="'+id+'" maxlength="'+max+'" autocomplete="off" placeholder="'+ph+'" value="'+String(val).replace(/"/g,'&quot;')+'">'}
   function wSt(){return WORD[wz.step]}
@@ -2429,7 +2465,15 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   function wRender(){
     var raw=wz.step,st=wSt(),b=$('#wBody'),h='';
     if(wz.probe!=='wait')$('#wNext').disabled=false;
-    $('#wTitle').textContent=T(WSTEPS[raw])+'  ('+(raw+1)+'/'+WSTEPS.length+')';
+    var vis=[];for(var vi=0;vi<WSTEPS.length;vi++)if(wVis(vi))vis.push(vi);$('#wTitle').textContent=T(WSTEPS[raw])+'  ('+(vis.indexOf(raw)+1)+'/'+vis.length+')';
+    if(st===98){
+      var con=!!window.__phoneOn;
+      b.innerHTML='<div class="wPh"><div class="phBox" id="wPhBox"></div><div><h4>'+T('Configure Cockpit depuis ton téléphone')+'</h4><p>'+T("Plus confortable : ton profil, tes compteurs, montres, météo et fonds se choisissent sur le téléphone, et changent en direct ici.")+'</p><p>'+T("1. Active le partage de connexion du téléphone et connecte le poste dessus.  2. Scanne le code avec l'appareil photo.")+'</p><div id="wPhSt" class="'+(con?'ok':'')+'">'+(con?'✓ '+T('Téléphone connecté : continue la personnalisation dessus, et finis ici les réglages de la voiture.'):T('En attente du téléphone…'))+'</div><button id="wNoTel" type="button">'+T("Je n'ai pas de téléphone")+'</button></div></div>';
+      if(window.phoneQr)phoneQr($('#wPhBox'));
+      $('#wNoTel').addEventListener('click',function(){wz.phone=false;wz.step++;while(wz.step<WSTEPS.length-1&&!wVis(wz.step))wz.step++;wRender()});
+      if(con)wz.phone=true;
+      wNav(st);$('#wNext').textContent=T(con?'Continuer sur le poste':'Suivant');return;
+    }
     if(st===99){
       if(!wz.pf)wz.pf={id:'p'+Date.now().toString(36),name:wz.pren||'',wheel:'00',halo:PF_HALO[0],lock:'none',code:''};
       var w=wz.pf,wh='';for(var i=0;i<27;i++){var n=('0'+i).slice(-2);wh+='<img data-w="'+n+'" class="'+(w.wheel===n?'on':'')+'" src="wheels/w'+n+'.webp">'}
@@ -2567,7 +2611,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   function wNav(st){
     var b=$('#wBody');
     $('#wBack').style.display=wz.step===0?'none':'';
-    $('#wNext').textContent=T(wz.step===WSTEPS.length-1?'Terminer':'Suivant');
+    var lastV=WSTEPS.length-1;while(lastV>0&&!wVis(lastV))lastV--;$('#wNext').textContent=T(wz.step>=lastV?'Terminer':'Suivant');
     var f=b.querySelector('input');if(f&&st!==0&&st!==2&&st!==99)setTimeout(function(){try{f.focus()}catch(e){}},50);
   }
   function wClose(){$('#wiz').classList.remove('on');put('setup','1')}
@@ -2586,8 +2630,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     wz={step:0,probe:undefined,brand:get('brand',''),model:'',sub:'',pren:get('prenom','')==='Jonathan'?'':get('prenom',''),acc:null};
     $('#wiz').classList.add('on');wRender();
   }
-  $('#wNext').addEventListener('click',function(){wKeep();if(wz.step>=WSTEPS.length-1)wFinish();else{wz.step++;wRender()}});
-  $('#wBack').addEventListener('click',function(){wKeep();if(wz.step>0){wz.step--;wRender()}});
+  $('#wNext').addEventListener('click',function(){wKeep();if(wSt()===98)wz.phone=!!window.__phoneOn;var n=wz.step+1;while(n<WSTEPS.length&&!wVis(n))n++;if(n>=WSTEPS.length)wFinish();else{wz.step=n;wRender()}});
+  $('#wBack').addEventListener('click',function(){wKeep();var n=wz.step-1;while(n>0&&!wVis(n))n--;if(n>=0){wz.step=n;wRender()}});
   $('#wSkip').addEventListener('click',wClose);
   $('#wizAgain').addEventListener('click',wOpen);
   function applyNoCp(){
@@ -2988,7 +3032,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   };
 
   /* Poste avec CarCAN (hcn) : réglage automatique des infos partagées */
-  var HCN=null,RADK=['radar4','radar5','radar6','radar7'].map(function(r){return 'prop persist.vendor.cem.'+r});
+  var HCN=null,RADK=['radar4','radar5','radar6','radar7'].map(function(r){return 'prop persist.vendor.cem.'+r}),RADF=['radar0','radar2','radar3','radar1'].map(function(r){return 'prop persist.vendor.cem.'+r}),RADFV=[151,151,151,151];
   function hcnRead(){if(!A||!A.hcnInfo)return null;try{return JSON.parse(A.hcnInfo())}catch(e){return null}}
   function hcnAuto(){
     HCN=hcnRead();if(!HCN||!HCN.hcn)return;
@@ -2999,17 +3043,17 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(ch)put('carmap',JSON.stringify(cm));
   }
   var _cw=carWatch;carWatch=function(){_cw();
-    if(HCN&&HCN.hcn&&A&&A.watchKeys){var ks=[];DETL.concat([['temp'],['fuel'],['range'],['odo']]).forEach(function(a){if(CM[a[0]]&&CM[a[0]].k&&ks.indexOf(CM[a[0]].k)<0)ks.push(CM[a[0]].k)});try{A.watchKeys(JSON.stringify(ks.concat(RADK)))}catch(e){}}};
+    if(HCN&&HCN.hcn&&A&&A.watchKeys){var ks=[];DETL.concat([['temp'],['fuel'],['range'],['odo']]).forEach(function(a){if(CM[a[0]]&&CM[a[0]].k&&ks.indexOf(CM[a[0]].k)<0)ks.push(CM[a[0]].k)});try{A.watchKeys(JSON.stringify(ks.concat(RADK,RADF)))}catch(e){}}};
   var RAD=[151,151,151,151];
   function radLvl(cm){return !(cm>0)||cm>150?0:cm>=150?1:cm>=60?2:3}
   function radDraw(){
     var mn=Math.min.apply(null,RAD),box=$('#rvDist');if(!box)return;
     box.classList.toggle('on',mn<151);box.setAttribute('data-l',radLvl(mn));$('#rvCm').textContent=mn<151?mn:'--';
     $$('#rvBars i').forEach(function(e,i){e.setAttribute('data-l',radLvl(RAD[i]))});
-    if(window.setRadar)window.setRadar(RAD.map(radLvl));
+    if(window.setRadar)window.setRadar(RAD.map(radLvl));if(window.radAnim)window.radAnim(RAD,RADFV);
   }
-  window.__radTest=function(a){RAD=a;radDraw()};
-  var _ocvH=window.onCarVal;window.onCarVal=function(k,v){var i=RADK.indexOf(k);if(i>=0){var n=parseInt(v,10);RAD[i]=isFinite(n)&&n>0?n:151;radDraw();return}return _ocvH&&_ocvH(k,v)};
+  window.__radTest=function(a,f){RAD=a;if(f)RADFV=f;radDraw()};
+  var _ocvH=window.onCarVal;window.onCarVal=function(k,v){var fi=RADF.indexOf(k);if(fi>=0){var fn=parseInt(v,10);RADFV[fi]=isFinite(fn)&&fn>0?fn:151;radDraw();return}var i=RADK.indexOf(k);if(i>=0){var n=parseInt(v,10);RAD[i]=isFinite(n)&&n>0?n:151;radDraw();return}return _ocvH&&_ocvH(k,v)};
   $('#hcnBtn').addEventListener('click',function(){
     var o=hcnRead();if(!o){showTxt('#hcnOut','Disponible uniquement sur le poste.');return}
     if(!o.hcn){showTxt('#hcnOut','Pas d\'appli CarCAN sur ce poste : utilise la détection des infos de la voiture.');return}
@@ -3026,6 +3070,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     showTxt('#hcnOut',t);
   });
   hcnAuto();
+  (function(){var b=$('#phBtn');if(b)b.addEventListener('click',function(){window.phoneOpen&&phoneOpen()})})();
+  (function(){var b=$('#phBg');if(b)b.addEventListener('click',function(){window.phoneOpen&&phoneOpen('bg')})})();
 
   /* Volume : notre propre affichage */
   window.onVol=function(v,mx){var o=document.getElementById('volOv');if(!o)return;mx=mx||30;var p=Math.max(0,Math.min(1,v/mx));
@@ -3166,6 +3212,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
   /* Nouveautés */
   var NEWS=[
+    ['Cockpit sur ton téléphone','Scanne un code et personnalise tout depuis ton téléphone : profil, compteurs, montres, horloges, météo, fonds (même une photo du téléphone), disposition des widgets et voiture 3D. Tout change en direct sur le poste.'],
+    ['Premier démarrage plus simple','Le poste propose d\'abord le téléphone : il ne garde que les réglages de la voiture (langue, marque, CarPlay, détection des infos).'],
     ['Voiture 3D fluide','La Golf tourne en vidéo, sans à-coups, sur sa plateforme. Fais-la pivoter au doigt, ou coupe la rotation automatique avec le petit bouton.'],
     ['Phares, portes et explosion','Les phares s\'allument vraiment sur la voiture, les portes s\'ouvrent en douceur et la vue éclatée est animée.'],
     ['Onglet Véhicule','La voiture se tourne côté conducteur, la porte s\'ouvre et la caméra s\'installe au volant.'],
@@ -3347,7 +3395,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   /* Balayages : gauche = applications, coin haut droit vers le bas = centre de contrôle */
   var sw0=null,swTouch=false;
   function swXY(e){var t=(e.changedTouches&&e.changedTouches[0])||(e.touches&&e.touches[0])||e,r=stage.getBoundingClientRect(),sc=r.width/1280||1;return{x:(t.clientX-r.left)/sc,y:(t.clientY-r.top)/sc,t:Date.now(),el:e.target}}
-  function swBad(el){var b=document.body.classList;if(b.contains('edit')||b.contains('persOn')||window.__m3dDrag||document.querySelector('.ov.on,#prof.on,#pers.on,#wiz.on'))return true;return el&&el.closest&&el.closest('input,select,textarea,.ov.on,#cc,#coach,#torch,#cineOv,#pers,#prof,#m3btn')}
+  function swBad(el){var b=document.body.classList;if(b.contains('edit')||b.contains('persOn')||window.__m3dDrag||Date.now()-(window.__m3dDragAt||0)<600||(el&&el.closest&&el.closest('#m3sl'))||document.querySelector('.ov.on,#prof.on,#pers.on,#wiz.on'))return true;return el&&el.closest&&el.closest('input,select,textarea,.ov.on,#cc,#coach,#torch,#cineOv,#pers,#prof,#m3btn')}
+  function pg0(){return stage.getAttribute('data-page')}
   function swStart(e){if(e.type==='mousedown'&&swTouch)return;if(e.type==='touchstart')swTouch=true;sw0=swXY(e)}
   function swEnd(e){
     if(e.type==='mouseup'&&swTouch){swTouch=false;return}
@@ -3355,6 +3404,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(dt>900)return;
     if($('#cc').classList.contains('on')){if(dy<-80&&Math.abs(dx)<120)ccClose();return}
     if(swBad(a.el))return;
+    if(document.body.classList.contains('m3dOn')&&pg0()==='home'){var ax=a.x,ay=a.y;if(ax>230&&ax<1050&&ay>150&&ay<580)return}
     if(a.x>840&&a.y<90&&dy>90&&Math.abs(dx)<110){ccOpen();return}
     var pg=stage.getAttribute('data-page');
     if(Math.abs(dy)<90&&Math.abs(dx)>150){
@@ -3783,11 +3833,16 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     a.forEach(function(p){h+='<div class="pcard'+(p.id===get('profCur','')?' cur':'')+'" data-id="'+p.id+'" style="--h:'+p.halo+'">'+pfImg(p)+'<b>'+esc(p.name)+'</b>'+(p.lock==='code'?'<div class="lk">'+SVG_LOCK+'</div>':p.lock==='scan'?'<div class="lk">'+SVG_FP+'</div>':'')+'</div>'});
     if(a.length<6)h+='<div class="pcard add" data-id="+"><div class="ph">+</div><b style="font-size:24px">'+T('Ajouter un profil')+'</b></div>';
     h+='</div>';
-    if(pfMode==='manage'||get('setup','0')==='1')h+='<div class="pBack" id="pClose">'+T(pfMode==='manage'?'Fermer':'Passer')+'</div>';
+    if(pfMode!=='manage')pfGearFrom=false;
+    if((pfMode==='manage'&&!pfGearFrom)||(pfMode!=='manage'&&get('setup','0')==='1'))h+='<div class="pBack" id="pClose">'+T(pfMode==='manage'?'Fermer':'Passer')+'</div>';
+    if(a.length&&(pfMode!=='manage'||pfGearFrom))h+='<button class="pGear'+(pfMode==='manage'?' on':'')+'" id="pGear" type="button" aria-label="'+T('Modifier ou supprimer un profil')+'"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>'+T(pfMode==='manage'?'Terminé':'Modifier')+'</span></button>';
+    if(pfMode==='manage')h=h.replace('<div class="sub">'+T('Sélectionnez votre utilisateur')+'</div>','<div class="sub">'+T('Touche un profil pour le modifier ou le supprimer')+'</div>');
     o.innerHTML=h+'</div>';o.classList.add('on');
-    $$('#prof .pcard').forEach(function(c){c.addEventListener('click',function(){var id=c.getAttribute('data-id');if(id==='+')pfEditor({id:'p'+Date.now().toString(36),name:'',wheel:('0'+Math.floor(Math.random()*27)).slice(-2),halo:PF_HALO[0],lock:'none',code:''},true);else if(pfMode==='manage')pfEditor(pfById(id),false);else pfChoose(id)})});
+    $$('#prof .pcard').forEach(function(c){c.addEventListener('click',function(){var id=c.getAttribute('data-id');if(id==='+')pfEditor({id:'p'+Date.now().toString(36),name:'',wheel:('0'+Math.floor(Math.random()*27)).slice(-2),halo:PF_HALO[0],lock:'none',code:''},true);else if(pfMode==='manage'){var pp=pfById(id);if(pp&&(pp.lock==='code'||pp.lock==='scan')){pfAfter=function(){pfEditor(pp,false)};if(pp.lock==='code')pfCode(pp);else pfScan(pp)}else pfEditor(pp,false)}else pfChoose(id)})});
     var cl=$('#pClose');if(cl)cl.addEventListener('click',function(){o.classList.remove('on');try{sessionStorage.setItem('profOk','1')}catch(e){}});
+    var gr=$('#pGear');if(gr)gr.addEventListener('click',function(){if(pfMode==='manage'){pfShow(pfBackMode)}else{pfBackMode=pfMode;pfShow('manage');pfGearFrom=true;pfShow('manage')}});
   }
+  var pfBackMode='pick',pfAfter=null,pfGearFrom=false;
   function pfBackBtn(){return '<div class="pBack" id="pBk">‹ '+T('Profils')+'</div>'}
   function pfChoose(id){
     var p=pfById(id);if(!p)return;
@@ -3800,7 +3855,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     function draw(){
       var d='';for(var i=0;i<4;i++)d+='<i class="'+(i<pfCodeBuf.length?'f':'')+'"></i>';
       o.innerHTML=pfBackBtn()+'<div class="pPanel" style="--h:'+p.halo+'">'+pfImg(p,'pBig')+'<h2>'+esc(p.name)+'</h2><p id="pMsg">'+T('Entre ton code')+'</p><div class="pDots">'+d+'</div><div class="pPad">'+[1,2,3,4,5,6,7,8,9,'C',0,'⌫'].map(function(k){return '<button data-k="'+k+'"'+(typeof k==='string'?' class="x"':'')+'>'+(k==='C'?T('Effacer'):k)+'</button>'}).join('')+'</div></div>';
-      $('#pBk').addEventListener('click',function(){pfShow(pfMode)});
+      $('#pBk').addEventListener('click',function(){pfAfter=null;pfShow(pfMode)});
       $$('#prof .pPad button').forEach(function(b){b.addEventListener('click',function(){
         var k=b.getAttribute('data-k');
         if(k==='C')pfCodeBuf='';else if(k==='⌫')pfCodeBuf=pfCodeBuf.slice(0,-1);else if(pfCodeBuf.length<4)pfCodeBuf+=k;
@@ -3813,7 +3868,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   function pfScan(p){
     var o=$('#prof'),t=null;
     o.innerHTML=pfBackBtn()+'<div class="pPanel" style="--h:'+p.halo+'">'+pfImg(p,'pBig')+'<h2>'+esc(p.name)+'</h2><p class="pOk" id="pMsg">'+T('Maintiens ton doigt')+'</p><div class="pScan" id="pScan">'+SVG_FP2+'<div class="beam"></div></div></div>';
-    $('#pBk').addEventListener('click',function(){clearTimeout(t);pfShow(pfMode)});
+    $('#pBk').addEventListener('click',function(){clearTimeout(t);pfAfter=null;pfShow(pfMode)});
     var s=$('#pScan');
     function dn(e){e.preventDefault();s.classList.add('go');$('#pMsg').textContent=T('Analyse en cours…');clearTimeout(t);t=setTimeout(function(){pfEnter(p)},1300)}
     function up(){clearTimeout(t);s.classList.remove('go');var m=$('#pMsg');if(m)m.textContent=T('Maintiens ton doigt')}
@@ -3821,6 +3876,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   }
   var pfSnapKeys=function(){var o={__v:2};PF_KEYS.forEach(function(k){var v=localStorage.getItem(k);if(v!==null)o[k]=v});return o};
   function pfEnter(p){
+    if(pfAfter){var f=pfAfter;pfAfter=null;return f()}
     try{sessionStorage.setItem('profOk','1')}catch(e){}
     var cur=get('profCur','');
     if(cur&&cur!==p.id&&cur!=='guest')put('pfSnap_'+cur,JSON.stringify(pfSnapKeys()));
@@ -3837,7 +3893,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
       var wh='';for(var i=0;i<27;i++){var n=('0'+i).slice(-2);wh+='<img data-w="'+n+'" class="'+(w.wheel===n?'on':'')+'" src="wheels/w'+n+'.webp">'}
       var sw=PF_HALO.map(function(c){return '<i data-c="'+c+'" class="'+(w.halo===c?'on':'')+'" style="background:rgb('+c+');color:rgb('+c+')"></i>'}).join('');
       o.innerHTML=pfBackBtn()+'<div class="pPanel pEd" style="--h:'+w.halo+'">'+pfImg(w,'pBig')+'<div class="lab">'+T('Prénom ou nom')+'</div><input type="text" id="pfName" maxlength="14" value="'+esc(w.name)+'" autocomplete="off"><div class="lab">'+T('Volant')+'</div><div class="mw">'+wh+'</div><div class="lab">'+T('Couleur du halo')+'</div><div class="hsw">'+sw+'</div><div class="lab">'+T('Verrouillage')+'</div><div class="seg">'+[['none','Aucun'],['code','Code'],['scan','Iron Scan']].map(function(x){return '<span data-l="'+x[0]+'" class="'+(w.lock===x[0]?'on':'')+'">'+T(x[1])+'</span>'}).join('')+'</div>'+(w.lock==='code'?'<div class="lab">'+T('Choisis un code à 4 chiffres')+'</div><input type="text" id="pfCode" inputmode="numeric" maxlength="4" value="'+esc(w.code||'')+'">':'')+'<div class="btns">'+(isNew?'':'<button class="d" id="pfDel">'+T('Supprimer')+'</button>')+'<button class="p" id="pfOk">'+T('Enregistrer')+'</button></div></div>';
-      $('#pBk').addEventListener('click',function(){pfShow(pfMode)});
+      $('#pBk').addEventListener('click',function(){pfAfter=null;pfShow(pfMode)});
       $('#pfName').addEventListener('input',function(){w.name=this.value});
       $$('#prof .mw img').forEach(function(i){i.addEventListener('click',function(){w.wheel=i.getAttribute('data-w');draw()})});
       $$('#prof .hsw i').forEach(function(i){i.addEventListener('click',function(){w.halo=i.getAttribute('data-c');draw()})});
@@ -3848,7 +3904,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
         if(w.lock==='code'&&!/^\d{4}$/.test(w.code||'')){toast('Choisis un code à 4 chiffres');return}
         pfStore(w);pfShow(pfMode);
       });
-      var d=$('#pfDel');if(d)d.addEventListener('click',function(){var a=pfList().filter(function(x){return x.id!==w.id});pfSave(a);localStorage.removeItem('pfSnap_'+w.id);if(get('profCur','')===w.id)put('profCur','');pfShow(pfMode)});
+      var d=$('#pfDel');if(d)d.addEventListener('click',function(){if(!d.classList.contains('sure')){d.classList.add('sure');d.textContent=T('Toucher encore pour supprimer');return}var a=pfList().filter(function(x){return x.id!==w.id});pfSave(a);localStorage.removeItem('pfSnap_'+w.id);if(get('profCur','')===w.id)put('profCur','');pfShow(pfMode)});
     }
     draw();
   }
@@ -4188,9 +4244,83 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(tab)persTab=tab;go('home');persDraw();persEl.classList.add('on');document.body.classList.add('persOn');
   }
   window.persOpen=persOpen;
+  /* ---------- Personnalisation depuis le téléphone (2.5) ---------- */
+  (function(){
+    var RN=['Classique HD','Minimaliste','Premium 3D','Circulaire 360°','Vue arrière','Barres latérales','Style sport','Moderne'],CN=['Citadine','Compacte','Berline','Break','SUV','Premium','Coupé','Cabriolet','Sportive','Utilitaire','4x4','Camping-car'];
+    function curSty(g){var c=null;cws.forEach(function(x){if(x.id==='cwp_'+g)c=x});return c?c.i:-1}
+    function nmOf(id){if(STDW[id])return T(STDW[id][0]);var c=cws.filter(function(x){return x.id===id})[0];if(!c)return 'Widget';if(c.t==='sty')return T(({wt:'Montre',dk:'Horloge',cw:'Widget voiture',wx:'Météo'})[c.g]||'Widget');return T((CWT[c.t]||['Widget'])[0])}
+    window.phoneCatalog=function(){
+      var myB=(BN[get('brand','')]||'').toLowerCase(),dial=[];
+      Object.keys(SPD).forEach(function(k){dial.push({k:k,f:SPD[k].f,n:SPD[k].n,g:SPD[k].g==='b'?'b':'g',m:myB&&SPD[k].n.toLowerCase().indexOf(myB)===0?1:0})});
+      DIALKEYS.forEach(function(k){dial.push({k:k,f:'dial_'+k+'.webp',n:k.toUpperCase(),g:'o'})});
+      var pf=[];try{pf=JSON.parse(get('profiles','[]'))||[]}catch(e){}
+      var l=$('#lights');
+      return {v:APP_VERSION,setup:get('setup','0'),wiz:$('#wiz').classList.contains('on'),done:get('phoneDone','0'),
+        car:{name:($('#vName')||{}).value||'',sub:($('#vSub')||{}).value||'',brand:get('brand','')},
+        mode:get('mode','auto'),night:!!(window.__isNight&&__isNight()),m3d:get('m3d','0')==='1',auto:get('m3dAuto','1')!=='0',lights:!!(l&&l.classList.contains('on')),doors:!!window.__m3dExp,
+        dial:{on:get('dial','off')==='on',k:get('dialK','a0'),items:dial},
+        wt:{cur:curSty('wt'),items:WIMG.map(function(o){return {f:'wt/'+o[1]+'.webp',n:T(o[0])}})},
+        dk:{cur:curSty('dk'),items:DKI.map(function(o){return {f:'dk/'+o[1]+'.webp',n:T(o[0])}})},
+        cw:{cur:curSty('cw'),items:CWI.map(function(o){return {f:'cw/'+o[1]+'.webp',n:T(o[0])}})},
+        wx:{cur:curSty('wx'),items:WXR.map(function(o){return {f:'wx/'+o[1]+'.webp',n:T(o[0])}}).concat([{f:'wx_bg4.webp',n:T('Classique')}])},
+        rad:{s:+get('radS','0'),car:+get('radCar','2'),styles:RN.map(function(n,i){return {f:'rs_'+i+'.webp',n:T(n)}}),cars:CN.map(function(n,i){return {f:'car_'+('0'+i).slice(-2)+'.webp',n:T(n)}})},
+        bgs:19,wheels:27,halos:PF_HALO,profiles:pf.map(function(p){return {id:p.id,name:p.name,wheel:p.wheel,halo:p.halo,lock:p.lock}}),prof:get('profCur','')};
+    };
+    window.phoneLayout=function(){
+      var out=[],hw=document.getElementById('hw'),base=(hw||stage).getBoundingClientRect(),sc=base.width/1280||1;
+      wAllIds().forEach(function(id){var e=wEl(id);if(!e)return;var o=wpos[id]||{};if(o.h||e.classList.contains('wHide')||e.offsetParent===null)return;var r=e.getBoundingClientRect();if(!r.width)return;
+        out.push({id:id,n:nmOf(id),x:Math.round((r.left-base.left)/sc),y:Math.round((r.top-base.top)/sc),w:Math.round(r.width/sc),h:Math.round(r.height/sc),s:o.s||1,op:o.op===undefined?1:o.op})});
+      return out;
+    };
+    window.phoneSet=function(o){
+      try{
+        o=o||{};var a=o.a;
+        if(a==='dial'){if(o.k==='off')put('dial','off');else{put('dialK',o.k);put('dial','on')}dialApply()}
+        else if(a==='sty'){if(o.i<0)styRemove(o.g);else styPlace(o.g,o.i)}
+        else if(a==='rad'){if(o.s!=null)put('radS',String(o.s));if(o.car!=null)put('radCar',String(o.car));radApply()}
+        else if(a==='mode'){if(window.__setMode)__setMode(o.v)}
+        else if(a==='m3d'){put('m3d',o.v?'1':'0');if(window.m3dApply)m3dApply()}
+        else if(a==='auto'){put('m3dAuto',o.v?'1':'0');if(window.__o3paint)__o3paint()}
+        else if(a==='lights'){var l=$('#lights');if(l&&l.classList.contains('on')!==!!o.v)l.click()}
+        else if(a==='doors'){if(window.M3DV&&!!window.__m3dExp!==!!o.v)M3DV.explode();if(window.__o3paint)__o3paint()}
+        else if(a==='bg'){var i=parseInt(o.i,10);if(!(i>=0&&i<19))return {ok:false};if(o.w==='prof'){put('profBg','fond_lib'+i+'.webp');profBgApply();toast('Fond des profils changé')}else if(A&&A.useLibBg)A.useLibBg('fond_lib'+i+'.webp',o.w==='lock'?'lock':'home')}
+        else if(a==='w'){var id=o.id;if(!wEl(id))return {ok:false};var w=wEnsure(id);if(o.x!=null){w.x=Math.max(-100,Math.min(1200,Math.round(o.x)));w.y=Math.max(0,Math.min(680,Math.round(o.y)))}if(o.ds)w.s=Math.max(.4,Math.min(1.8,Math.round(((w.s||1)+o.ds)*10)/10));if(o.op!=null)w.op=Math.max(.2,Math.min(1,o.op));if(o.h!=null)w.h=o.h?1:0;wApply(id);wSave()}
+        else if(a==='profile'){var p={id:o.id||('p'+Date.now().toString(36)),name:String(o.name||'').slice(0,14),wheel:/^\d\d$/.test(o.wheel)?o.wheel:'00',halo:PF_HALO.indexOf(o.halo)>=0?o.halo:PF_HALO[0],lock:o.lock==='code'&&/^\d{4}$/.test(o.code||'')?'code':o.lock==='scan'?'scan':'none',code:/^\d{4}$/.test(o.code||'')?o.code:''};
+          pfStore(p);put('profCur',p.id);put('wheel',p.wheel);put('profHalo',p.halo);try{sessionStorage.setItem('profOk','1')}catch(e){}
+          if(p.name&&vP){vP.value=p.name;vP.dispatchEvent(new Event('input'))}if(window.__wizPren)__wizPren(p.name);return {ok:true,id:p.id}}
+        else if(a==='done'){put('phoneDone','1');toast('Configuration du téléphone terminée')}
+        return {ok:true};
+      }catch(e){return {ok:false,err:String(e)}}
+    };
+    /* QR code */
+    var qrLoaded=false;
+    function qrSvg(url,cb){function mk(){try{var q=qrcode(0,'M');q.addData(url);q.make();cb(q.createSvgTag({cellSize:6,margin:3,scalable:true}))}catch(e){cb('')}}
+      if(window.qrcode)return mk();if(qrLoaded)return setTimeout(function(){qrSvg(url,cb)},200);qrLoaded=true;var sc=document.createElement('script');sc.src='qrcode.js';sc.onload=mk;document.body.appendChild(sc)}
+    window.phoneQr=function(box,cb,go){
+      var url='';try{url=A&&A.phoneUrl?A.phoneUrl():'http://192.168.43.120:8765/?t=demo1234'}catch(e){}
+      if(url&&go)url+='&go='+go;
+      if(!url){box.innerHTML='<div class="phNo">'+T('Pas de réseau. Active le partage de connexion de ton téléphone et connecte le poste à ce Wi-Fi.')+'</div>';cb&&cb('');return}
+      qrSvg(url,function(svg){box.innerHTML='<div class="phQ">'+svg+'</div>';cb&&cb(url)});
+    };
+    function stTxt(){var c=false;try{c=A&&A.phoneConnected&&A.phoneConnected()}catch(e){}return c}
+    window.phoneOpen=function(go){
+      infoOpen(go==='bg'?'Fond d\'écran depuis ton téléphone':'Personnaliser depuis ton téléphone','<div class="phW"><div class="phBox" id="phBox"></div><div class="phTx"><ol><li>'+T('Active le partage de connexion de ton téléphone (le poste doit y être connecté).')+'</li><li>'+T("Scanne ce code avec l'appareil photo.")+'</li><li>'+(go==='bg'?T('Touche « Envoyer une photo du téléphone » et choisis ton image.'):T('Personnalise : tout change en direct ici.'))+'</li></ol><div class="phSt" id="phSt">'+(stTxt()?'✓ '+T('Téléphone connecté'):T('En attente du téléphone…'))+'</div><div class="phU" id="phU"></div></div></div>',[]);
+      phoneQr($('#phBox'),function(u){var e=$('#phU');if(e)e.textContent=u.replace(/\?t=.*/,'')},go);
+    };
+    window.onPhone=function(){toast('Téléphone connecté');var e=$('#phSt');if(e)e.textContent='✓ '+T('Téléphone connecté');var w=$('#wPhSt');if(w){w.textContent='✓ '+T('Téléphone connecté : continue la personnalisation dessus, et finis ici les réglages de la voiture.');w.classList.add('ok')}window.__phoneOn=true;if(window.__wizPhone)__wizPhone()};
+  })();
+
   /* radar : styles et couleur */
   var RSB={0:[.3367,.2243,.3233,.5389],1:[.3333,.2545,.3233,.4818],2:[.3267,.2683,.3667,.4878],3:[.3533,.2287,.2967,.5427],5:[.3033,.1024,.3867,.7952],6:[.37,.19,.26,.56],7:[.36,.22,.28,.52]};
-  function radApply(){var n=get('radS','0'),r=$('#rev'),im=$('#rvImg'),rc=$('#revCar'),mk=$('#rvMask');if(im)im.src='rs_'+n+'.webp';r.setAttribute('data-rs',n);
+  /* radar animé : les arcs de l'image s'allument selon la distance réelle */
+  var RAN=null,RLAST=[[151,151,151,151],[151,151,151,151]];
+  function radBuild(n){var box=$('#rvBox');if(!box)return;var o=$('#rvAn');if(o)o.remove();o=document.createElement('div');o.id='rvAn';
+    var h='';for(var i=0;i<33;i++){var c=i%6,r=Math.floor(i/6);h+='<i data-f="'+i+'" style="background-image:url(rsp_'+n+'.webp);background-position:'+(c*20)+'% '+(r*20)+'%"></i>'}
+    o.innerHTML=h;var im=$('#rvImg');im.parentNode.insertBefore(o,im.nextSibling);RAN=o.children;window.radAnim(RLAST[0],RLAST[1])}
+  function radK(cm){return !(cm>0)||cm>150?0:cm>100?1:cm>60?2:cm>40?3:4}
+  window.radAnim=function(rear,front){if(!RAN)return;RLAST=[rear.slice(),front.slice()];
+    [rear,front].forEach(function(arr,h){for(var s=0;s<4;s++){var k=radK(arr[s]);for(var b=0;b<4;b++){var e=RAN[1+h*16+s*4+b];e.classList.toggle('on',b<k);e.classList.toggle('pu',k>0&&b===k-1)}}})};
+  function radApply(){var n=get('radS','0'),r=$('#rev'),im=$('#rvImg'),rc=$('#revCar'),mk=$('#rvMask');if(im)im.src='rs_'+n+'.webp';r.setAttribute('data-rs',n);radBuild(n);
     var b=RSB[n];r.classList.toggle('noCar',!b);if(!b||!rc)return;rc.src='car_'+('0'+get('radCar','2')).slice(-2)+'.webp';
     var cx=(b[0]+b[2]/2)*100,cy=(b[1]+b[3]/2)*100,h=b[3]*100;
     rc.style.height=(h*1.04)+'%';rc.style.width='auto';rc.style.left=cx+'%';rc.style.top=cy+'%';rc.style.transform='translate(-50%,-50%)';

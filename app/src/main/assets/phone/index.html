@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="fr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cockpit">
+<meta name="theme-color" content="#05080f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Cockpit</title>
+<style>
+:root{--bg:#05080f;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.09);--sub:#8ea3c8;--blue:#2f7bff;--blue2:#4aa3ff;--ok:#34c759}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+body{min-height:100vh;background:radial-gradient(ellipse 120% 50% at 80% -10%,rgba(47,123,255,.32),transparent 60%),var(--bg) fixed}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.app{padding:calc(env(safe-area-inset-top) + 12px) 18px calc(env(safe-area-inset-bottom) + 100px)}
+.top{display:flex;align-items:center;gap:10px;margin:4px 0 14px}
+.top img{width:36px;height:36px;border-radius:10px}
+.top b{font-size:28px;letter-spacing:-.5px;flex:1}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:20px;background:rgba(52,199,89,.16);border:1px solid rgba(52,199,89,.5);font-size:13px;color:#8ff0a8;font-weight:600;white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.pill.off{background:rgba(255,69,58,.15);border-color:rgba(255,69,58,.5);color:#ffb3ad}.pill.off i{background:#ff453a;box-shadow:0 0 8px #ff453a}
+.prev{position:relative;border-radius:20px;overflow:hidden;border:1px solid rgba(120,170,255,.3);box-shadow:0 14px 40px rgba(0,0,0,.6),0 0 24px rgba(47,123,255,.18);aspect-ratio:16/9;background:#0b1220}
+.prev img{display:block;width:100%;height:100%;object-fit:cover}
+.prev .live{position:absolute;left:10px;top:10px;font-size:11px;font-weight:700;letter-spacing:.6px;padding:4px 9px;border-radius:12px;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.prev .live:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff453a;margin-right:6px;vertical-align:1px;box-shadow:0 0 6px #ff453a}
+h3{font-size:13px;color:var(--sub);letter-spacing:.8px;text-transform:uppercase;margin:22px 4px 10px;font-weight:600}
+h1{font-size:30px;letter-spacing:-.5px;margin:2px 0 6px}
+.lead{color:var(--sub);font-size:15px;line-height:1.4;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{border-radius:20px;padding:14px 6px 12px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;font-weight:500;text-align:center}
+.tile img{width:44px;height:44px}
+.tile:active,.it:active,.row:active{transform:scale(.97)}
+.row{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:var(--card);border:1px solid var(--line);margin-bottom:8px;font-size:16px;width:100%;text-align:left}
+.row span{flex:1}.row small{display:block;color:var(--sub);font-size:13px;margin-top:2px}
+.sw{width:50px;height:30px;border-radius:15px;background:rgba(255,255,255,.18);position:relative;flex-shrink:0;transition:background .2s}
+.sw:after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}
+.sw.on{background:linear-gradient(90deg,#1f7bff,#3fa2ff);box-shadow:0 0 10px rgba(50,150,255,.5)}.sw.on:after{transform:translateX(20px)}
+.back{display:inline-flex;align-items:center;gap:4px;color:var(--blue2);font-size:17px;margin:2px 0 6px}
+.seg{display:flex;gap:8px;overflow-x:auto;margin:6px 0 14px;scrollbar-width:none}.seg::-webkit-scrollbar{display:none}
+.seg button{padding:8px 14px;border-radius:18px;background:rgba(255,255,255,.08);font-size:14px;white-space:nowrap}
+.seg button.on{background:var(--blue)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.it{border-radius:20px;background:rgba(255,255,255,.05);border:1.5px solid var(--line);padding:10px 8px 8px;text-align:center;font-size:13px;position:relative;transition:transform .15s}
+.it img{width:100%;aspect-ratio:1.45;object-fit:contain;display:block;margin-bottom:6px}
+.it.sq img{aspect-ratio:1}
+.it.wide img{aspect-ratio:16/9;object-fit:cover;border-radius:12px}
+.it.on{border-color:#3d8cff;box-shadow:0 0 18px rgba(61,140,255,.45);background:rgba(47,123,255,.12)}
+.it.on:after{content:"✓";position:absolute;right:8px;top:8px;width:24px;height:24px;border-radius:50%;background:var(--blue);font-size:14px;line-height:24px;font-weight:700}
+.btn{display:block;width:100%;padding:15px;border-radius:16px;background:var(--blue);font-size:17px;font-weight:600;text-align:center;margin-top:12px}
+.btn.ghost{background:rgba(255,255,255,.08)}
+.btn:disabled{opacity:.4}
+.tab{position:fixed;left:0;right:0;bottom:0;padding:10px 12px calc(env(safe-area-inset-bottom) + 8px);display:flex;justify-content:space-around;background:rgba(10,14,24,.88);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-top:1px solid var(--line);z-index:5}
+.tab button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--sub);min-width:64px}
+.tab button.on{color:var(--blue2)}
+.tab svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.toast{position:fixed;left:18px;right:18px;bottom:calc(env(safe-area-inset-bottom) + 96px);padding:14px 16px;border-radius:18px;background:rgba(30,40,60,.95);border:1px solid rgba(120,170,255,.3);font-size:14px;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;z-index:9}
+.toast.on{opacity:1;transform:none}.toast b{color:#8ff0a8}
+input[type=text],input[type=tel]{width:100%;padding:14px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid var(--line);color:#fff;font-size:17px;outline:none;-webkit-user-select:text;user-select:text}
+.wheels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.wheels button{aspect-ratio:1;border-radius:50%;padding:6px;background:rgba(255,255,255,.04);border:2px solid transparent}
+.wheels button img{width:100%;height:100%;object-fit:contain}
+.wheels button.on{border-color:rgb(var(--h,46,142,255));box-shadow:0 0 16px rgba(var(--h,46,142,255),.8)}
+.halos{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0}
+.halos button{width:38px;height:38px;border-radius:50%;border:3px solid transparent}
+.halos button.on{border-color:#fff;box-shadow:0 0 12px currentColor}
+.wprev{width:120px;height:120px;border-radius:50%;margin:6px auto 14px;display:block;object-fit:contain;box-shadow:0 0 0 3px rgb(var(--h,46,142,255)),0 0 24px 6px rgba(var(--h,46,142,255),.7)}
+.mini{position:relative;border-radius:16px;overflow:hidden;border:1px solid rgba(120,170,255,.3);aspect-ratio:16/9;background:#0b1220;touch-action:none}
+.mini img{display:block;width:100%;height:100%;object-fit:cover;filter:brightness(.75)}
+.wb{position:absolute;border:1.5px dashed rgba(255,255,255,.55);border-radius:8px;background:rgba(47,123,255,.08)}
+.wb.on{border:2px solid #3d8cff;background:rgba(47,123,255,.22);box-shadow:0 0 14px rgba(61,140,255,.8)}
+.wb span{position:absolute;left:4px;top:2px;font-size:10px;font-weight:600;text-shadow:0 1px 3px #000}
+.ctl{display:flex;gap:8px;margin-top:10px}
+.ctl button{flex:1;padding:12px 0;border-radius:14px;background:rgba(255,255,255,.08);font-size:15px}
+.ctl button.p{background:var(--blue)}
+input[type=range]{width:100%;margin:14px 0 4px;accent-color:#2f7bff}
+.steps{display:flex;gap:6px;margin:4px 0 16px}.steps i{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.15)}.steps i.on{background:var(--blue2)}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;z-index:8}
+.sheet.on{display:flex}
+.sheet>div{width:100%;background:#111827;border-radius:24px 24px 0 0;padding:20px 18px calc(env(safe-area-inset-bottom) + 20px)}
+.sheet h4{font-size:18px;margin-bottom:10px;text-align:center}
+.hint{font-size:14px;color:var(--sub);line-height:1.45;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px}
+.err{text-align:center;padding:60px 10px;color:var(--sub);font-size:16px;line-height:1.5}
+.err b{display:block;color:#fff;font-size:22px;margin-bottom:10px}
+</style>
+</head><body>
+<div class="app" id="app"></div>
+<nav class="tab" id="tab"></nav>
+<div class="toast" id="toast"></div>
+<div class="sheet" id="sheet"><div id="sheetIn"></div></div>
+<input type="file" id="file" accept="image/*" style="display:none">
+<script>
+(function(){
+'use strict';
+var Q=new URLSearchParams(location.search),TOK=Q.get('t')||'';var GO=Q.get('go')||'';
+try{if(TOK)localStorage.setItem('ck_t',TOK);else TOK=localStorage.getItem('ck_t')||''}catch(e){}
+if(Q.get('t')&&history.replaceState)history.replaceState(null,'',location.pathname);
+var S=null,view='home',sub=null,wstep=-1,onboard=false,pf=null,layout=[],selW='',online=true;
+var $=function(q){return document.querySelector(q)},app=$('#app');
+function A(p){return '/a/'+p}
+function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function api(path,body){
+  var o=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{};
+  return fetch('/api/'+path+(path.indexOf('?')>=0?'&':'?')+'t='+encodeURIComponent(TOK),o).then(function(r){if(r.status===403)throw new Error('jeton');online=true;return r.json()}).catch(function(e){online=false;pill();throw e});
+}
+function toast(m){var t=$('#toast');t.innerHTML=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.remove('on')},1800)}
+function done(){toast('✓ Appliqué sur <b>'+esc(carName())+'</b>')}
+function carName(){return S&&S.car&&S.car.name||'ton poste'}
+function set(o){return api('set',o).then(function(r){if(r&&r.ok===false)toast('Impossible pour le moment');return r})}
+function load(cb){api('state').then(function(s){S=s;cb&&cb()}).catch(function(){render()})}
+function pill(){var p=$('#pill');if(p){p.className='pill'+(online?'':' off');p.innerHTML='<i></i>'+(online?esc(carName()):'Hors ligne')}}
+
+var IC={home:'<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg>',style:'<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-1-1-1.6-1-2.6 0-1 .8-1.6 1.8-1.6H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/></svg>',prof:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c.9-3.4 3.8-5.2 7-5.2s6.1 1.8 7 5.2"/></svg>',set:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>'};
+function tabs(){
+  var t=$('#tab');if(onboard){t.style.display='none';return}t.style.display='';
+  t.innerHTML=[['home','Accueil'],['style','Style'],['prof','Profils'],['set','Réglages']].map(function(x){return '<button data-v="'+x[0]+'" class="'+(view===x[0]?'on':'')+'">'+IC[x[0]]+x[1]+'</button>'}).join('');
+  t.querySelectorAll('button').forEach(function(b){b.onclick=function(){view=b.getAttribute('data-v');sub=null;render()}});
+}
+function header(){return '<div class="top"><img src="icon.png" alt=""><b>Cockpit</b><div class="pill" id="pill"></div></div>'}
+
+/* ---------- catégories ---------- */
+var CAT={dial:['Compteurs','b10'],wt:['Montres','c41'],dk:['Horloges','b01'],wx:['Météo','c42'],cw:['Widgets voiture','c12'],rad:['Radar de recul','b14'],bg:['Fonds d\'écran','c02'],lay:['Disposition','a30']};
+function catTile(k){return '<button class="tile" data-c="'+k+'"><img src="'+A('ic/'+CAT[k][1]+'.webp')+'" alt="">'+CAT[k][0]+'</button>'}
+function bindCats(){app.querySelectorAll('[data-c]').forEach(function(b){b.onclick=function(){sub=b.getAttribute('data-c');render()}})}
+function sw(id,on,lab,sm,off){return '<button class="row" id="'+id+'"'+(off?' style="opacity:.4" disabled':'')+'><span>'+lab+(sm?'<small>'+sm+'</small>':'')+'</span><i class="sw'+(on?' on':'')+'"></i></button>'}
+
+var dialSeg='b';
+function catPage(k,inWiz){
+  var h='',items=[],cur=-1,cls='';
+  if(k==='dial'){
+    h+='<div class="seg">'+[['b','Par marque'],['g','Classiques'],['o','Anciens']].map(function(x){return '<button data-s="'+x[0]+'" class="'+(dialSeg===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div>';
+    var L=S.dial.items.filter(function(d){return d.g===dialSeg});if(dialSeg==='b')L.sort(function(a,b){return b.m-a.m});
+    h+='<div class="grid2">'+L.map(function(d){return '<button class="it sq'+(S.dial.on&&S.dial.k===d.k?' on':'')+'" data-k="'+d.k+'"><img loading="lazy" src="'+A(d.f)+'" alt="">'+esc(d.n)+'</button>'}).join('')+'</div>';
+    h+='<button class="btn ghost" id="dOff">Pas de compteur</button>';
+    return h;
+  }
+  if(k==='rad'){
+    h+='<h3>Style</h3><div class="grid2">'+S.rad.styles.map(function(d,i){return '<button class="it'+(S.rad.s===i?' on':'')+'" data-rs="'+i+'"><img loading="lazy" src="'+A(d.f)+'" alt="">'+esc(d.n)+'</button>'}).join('')+'</div>';
+    h+='<h3>Ta voiture vue de dessus</h3><div class="grid2">'+S.rad.cars.map(function(d,i){return '<button class="it'+(S.rad.car===i?' on':'')+'" data-rc="'+i+'"><img loading="lazy" src="'+A(d.f)+'" alt="">'+esc(d.n)+'</button>'}).join('')+'</div>';
+    return h;
+  }
+  if(k==='bg'){
+    h+='<button class="row" id="photo" style="background:rgba(47,123,255,.14);border-color:rgba(74,163,255,.45)"><span>📷 Envoyer une photo du téléphone</span><span style="flex:0;color:#4aa3ff">›</span></button>';
+    h+='<h3>Galerie</h3><div class="grid2">';for(var i=0;i<S.bgs;i++)h+='<button class="it wide" data-bg="'+i+'"><img loading="lazy" src="'+A('fond_lib'+i+'.webp')+'" alt=""></button>';
+    return h+'</div>';
+  }
+  var o=S[k];cur=o.cur;cls=k==='wx'||k==='cw'?'':' sq';
+  h+='<div class="grid2">'+o.items.map(function(d,i){return '<button class="it'+cls+(cur===i?' on':'')+'" data-i="'+i+'"><img loading="lazy" src="'+A(d.f)+'" alt="">'+esc(d.n)+'</button>'}).join('')+'</div>';
+  h+='<button class="btn ghost" id="sOff">'+(k==='wx'?'Pas de widget météo':k==='cw'?'Pas de widget voiture':k==='wt'?'Pas de montre':'Pas d\'horloge')+'</button>';
+  return h;
+}
+function bindCat(k){
+  app.querySelectorAll('.seg [data-s]').forEach(function(b){b.onclick=function(){dialSeg=b.getAttribute('data-s');render()}});
+  app.querySelectorAll('[data-k]').forEach(function(b){b.onclick=function(){var kk=b.getAttribute('data-k');S.dial.on=true;S.dial.k=kk;mark(b);set({a:'dial',k:kk}).then(done)}});
+  var d=$('#dOff');if(d)d.onclick=function(){S.dial.on=false;app.querySelectorAll('.it.on').forEach(function(x){x.classList.remove('on')});set({a:'dial',k:'off'}).then(done)};
+  app.querySelectorAll('[data-i]').forEach(function(b){b.onclick=function(){var i=+b.getAttribute('data-i');S[k].cur=i;mark(b);set({a:'sty',g:k,i:i}).then(done)}});
+  var so=$('#sOff');if(so)so.onclick=function(){S[k].cur=-1;app.querySelectorAll('.it.on').forEach(function(x){x.classList.remove('on')});set({a:'sty',g:k,i:-1}).then(done)};
+  app.querySelectorAll('[data-rs]').forEach(function(b){b.onclick=function(){S.rad.s=+b.getAttribute('data-rs');mark(b,'[data-rs]');set({a:'rad',s:S.rad.s}).then(done)}});
+  app.querySelectorAll('[data-rc]').forEach(function(b){b.onclick=function(){S.rad.car=+b.getAttribute('data-rc');mark(b,'[data-rc]');set({a:'rad',car:S.rad.car}).then(done)}});
+  app.querySelectorAll('[data-bg]').forEach(function(b){b.onclick=function(){bgAsk(function(w){set({a:'bg',i:+b.getAttribute('data-bg'),w:w}).then(done)})}});
+  var ph=$('#photo');if(ph)ph.onclick=function(){bgAsk(function(w){photoPick(w)})};
+}
+function mark(b,sel){app.querySelectorAll(sel?sel+'.on':'.it.on').forEach(function(x){if(!sel||x.matches(sel))x.classList.remove('on')});b.classList.add('on')}
+function sheet(html){$('#sheetIn').innerHTML=html;$('#sheet').classList.add('on')}
+$('#sheet').onclick=function(e){if(e.target.id==='sheet')$('#sheet').classList.remove('on')};
+function bgAsk(cb){
+  sheet('<h4>Utiliser ce fond pour…</h4><button class="btn" data-w="home">L\'écran d\'accueil</button><button class="btn ghost" data-w="lock">L\'écran de verrouillage</button><button class="btn ghost" data-w="prof">L\'écran des profils</button><button class="btn ghost" data-w="">Annuler</button>');
+  $('#sheetIn').querySelectorAll('[data-w]').forEach(function(b){b.onclick=function(){$('#sheet').classList.remove('on');var w=b.getAttribute('data-w');if(w)cb(w)}});
+}
+var photoTarget='home';
+function photoPick(w){photoTarget=w;$('#file').value='';$('#file').click()}
+$('#file').onchange=function(){
+  var f=this.files&&this.files[0];if(!f)return;toast('Envoi de la photo…');
+  var img=new Image();img.onload=function(){
+    var W=1920,H=1080,c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');
+    var r=Math.max(W/img.width,H/img.height),w=img.width*r,h=img.height*r;x.drawImage(img,(W-w)/2,(H-h)/2,w,h);
+    c.toBlob(function(b){fetch('/api/photo?w='+photoTarget+'&t='+encodeURIComponent(TOK),{method:'POST',body:b}).then(function(r){return r.json()}).then(function(j){toast(j.ok?'✓ Photo envoyée sur <b>'+esc(carName())+'</b>':'Photo impossible à envoyer')}).catch(function(){toast('Photo impossible à envoyer')})},'image/jpeg',.86);
+    URL.revokeObjectURL(img.src);
+  };img.onerror=function(){toast('Photo illisible')};img.src=URL.createObjectURL(f);
+};
+
+/* ---------- aperçu en direct ---------- */
+var shotT=0;
+function shot(){var i=$('#shot');if(!i)return;clearTimeout(shotT);var n=new Image();n.onload=function(){var j=$('#shot');if(j){j.src=n.src;j.style.opacity=1}shotT=setTimeout(shot,2500)};n.onerror=function(){shotT=setTimeout(shot,4000)};n.src='/api/shot?t='+encodeURIComponent(TOK)+'&_='+Date.now()}
+
+/* ---------- disposition ---------- */
+function layPage(){
+  return '<p class="lead">Touche un widget, puis fais-le glisser. Le poste suit ton doigt.</p><div class="mini" id="mini"><img id="shot" src="" alt="" style="opacity:0"></div><div id="wctl"></div>';
+}
+function layDraw(){
+  var m=$('#mini');if(!m)return;m.querySelectorAll('.wb').forEach(function(x){x.remove()});
+  layout.forEach(function(w){var d=document.createElement('div');d.className='wb'+(w.id===selW?' on':'');d.setAttribute('data-id',w.id);d.style.left=(w.x/1280*100)+'%';d.style.top=(w.y/720*100)+'%';d.style.width=(w.w/1280*100)+'%';d.style.height=(w.h/720*100)+'%';d.innerHTML='<span>'+esc(w.n)+'</span>';m.appendChild(d)});
+  var c=$('#wctl'),w=layout.filter(function(x){return x.id===selW})[0];
+  if(!w){c.innerHTML='<div class="hint">Les cadres en pointillés sont tes widgets sur le poste.</div>';return}
+  c.innerHTML='<h3 style="margin-top:16px">'+esc(w.n)+'</h3><div style="display:flex;justify-content:space-between;color:var(--sub);font-size:13px;padding:0 4px"><span>Opacité</span><span id="opv">'+Math.round(w.op*100)+' %</span></div><input type="range" id="op" min="20" max="100" step="5" value="'+Math.round(w.op*100)+'"><div class="ctl"><button id="mn">− Plus petit</button><button id="pl">+ Plus grand</button></div><div class="ctl"><button id="hd">Masquer</button><button class="p" id="ok">Terminé</button></div>';
+  $('#op').oninput=function(){$('#opv').textContent=this.value+' %';w.op=this.value/100;throttle(function(){set({a:'w',id:w.id,op:w.op})})};
+  $('#mn').onclick=function(){set({a:'w',id:w.id,ds:-.1}).then(layLoad)};$('#pl').onclick=function(){set({a:'w',id:w.id,ds:.1}).then(layLoad)};
+  $('#hd').onclick=function(){set({a:'w',id:w.id,h:1}).then(function(){selW='';layLoad();done()})};$('#ok').onclick=function(){selW='';layDraw()};
+}
+function layLoad(){api('layout').then(function(l){layout=l||[];layDraw()}).catch(function(){})}
+var thT=0,thF=null;function throttle(f){thF=f;if(thT)return;thT=setTimeout(function(){thT=0;var g=thF;thF=null;g&&g()},120)}
+function layBind(){
+  var m=$('#mini'),drag=null;if(!m)return;
+  m.addEventListener('pointerdown',function(e){var b=e.target.closest('.wb');if(!b){selW='';layDraw();return}selW=b.getAttribute('data-id');var w=layout.filter(function(x){return x.id===selW})[0];var r=m.getBoundingClientRect();drag={w:w,sx:e.clientX,sy:e.clientY,x:w.x,y:w.y,k:1280/r.width};m.setPointerCapture(e.pointerId);layDraw();e.preventDefault()});
+  m.addEventListener('pointermove',function(e){if(!drag)return;var w=drag.w;w.x=Math.round(drag.x+(e.clientX-drag.sx)*drag.k);w.y=Math.round(drag.y+(e.clientY-drag.sy)*drag.k);var el=m.querySelector('.wb.on');if(el){el.style.left=(w.x/1280*100)+'%';el.style.top=(w.y/720*100)+'%'}throttle(function(){set({a:'w',id:w.id,x:w.x,y:w.y})})});
+  function up(){if(drag){var w=drag.w;drag=null;setTimeout(function(){set({a:'w',id:w.id,x:w.x,y:w.y}).then(function(){setTimeout(layLoad,300)})},130)}}
+  m.addEventListener('pointerup',up);m.addEventListener('pointercancel',up);
+}
+
+/* ---------- profil ---------- */
+function profForm(){
+  var p=pf,h='<img class="wprev" style="--h:'+p.halo+'" src="'+A('wheels/w'+p.wheel+'.webp')+'" alt="">';
+  h+='<h3>Prénom</h3><input type="text" id="pn" maxlength="14" placeholder="Ton prénom" value="'+esc(p.name)+'">';
+  h+='<h3>Couleur du halo</h3><div class="halos">'+S.halos.map(function(c){return '<button data-h="'+c+'" class="'+(p.halo===c?'on':'')+'" style="background:rgb('+c+');color:rgb('+c+')"></button>'}).join('')+'</div>';
+  h+='<h3>Ton volant</h3><div class="wheels" style="--h:'+p.halo+'">';for(var i=0;i<S.wheels;i++){var n=('0'+i).slice(-2);h+='<button data-wh="'+n+'" class="'+(p.wheel===n?'on':'')+'"><img loading="lazy" src="'+A('wheels/w'+n+'.webp')+'" alt=""></button>'}h+='</div>';
+  h+='<h3>Verrouillage</h3><div class="seg">'+[['none','Aucun'],['code','Code'],['scan','Iron Scan']].map(function(x){return '<button data-l="'+x[0]+'" class="'+(p.lock===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div>';
+  if(p.lock==='code')h+='<input type="tel" id="pc" maxlength="4" inputmode="numeric" placeholder="Code à 4 chiffres" value="'+esc(p.code||'')+'">';
+  return h;
+}
+function profBind(){
+  var n=$('#pn');if(n)n.oninput=function(){pf.name=this.value};
+  var c=$('#pc');if(c)c.oninput=function(){pf.code=this.value.replace(/\D/g,'').slice(0,4)};
+  app.querySelectorAll('[data-h]').forEach(function(b){b.onclick=function(){pf.halo=b.getAttribute('data-h');render()}});
+  app.querySelectorAll('[data-wh]').forEach(function(b){b.onclick=function(){pf.wheel=b.getAttribute('data-wh');render()}});
+  app.querySelectorAll('[data-l]').forEach(function(b){b.onclick=function(){pf.lock=b.getAttribute('data-l');render()}});
+}
+function profSave(){
+  if(!pf.name.trim()){toast('Écris ton prénom');return Promise.reject()}
+  if(pf.lock==='code'&&!/^\d{4}$/.test(pf.code||'')){toast('Le code doit avoir 4 chiffres');return Promise.reject()}
+  return set({a:'profile',id:pf.id,name:pf.name.trim(),wheel:pf.wheel,halo:pf.halo,lock:pf.lock,code:pf.code}).then(function(r){if(r&&r.id)pf.id=r.id;done();return load()});
+}
+
+/* ---------- premier démarrage depuis le téléphone ---------- */
+var WZ=['hello','prof','dial','wt','dk','wx','look','bg','end'];
+function wizPage(){
+  var k=WZ[wstep],h='<div class="steps">'+WZ.map(function(x,i){return '<i class="'+(i<=wstep?'on':'')+'"></i>'}).join('')+'</div>';
+  if(k==='hello')return h+'<div style="text-align:center;padding-top:20px"><img src="icon.png" style="width:96px;height:96px;border-radius:24px;box-shadow:0 0 40px rgba(47,123,255,.5)"><h1 style="margin-top:20px">Bienvenue !</h1><p class="lead">Ton téléphone est relié à <b style="color:#fff">'+esc(carName())+'</b>.<br>On crée ton profil et on choisit ton style ici, ça change en direct sur le poste. Pendant ce temps, le poste s\'occupe des réglages de la voiture.</p></div><button class="btn" id="nx">C\'est parti</button>';
+  if(k==='prof')return h+'<h1>Ton profil</h1><p class="lead">Un profil par personne, avec son volant.</p>'+profForm()+'<button class="btn" id="nx">Suivant</button>';
+  if(k==='end')return h+'<div style="text-align:center;padding-top:20px"><div style="font-size:64px">🎉</div><h1>C\'est prêt !</h1><p class="lead">Termine les étapes de la voiture sur le poste.<br>Pour revenir personnaliser plus tard, ajoute Cockpit à ton écran d\'accueil :</p></div><div class="hint">Sur iPhone : touche <b style="color:#fff">Partager</b> ⬆︎ en bas de Safari, puis <b style="color:#fff">Sur l\'écran d\'accueil</b>.<br>Sur Android : menu ⋮ de Chrome, puis <b style="color:#fff">Ajouter à l\'écran d\'accueil</b>.</div><button class="btn" id="nx">Terminer</button>';
+  if(k==='look')return h+'<h1>Ambiance</h1><p class="lead">Thème du poste et voiture 3D.</p><h3>Thème</h3><div class="seg">'+[['auto','Automatique'],['day','Jour'],['night','Nuit']].map(function(x){return '<button data-m="'+x[0]+'" class="'+(S.mode===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div><h3>Voiture 3D</h3>'+sw('t3d',S.m3d,'Voiture 3D sur l\'accueil','Ta voiture en 3D dans un showroom')+sw('trot',S.auto,'Rotation automatique','',!S.m3d)+'<button class="btn" id="nx">Suivant</button>';
+  var T={dial:['Ton compteur','Le compteur de vitesse de l\'accueil. Ta marque est proposée en premier.'],wt:['Ta montre','Une montre de luxe à l\'heure réelle, sur l\'accueil.'],dk:['Ton horloge','Elle remplace l\'heure en haut à gauche.'],wx:['Ta météo','Le style du widget météo.'],bg:['Ton fond d\'écran','Facultatif : un fond de la galerie ou une photo de ton téléphone.']}[k];
+  return h+'<h1>'+T[0]+'</h1><p class="lead">'+T[1]+'</p>'+catPage(k)+'<button class="btn" id="nx">Suivant</button>';
+}
+function wizBind(){
+  var k=WZ[wstep];
+  if(k==='prof')profBind();
+  if(['dial','wt','dk','wx','bg'].indexOf(k)>=0)bindCat(k);
+  if(k==='look')lookBind();
+  $('#nx').onclick=function(){
+    var go=function(){wstep++;if(wstep>=WZ.length){onboard=false;set({a:'done'});view='home';load(render);return}render();window.scrollTo(0,0)};
+    if(k==='prof')profSave().then(go,function(){});else go();
+  };
+}
+function lookBind(){
+  app.querySelectorAll('[data-m]').forEach(function(b){b.onclick=function(){S.mode=b.getAttribute('data-m');set({a:'mode',v:S.mode}).then(done);render()}});
+  var a=$('#t3d');if(a)a.onclick=function(){S.m3d=!S.m3d;set({a:'m3d',v:S.m3d}).then(done);render()};
+  var r=$('#trot');if(r)r.onclick=function(){S.auto=!S.auto;set({a:'auto',v:S.auto}).then(done);render()};
+  var l=$('#tli');if(l)l.onclick=function(){S.lights=!S.lights;set({a:'lights',v:S.lights}).then(done);render()};
+  var d=$('#tdr');if(d)d.onclick=function(){S.doors=!S.doors;set({a:'doors',v:S.doors}).then(done);render()};
+}
+
+/* ---------- rendu ---------- */
+function render(){
+  clearTimeout(shotT);
+  if(!TOK){app.innerHTML='<div class="err"><b>Scanne le code</b>Ouvre Cockpit sur le poste : Réglages › Personnalisation › Personnaliser depuis mon téléphone, puis scanne le code affiché.</div>';$('#tab').style.display='none';return}
+  if(!S){app.innerHTML='<div class="err"><b>Connexion au poste…</b>Vérifie que le poste est allumé et connecté au même Wi-Fi ou au partage de connexion de ce téléphone.<br><br><button class="btn" id="re">Réessayer</button></div>';$('#tab').style.display='none';var re=$('#re');if(re)re.onclick=function(){load(render)};return}
+  tabs();
+  var h='';
+  if(onboard){app.innerHTML=wizPage();wizBind();return}
+  if(sub){
+    h='<button class="back" id="bk">‹ Retour</button><h1>'+CAT[sub][0]+'</h1>';
+    if(sub==='lay')h+=layPage();else h+=catPage(sub);
+    app.innerHTML=h;$('#bk').onclick=function(){sub=null;selW='';render()};
+    if(sub==='lay'){shot();layLoad();layBind()}else bindCat(sub);
+    return;
+  }
+  if(view==='home'){
+    h=header()+'<div class="prev"><img id="shot" src="" alt="" style="opacity:0"><div class="live">EN DIRECT</div></div><h3>Personnaliser</h3><div class="grid3">'+['dial','wt','dk','wx','cw','bg'].map(catTile).join('')+'</div>';
+    h+='<h3>Voiture 3D</h3>'+sw('t3d',S.m3d,'Voiture 3D')+sw('trot',S.auto,'Rotation voiture','',!S.m3d)+sw('tli',S.lights,'Phares')+sw('tdr',S.doors,'Ouverture des portes','',!S.m3d);
+    app.innerHTML=h;bindCats();lookBind();shot();
+  }else if(view==='style'){
+    h=header()+'<h3>Thème</h3><div class="seg">'+[['auto','Automatique'],['day','Jour'],['night','Nuit']].map(function(x){return '<button data-m="'+x[0]+'" class="'+(S.mode===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div><h3>Accueil</h3><div class="grid3">'+['lay','rad','bg'].map(catTile).join('')+'</div>';
+    app.innerHTML=h;bindCats();lookBind();
+  }else if(view==='prof'){
+    if(pf){h='<button class="back" id="bk">‹ Profils</button><h1>'+(pf.isNew?'Nouveau profil':'Modifier')+'</h1>'+profForm()+'<button class="btn" id="sv">Enregistrer</button>';app.innerHTML=h;profBind();$('#bk').onclick=function(){pf=null;render()};$('#sv').onclick=function(){profSave().then(function(){pf=null;render()},function(){})};return}
+    h=header()+'<h3>Profils du poste</h3>'+S.profiles.map(function(p){return '<button class="row" data-p="'+p.id+'"><img src="'+A('wheels/w'+p.wheel+'.webp')+'" style="width:44px;height:44px;border-radius:50%;box-shadow:0 0 0 2px rgb('+p.halo+'),0 0 10px rgba('+p.halo+',.7)"><span>'+esc(p.name||'Sans nom')+(p.id===S.prof?'<small>Profil actif</small>':'')+'</span><span style="flex:0;color:#4aa3ff">›</span></button>'}).join('')+'<button class="btn" id="np">+ Ajouter un profil</button>';
+    app.innerHTML=h;
+    app.querySelectorAll('[data-p]').forEach(function(b){b.onclick=function(){var p=S.profiles.filter(function(x){return x.id===b.getAttribute('data-p')})[0];pf={id:p.id,name:p.name,wheel:p.wheel,halo:p.halo,lock:p.lock||'none',code:''};render()}});
+    $('#np').onclick=function(){pf={id:'',name:'',wheel:'00',halo:S.halos[0],lock:'none',code:'',isNew:true};render()};
+  }else{
+    h=header()+'<h3>Ton poste</h3><div class="row"><span>'+esc(carName())+'<small>'+esc(S.car.sub||'')+' · Cockpit '+esc(S.v)+'</small></span></div><button class="row" id="rw"><span>Refaire la configuration<small>Profil, compteur, montre, horloge, météo, ambiance</small></span><span style="flex:0;color:#4aa3ff">›</span></button><h3>Garder Cockpit sur ce téléphone</h3><div class="hint" style="margin-top:0">Sur iPhone : touche <b style="color:#fff">Partager</b> ⬆︎ dans Safari, puis <b style="color:#fff">Sur l\'écran d\'accueil</b>.<br>Sur Android : menu ⋮ de Chrome, puis <b style="color:#fff">Ajouter à l\'écran d\'accueil</b>.<br><br>Le téléphone et le poste doivent être sur le même réseau (partage de connexion du téléphone, par exemple).</div>';
+    app.innerHTML=h;$('#rw').onclick=function(){onboard=true;wstep=0;pf={id:S.prof||'',name:'',wheel:'00',halo:S.halos[0],lock:'none',code:''};var cp=S.profiles.filter(function(x){return x.id===S.prof})[0];if(cp){pf.name=cp.name;pf.wheel=cp.wheel;pf.halo=cp.halo}render()};
+  }
+  pill();
+}
+load(function(){
+  if(S&&(S.setup!=='1'||S.wiz)&&S.done!=='1'){onboard=true;wstep=0;pf={id:'',name:'',wheel:'00',halo:S.halos[0],lock:'none',code:''}}
+  if(!onboard&&GO==='bg'){sub='bg'}
+  render();
+});
+setInterval(function(){if(!onboard&&!sub&&view==='home')api('state').then(function(s){var ch=JSON.stringify([s.m3d,s.auto,s.lights,s.doors,s.mode])!==JSON.stringify([S.m3d,S.auto,S.lights,S.doors,S.mode]);S=s;pill();if(ch&&!document.querySelector('.sheet.on'))render()}).catch(function(){})},6000);
+})();
+</script>
+</body></html>
