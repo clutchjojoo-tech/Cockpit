@@ -33,7 +33,11 @@ jobs:
 
       - name: Accepter les licences Android
         shell: bash
-        run: yes | sdkmanager --licenses
+        run: |
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDKMANAGER="$(find "$SDK/cmdline-tools" -name sdkmanager -type f | sort -V | tail -n 1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses
 
       - name: Installer Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -43,6 +47,7 @@ jobs:
       - name: Vérifier le projet
         shell: bash
         run: |
+          set -o pipefail
           gradle :app:processDebugManifest \
             :app:processDebugResources \
             :app:compileDebugJavaWithJavac \
@@ -84,7 +89,15 @@ jobs:
         name: Accepter les licences Android
         continue-on-error: true
         shell: bash
-        run: yes | sdkmanager --licenses
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDKMANAGER="$(find "$SDK/cmdline-tools" -name sdkmanager -type f | sort -V | tail -n 1)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "sdkmanager introuvable"
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses
 
       - id: s4
         name: Installer Gradle
@@ -107,24 +120,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           APK="app/build/outputs/apk/debug/app-debug.apk"
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
           SIGNER="$(find "$SDK/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
-
           test -f "$APK"
           test -n "$SIGNER"
-
           "$SIGNER" verify --verbose --print-certs "$APK" 2>&1 | tee sig.log
-
           EXPECTED=$(echo "$EXPECTED_SHA256" | tr -d ':' | tr 'A-Z' 'a-z')
           ACTUAL=$(grep "certificate SHA-256 digest" sig.log | awk '{print $NF}' | tr -d ':' | tr 'A-Z' 'a-z')
-
           if [ "$ACTUAL" != "$EXPECTED" ]; then
             echo "ERREUR : signature SHA-256 différente."
             exit 1
           fi
-
           echo "Signature Cockpit vérifiée."
 
       - name: Bilan
@@ -138,7 +145,6 @@ jobs:
           echo "Gradle: ${{ steps.s4.outcome }}"
           echo "Compilation: ${{ steps.s5.outcome }}"
           echo "Signature: ${{ steps.s6.outcome }}"
-
           if [ "${{ steps.s1.outcome }}" != "success" ] ||
              [ "${{ steps.s2.outcome }}" != "success" ] ||
              [ "${{ steps.s3.outcome }}" != "success" ] ||
