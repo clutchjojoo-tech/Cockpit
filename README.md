@@ -20,7 +20,7 @@ Une voiture 3D qui tourne, des widgets à ta façon, un mode jour et un mode nui
 
 ## Présentation
 
-**Cockpit** est un *launcher* (écran d'accueil) gratuit pour les autoradios Android de voiture, de type ESSGOO, avec écran 1280×720. Il remplace l'accueil d'origine, souvent daté, par une interface sombre et métallisée aux accents bleu électrique, pensée pour la conduite : lisible, rapide, et entièrement personnalisable.
+**Cockpit** est un *launcher* (écran d'accueil) gratuit pour les autoradios Android de voiture, **toutes marques de postes**, avec un écran conseillé de 1280×720. Il remplace l'accueil d'origine, souvent daté, par une interface sombre et métallisée aux accents bleu électrique, pensée pour la conduite : lisible, rapide, et entièrement personnalisable.
 
 Cockpit n'est pas un lecteur CarPlay : il s'installe **autour** de ton application CarPlay habituelle (ZLink ou équivalent) et l'ouvre en un geste.
 
@@ -146,7 +146,7 @@ Tu peux aussi ouvrir le dossier dans **Android Studio**.
 | Appareil visé | Android 5.0 (API 21) ou plus |
 | Écran conseillé | 1280×720 |
 
-Cockpit est développé et testé sur un poste ESSGOO sous Android 14, et sur une tablette Android.
+Cockpit fonctionne sur tous les postes Android, pas seulement ESSGOO. Il est développé et testé sur un poste ESSGOO sous Android 14 et sur une tablette Android ; les informations de la voiture dépendent du boîtier de ton poste.
 
 ## Comment c'est construit
 
