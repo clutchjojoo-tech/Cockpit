@@ -1,6 +1,10 @@
 
 name: Fabriquer l'application
 
+# Deux usages séparés :
+# - pull_request : vérification de compilation sans signature.
+# - workflow_dispatch : fabrication officielle de l'APK.
+
 on:
   workflow_dispatch:
   pull_request:
@@ -8,13 +12,23 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   EXPECTED_SHA256: "3F:65:36:19:D1:04:80:04:54:55:1E:8B:18:26:5F:64:8E:37:5B:2E:1E:CB:8E:B5:12:BC:40:CD:8C:2E:6D:5D"
 
 jobs:
+
+  # Vérification des contributions, sans fabriquer d'APK
   verification:
+    name: Vérifier la contribution
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
 
     steps:
       - name: Récupérer le code
@@ -30,41 +44,56 @@ jobs:
 
       - name: Installer le SDK Android
         uses: android-actions/setup-android@v3
-
-      - name: Accepter les licences Android
-        shell: bash
-        run: |
-          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
-          SDKMANAGER="$(find "$SDK/cmdline-tools" -name sdkmanager -type f | sort -V | tail -n 1)"
-          test -n "$SDKMANAGER"
-          yes | "$SDKMANAGER" --licenses
+        with:
+          cmdline-tools-version: 12266719
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: true
+          packages: platform-tools
 
       - name: Installer Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      - name: Vérifier le projet
+      - name: Compiler le projet
         shell: bash
         run: |
           set -o pipefail
-          gradle :app:processDebugManifest \
-            :app:processDebugResources \
-            :app:compileDebugJavaWithJavac \
-            :app:mergeDebugAssets \
-            --no-daemon --stacktrace 2>&1 | tee verification.log
+          gradle :app:processDebugManifest :app:processDebugResources :app:compileDebugJavaWithJavac :app:mergeDebugAssets --no-daemon --stacktrace 2>&1 | tee build.log
 
-      - name: Publier le journal de vérification
+      - name: Résumé
         if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Vérification de la contribution"
+            echo ""
+            echo "Résultat : **${{ job.status }}**"
+            echo ""
+            echo "Cette vérification ne signe rien et ne publie aucun APK."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ job.status }}" != "success" ] && [ -f build.log ]; then
+            ERR=$(grep -E "error:|FAILED|What went wrong|Execution failed" build.log | head -n 12 | cut -c1-250 | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Compilation échouée::${ERR}"
+          fi
+
+      - name: Publier le journal
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: journal-verification
-          path: verification.log
+          path: build.log
           if-no-files-found: ignore
 
+  # Fabrication officielle : dépôt Cockpit et branche principale uniquement
   build:
+    name: Compiler l'APK
     if: github.event_name == 'workflow_dispatch' && github.repository == 'clutchjojoo-tech/Cockpit' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
 
     steps:
       - id: s1
@@ -84,20 +113,11 @@ jobs:
         name: Installer le SDK Android
         uses: android-actions/setup-android@v3
         continue-on-error: true
-
-      - id: s3a
-        name: Accepter les licences Android
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -euo pipefail
-          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
-          SDKMANAGER="$(find "$SDK/cmdline-tools" -name sdkmanager -type f | sort -V | tail -n 1)"
-          if [ -z "$SDKMANAGER" ]; then
-            echo "sdkmanager introuvable"
-            exit 1
-          fi
-          yes | "$SDKMANAGER" --licenses
+        with:
+          cmdline-tools-version: 12266719
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: true
+          packages: platform-tools
 
       - id: s4
         name: Installer Gradle
@@ -116,58 +136,113 @@ jobs:
 
       - id: s6
         name: Vérifier la signature
+        if: steps.s5.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
-          APK="app/build/outputs/apk/debug/app-debug.apk"
+          set -o pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
-          SIGNER="$(find "$SDK/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
-          test -f "$APK"
-          test -n "$SIGNER"
-          "$SIGNER" verify --verbose --print-certs "$APK" 2>&1 | tee sig.log
-          EXPECTED=$(echo "$EXPECTED_SHA256" | tr -d ':' | tr 'A-Z' 'a-z')
-          ACTUAL=$(grep "certificate SHA-256 digest" sig.log | awk '{print $NF}' | tr -d ':' | tr 'A-Z' 'a-z')
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "ERREUR : signature SHA-256 différente."
+
+          find_signer() {
+            ls "$SDK"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -n 1
+          }
+
+          APKSIGNER=$(find_signer)
+
+          if [ -z "$APKSIGNER" ]; then
+            echo "Installation des build-tools 34.0.0"
+            yes | sdkmanager "build-tools;34.0.0" > /dev/null
+            APKSIGNER=$(find_signer)
+          fi
+
+          if [ -z "$APKSIGNER" ]; then
+            echo "::error title=apksigner introuvable::Impossible de vérifier la signature."
             exit 1
           fi
-          echo "Signature Cockpit vérifiée."
+
+          echo "Outil : $APKSIGNER"
+
+          if ! "$APKSIGNER" verify --verbose --print-certs "$APK" 2>&1 | tee sig.log; then
+            echo "::error title=Signature invalide::La vérification de signature a échoué."
+            exit 1
+          fi
+
+          EXPECTED=$(echo "$EXPECTED_SHA256" | tr -d ':' | tr 'A-Z' 'a-z')
+          GOTS=$(grep "certificate SHA-256 digest" sig.log | awk '{print $NF}' | tr -d ':' | tr 'A-Z' 'a-z')
+
+          if [ -z "$GOTS" ]; then
+            echo "::error title=Empreinte introuvable::Aucune empreinte de certificat trouvée."
+            exit 1
+          fi
+
+          echo "Empreinte attendue : $EXPECTED"
+
+          for G in $GOTS; do
+            echo "Empreinte de l'APK : $G"
+            if [ "$G" != "$EXPECTED" ]; then
+              echo "::error title=Signature différente::L'APK n'utilise pas la clé habituelle de Cockpit."
+              exit 1
+            fi
+          done
+
+          echo "Signature conforme."
 
       - name: Bilan
         if: always()
         shell: bash
         run: |
-          echo "Checkout: ${{ steps.s1.outcome }}"
-          echo "Java: ${{ steps.s2.outcome }}"
-          echo "SDK Android: ${{ steps.s3.outcome }}"
-          echo "Licences Android: ${{ steps.s3a.outcome }}"
-          echo "Gradle: ${{ steps.s4.outcome }}"
-          echo "Compilation: ${{ steps.s5.outcome }}"
-          echo "Signature: ${{ steps.s6.outcome }}"
-          if [ "${{ steps.s1.outcome }}" != "success" ] ||
-             [ "${{ steps.s2.outcome }}" != "success" ] ||
-             [ "${{ steps.s3.outcome }}" != "success" ] ||
-             [ "${{ steps.s3a.outcome }}" != "success" ] ||
-             [ "${{ steps.s4.outcome }}" != "success" ] ||
-             [ "${{ steps.s5.outcome }}" != "success" ] ||
-             [ "${{ steps.s6.outcome }}" != "success" ]; then
-            exit 1
-          fi
+          set +e
+          APK=app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publier l'APK
-        if: always() && steps.s5.outcome == 'success' && steps.s6.outcome == 'success'
+          {
+            echo "## Compilation de Cockpit"
+            echo ""
+            echo "| Étape | Résultat |"
+            echo "|---|---|"
+            echo "| Code | ${{ steps.s1.outcome }} |"
+            echo "| Java | ${{ steps.s2.outcome }} |"
+            echo "| SDK Android | ${{ steps.s3.outcome }} |"
+            echo "| Gradle | ${{ steps.s4.outcome }} |"
+            echo "| APK | ${{ steps.s5.outcome }} |"
+            echo "| Signature | ${{ steps.s6.outcome }} |"
+            echo ""
+
+            if [ -f "$APK" ]; then
+              VER=$(grep -m1 "versionName" app/build.gradle | sed "s/.*'\(.*\)'.*/\1/")
+              SIZE=$(du -h "$APK" | cut -f1)
+              SUM=$(sha256sum "$APK" | cut -d' ' -f1)
+              echo "**Version :** $VER · **Taille :** $SIZE"
+              echo ""
+              echo "SHA-256 de l'APK : \`$SUM\`"
+              echo ""
+            fi
+
+            if [ "${{ steps.s5.outcome }}" = "success" ] && [ "${{ steps.s6.outcome }}" = "success" ]; then
+              echo "L'APK est disponible dans l'artefact cockpit-apk."
+            else
+              echo "L'APK n'est pas publié : une étape a échoué."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for o in "${{ steps.s1.outcome }}" "${{ steps.s2.outcome }}" "${{ steps.s3.outcome }}" "${{ steps.s4.outcome }}" "${{ steps.s5.outcome }}" "${{ steps.s6.outcome }}"; do
+            [ "$o" = "success" ] || exit 1
+          done
+
+      - name: Publier le journal
         uses: actions/upload-artifact@v4
-        with:
-          name: cockpit-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Publier les journaux
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: journal-build
           path: |
             build.log
             sig.log
           if-no-files-found: ignore
+
+      - name: Publier l'APK
+        uses: actions/upload-artifact@v4
+        if: always() && steps.s5.outcome == 'success' && steps.s6.outcome == 'success'
+        with:
+          name: cockpit-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
