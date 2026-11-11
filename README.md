@@ -24,7 +24,7 @@ Une voiture 3D qui tourne, des widgets à ta façon, un mode jour et un mode nui
 
 Cockpit n'est pas un lecteur CarPlay : il s'installe **autour** de ton application CarPlay habituelle (ZLink ou équivalent) et l'ouvre en un geste.
 
-Le projet est développé par **Malola Studio**.
+Le projet est développé par **JojooFx**.
 
 ## L'écosystème Cockpit
 
@@ -76,7 +76,7 @@ Cockpit Demo est une interface web interactive qui reproduit l'écran d'un poste
 **Ce qui ne marche que sur un vrai poste**
 - CarPlay, les infos réelles de la voiture (la démo affiche des valeurs d'exemple), le Bluetooth, le Wi-Fi, les voix et le lancement des applications.
 
-> **Un projet indépendant.** La démo est un projet web à part, hébergé sur Netlify, séparé de l'application Android. Elle est mise à jour par Malola Studio quand Cockpit évolue : elle peut donc avoir un léger décalage avec la dernière version de l'APK. Son code n'est pas dans ce dépôt.
+> **Un projet indépendant.** La démo est un projet web à part, hébergé sur Netlify, séparé de l'application Android. Elle est mise à jour par le mainteneur quand Cockpit évolue : elle peut donc avoir un léger décalage avec la dernière version de l'APK. Son code n'est pas dans ce dépôt.
 
 ## Fonctionnalités
 
@@ -170,7 +170,7 @@ Merci de respecter le [code de conduite](CODE_OF_CONDUCT.md). Pour une faille de
 
 ## Crédits et ressources tierces
 
-**Projet** : Cockpit est créé par **Malola Studio** (Jonathan Micoud).
+**Projet** : Cockpit est créé par **JojooFx**.
 
 **Modèles 3D** (licence [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/), CC-BY 4.0)
 

@@ -4,7 +4,7 @@
 
 Si tu penses avoir trouvé une faille de sécurité dans Cockpit, **n'ouvre pas de ticket public**.
 
-Utilise plutôt le signalement privé de GitHub : onglet **Security**, puis **Report a vulnerability**. Si cet onglet n'est pas disponible, contacte Malola Studio par les moyens indiqués sur le [site officiel](https://cockpitcarplay.netlify.app/).
+Utilise plutôt le signalement privé de GitHub : onglet **Security**, puis **Report a vulnerability**. Si cet onglet n'est pas disponible, contacte le mainteneur par les moyens indiqués sur le [site officiel](https://cockpitcarplay.netlify.app/).
 
 Indique :
 - ce que tu as trouvé et où,
@@ -25,7 +25,7 @@ Android n'accepte une mise à jour de Cockpit que si le nouvel APK est signé av
 
 ## Ce que la signature prouve (et ne prouve pas)
 
-La clé de signature actuelle est publique, puisqu'elle est dans le dépôt. Une signature conforme ne prouve donc pas qu'un APK vient de Malola Studio : seul le téléchargement depuis le site officiel est fiable. Voir [docs/SIGNATURE.md](docs/SIGNATURE.md).
+La clé de signature actuelle est publique, puisqu'elle est dans le dépôt. Une signature conforme ne prouve donc pas qu'un APK vient du mainteneur de Cockpit : seul le téléchargement depuis le site officiel est fiable. Voir [docs/SIGNATURE.md](docs/SIGNATURE.md).
 
 ## Ce qui est volontairement local
 
