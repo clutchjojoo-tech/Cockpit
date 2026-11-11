@@ -1,0 +1,15 @@
+# Compilation
+build/
+app/build/
+.gradle/
+local.properties
+*.log
+
+# Éditeurs et systèmes
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Fichiers de travail
+*.bak
