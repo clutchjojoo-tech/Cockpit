@@ -4,7 +4,7 @@ Ce document explique comment Cockpit est signé et pourquoi il ne faut **jamais*
 
 ## Comment ça fonctionne aujourd'hui
 
-- Les APK sont signés avec `app/cockpit.keystore` (alias `cockpit`, certificat `CN=Cockpit, O=Malola Studio, C=FR`).
+- Les APK sont signés avec `app/cockpit.keystore` (alias `cockpit`, certificat `CN=Cockpit`).
 - La configuration est dans `app/build.gradle` (bloc `signingConfigs`).
 - Les APK distribués sur le site officiel sont signés avec cette clé : l'empreinte du certificat de l'APK publié est identique à celle du keystore.
 
@@ -67,11 +67,11 @@ Le workflow `.github/workflows/build.yml` contient deux tâches qui ne se mélan
 | Déclencheur | Tâche | Signature | APK publié |
 |---|---|---|---|
 | `pull_request` (contributions) | `verification` | Aucune : elle compile le code, les ressources et les fichiers de l'application, sans fabriquer d'APK | Non |
-| `workflow_dispatch` (lancement manuel par un mainteneur, **uniquement dans le dépôt officiel `clutchjojoo-tech/cockpit`** et sur sa branche par défaut) | `build` | Keystore du projet, vérifié avec `apksigner` | Oui, seulement si la compilation et la signature sont conformes |
+| `workflow_dispatch` (lancement manuel par un mainteneur, **uniquement dans le dépôt officiel `clutchjojoo-tech/Cockpit`** et sur sa branche par défaut) | `build` | Keystore du projet, vérifié avec `apksigner` | Oui, seulement si la compilation et la signature sont conformes |
 
 Les pull requests, y compris celles des *forks*, tournent sans secrets et avec un accès en lecture seule. La tâche `verification` ne fabrique aucun APK. Elles ne peuvent donc ni signer, ni publier l'APK officiel.
 
-La tâche `build` est ignorée dans tout dépôt autre que `clutchjojoo-tech/cockpit` (condition `github.repository`), donc dans les *forks*.
+La tâche `build` est ignorée dans tout dépôt autre que `clutchjojoo-tech/Cockpit` (condition `github.repository`), donc dans les *forks*.
 
 ### Réglages GitHub conseillés
 
@@ -87,7 +87,7 @@ Conséquences, sans détour :
 
 - Le verrou sur la tâche `build` empêche le **workflow officiel** de tourner dans un fork. Il n'empêche **pas** quelqu'un de compiler le projet chez lui.
 - Toute personne qui lance `gradle assembleDebug` sur le dépôt tel quel obtient un APK signé avec **la clé officielle** (publique). Android le considère donc comme une mise à jour légitime de Cockpit.
-- Une signature conforme ne prouve donc **pas** qu'un APK vient de Malola Studio. Seul l'APK du [site officiel](https://cockpitcarplay.netlify.app/) est à considérer fiable.
+- Une signature conforme ne prouve donc **pas** qu'un APK vient du mainteneur de Cockpit. Seul l'APK du [site officiel](https://cockpitcarplay.netlify.app/) est à considérer fiable.
 - Un contributeur ne doit jamais présenter ou diffuser un APK compilé comme une version de Cockpit.
 
 Ce risque est connu et assumé tant que la clé reste dans le dépôt, pour ne pas couper les mises à jour des utilisateurs. La vraie solution est décrite plus haut (secrets GitHub, puis nouvelle clé avec rotation) ; elle sera décidée avec le propriétaire du projet.
