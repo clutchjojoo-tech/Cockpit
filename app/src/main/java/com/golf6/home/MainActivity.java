@@ -112,8 +112,15 @@ public class MainActivity extends Activity {
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
+        s.setMediaPlaybackRequiresUserGesture(false);   // 3.0 : la vidéo de démarrage joue avec son sans toucher l'écran
         web.addJavascriptInterface(new Bridge(), "Android");
         web.setWebViewClient(new WebViewClient() {
+            @Override
+            public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, android.webkit.WebResourceRequest request) {
+                android.webkit.WebResourceResponse r = carIntercept(request);
+                return r != null ? r : super.shouldInterceptRequest(view, request);
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 sendLocation();
@@ -136,12 +143,14 @@ public class MainActivity extends Activity {
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
+        obdDemarrer();   // 3.0 : reconnexion automatique à la prise OBD choisie
     }
 
     @Override
     public void onRequestPermissionsResult(int code, String[] perms, int[] results) {
         super.onRequestPermissionsResult(code, perms, results);
         sendLocation();
+        if (code == 2 || code == 3) obdDemarrer();
     }
 
     @Override
@@ -628,6 +637,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        obdArreter();
         if (tel != null) tel.arreter();
         handler.removeCallbacksAndMessages(null);
         if (tts != null) {
@@ -635,6 +645,402 @@ public class MainActivity extends Activity {
             tts.shutdown();
         }
         super.onDestroy();
+    }
+
+    // ---------- Cockpit 3.0 : voitures 3D à télécharger (packs) ----------
+    // Un pack = un zip publié une fois dans la Release « voitures » du dépôt GitHub. Il est décompressé
+    // dans files/cars/<id>/ ; la page le lit comme s'il était dans m3d/<dossier>/ (voir shouldInterceptRequest).
+    private static final String CARS_URL = "https://github.com/clutchjojoo-tech/Cockpit/releases/download/voitures/";
+    private static final String[][] CARS_PACKS = {{"golf6", "golf6", "cockpit-golf6.zip"}, {"p207", "207", "cockpit-207.zip"}};   // id, dossier m3d/, fichier
+    private final java.util.Map<String, Integer> carDl = new java.util.HashMap<>();
+
+    private String[] carPack(String id) {
+        for (String[] c : CARS_PACKS) if (c[0].equals(id)) return c;
+        return null;
+    }
+
+    private File carDir(String id) {
+        return new File(new File(getFilesDir(), "cars"), id);
+    }
+
+    private long dirSize(File d) {
+        long n = 0;
+        File[] fs = d.listFiles();
+        if (fs != null) for (File f : fs) n += f.isDirectory() ? dirSize(f) : f.length();
+        return n;
+    }
+
+    private void carTelecharger(final String id) {
+        final String[] c = carPack(id);
+        if (c == null) return;
+        synchronized (carDl) {
+            if (carDl.containsKey(id)) return;
+            carDl.put(id, 0);
+        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                File zip = new File(getCacheDir(), id + ".zip.part");
+                File tmp = new File(new File(getFilesDir(), "cars"), id + ".tmp");
+                try {
+                    supprimerDossier(tmp);
+                    HttpURLConnection con = (HttpURLConnection) new URL(CARS_URL + c[2]).openConnection();
+                    con.setInstanceFollowRedirects(true);
+                    con.setConnectTimeout(15000);
+                    con.setReadTimeout(30000);
+                    int code = con.getResponseCode();
+                    if (code != 200) throw new Exception("HTTP " + code);
+                    long total = con.getContentLengthLong(), lu = 0;
+                    int last = -1;
+                    InputStream in = con.getInputStream();
+                    OutputStream out = new FileOutputStream(zip);
+                    byte[] b = new byte[65536];
+                    int n;
+                    while ((n = in.read(b)) > 0) {
+                        out.write(b, 0, n);
+                        lu += n;
+                        int pct = total > 0 ? (int) (lu * 90 / total) : 0;
+                        if (pct != last) {
+                            last = pct;
+                            synchronized (carDl) { carDl.put(id, pct); }
+                            fondJs("window.onCarDl&&window.onCarDl('" + id + "'," + pct + ",'dl')");
+                        }
+                    }
+                    out.close();
+                    in.close();
+                    // décompression : noms simples seulement (pas de « .. »), dans un dossier temporaire
+                    java.util.zip.ZipInputStream zi = new java.util.zip.ZipInputStream(new java.io.FileInputStream(zip));
+                    java.util.zip.ZipEntry e;
+                    while ((e = zi.getNextEntry()) != null) {
+                        String nom = e.getName();
+                        if (!nom.matches("[A-Za-z0-9_./-]+") || nom.contains("..") || nom.startsWith("/")) throw new Exception("nom");
+                        File f = new File(tmp, nom);
+                        if (e.isDirectory()) { f.mkdirs(); continue; }
+                        f.getParentFile().mkdirs();
+                        OutputStream o = new FileOutputStream(f);
+                        while ((n = zi.read(b)) > 0) o.write(b, 0, n);
+                        o.close();
+                    }
+                    zi.close();
+                    if (!new File(tmp, "car.json").exists() || !new File(tmp, "rot.mp4").exists()) throw new Exception("pack incomplet");
+                    File dir = carDir(id);
+                    supprimerDossier(dir);
+                    if (!tmp.renameTo(dir)) throw new Exception("rename");
+                    fondJs("window.onCarDl&&window.onCarDl('" + id + "',100,'ok')");
+                } catch (Throwable t) {
+                    supprimerDossier(tmp);
+                    fondJs("window.onCarDl&&window.onCarDl('" + id + "',0,'err')");
+                } finally {
+                    zip.delete();
+                    synchronized (carDl) { carDl.remove(id); }
+                }
+            }
+        }, "pack-" + id).start();
+    }
+
+    /** Sert les fichiers d'un pack téléchargé à la place de file:///android_asset/m3d/<dossier>/… (avec les plages, pour la vidéo). */
+    private android.webkit.WebResourceResponse carIntercept(android.webkit.WebResourceRequest req) {
+        try {
+            String u = req.getUrl().toString(), pre = "file:///android_asset/m3d/";
+            if (!u.startsWith(pre)) return null;
+            String rest = u.substring(pre.length());
+            int q = rest.indexOf('?');
+            if (q >= 0) rest = rest.substring(0, q);
+            for (String[] c : CARS_PACKS) {
+                if (!rest.startsWith(c[1] + "/")) continue;
+                String rel = Uri.decode(rest.substring(c[1].length() + 1));
+                if (rel.contains("..")) return null;
+                final File f = new File(carDir(c[0]), rel);
+                if (!f.isFile()) return null;
+                String mime = rel.endsWith(".mp4") ? "video/mp4" : rel.endsWith(".webp") ? "image/webp"
+                        : rel.endsWith(".json") ? "application/json" : "application/octet-stream";
+                long len = f.length(), s = 0, e = len - 1;
+                java.util.Map<String, String> h = new java.util.HashMap<>();
+                h.put("Accept-Ranges", "bytes");
+                h.put("Access-Control-Allow-Origin", "*");
+                String rg = req.getRequestHeaders() != null ? req.getRequestHeaders().get("Range") : null;
+                if (rg == null && req.getRequestHeaders() != null) rg = req.getRequestHeaders().get("range");
+                final java.io.FileInputStream in = new java.io.FileInputStream(f);
+                if (rg != null && rg.startsWith("bytes=")) {
+                    String[] p = rg.substring(6).split("-", -1);
+                    if (p[0].length() > 0) s = Long.parseLong(p[0].trim());
+                    if (p.length > 1 && p[1].trim().length() > 0) e = Math.min(len - 1, Long.parseLong(p[1].trim()));
+                    if (s > e || s >= len) { in.close(); return null; }
+                    long sk = s;
+                    while (sk > 0) { long k = in.skip(sk); if (k <= 0) break; sk -= k; }
+                    final long reste0 = e - s + 1;
+                    InputStream lim = new InputStream() {
+                        long reste = reste0;
+                        @Override public int read() throws java.io.IOException { if (reste <= 0) return -1; int v = in.read(); if (v >= 0) reste--; return v; }
+                        @Override public int read(byte[] b, int o, int n) throws java.io.IOException { if (reste <= 0) return -1; int r = in.read(b, o, (int) Math.min(n, reste)); if (r > 0) reste -= r; return r; }
+                        @Override public void close() throws java.io.IOException { in.close(); }
+                    };
+                    h.put("Content-Range", "bytes " + s + "-" + e + "/" + len);
+                    h.put("Content-Length", String.valueOf(reste0));
+                    return new android.webkit.WebResourceResponse(mime, null, 206, "Partial Content", h, lim);
+                }
+                h.put("Content-Length", String.valueOf(len));
+                return new android.webkit.WebResourceResponse(mime, null, 200, "OK", h, in);
+            }
+        } catch (Throwable t) {
+            // fichier illisible : la page affichera la Golf
+        }
+        return null;
+    }
+
+    // ---------- Cockpit 3.0 : prise OBD Bluetooth (ELM327), lecture seule ----------
+    // La prise est d'abord associée dans le Bluetooth d'Android, puis choisie dans Cockpit
+    // (adresse gardée dans obd_addr). Cockpit s'y reconnecte tout seul. Rien n'est jamais écrit
+    // dans la voiture : seules des demandes de lecture (mode 01, 03) et des commandes AT de la prise.
+    private static final java.util.UUID OBD_SPP = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private volatile boolean obdRun = false;
+    private volatile String obdEtat = "off";
+    private volatile String obdNom = "";
+    private volatile String obdSupp = "[]";
+    private volatile String obdDtc = "[]";
+    private volatile android.bluetooth.BluetoothSocket obdSock;
+    private InputStream obdIn;
+    private OutputStream obdOut;
+
+    private void obdJs(final String code) {
+        if (web == null) return;
+        web.post(new Runnable() {
+            @Override
+            public void run() {
+                try { web.evaluateJavascript(code, null); } catch (Exception e) { }
+            }
+        });
+    }
+
+    private String obdInfo() {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("etat", obdEtat);
+            o.put("nom", obdNom);
+            o.put("addr", prefs.getString("obd_addr", ""));
+            o.put("supp", new JSONArray(obdSupp));
+            o.put("dtc", new JSONArray(obdDtc));
+            return o.toString();
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    private void obdSetEtat(String e) {
+        obdEtat = e;
+        obdJs("window.onObdState&&window.onObdState(" + obdInfo() + ")");
+    }
+
+    private void obdDemarrer() {
+        final String addr = prefs.getString("obd_addr", "");
+        if (addr.length() == 0 || obdRun) return;
+        if (Build.VERSION.SDK_INT >= 31
+                && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            obdSetEtat("permission");
+            try { requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 3); } catch (Exception e) { }
+            return;
+        }
+        obdRun = true;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                obdBoucle(addr);
+            }
+        }, "obd").start();
+    }
+
+    private void obdArreter() {
+        obdRun = false;
+        obdFermer();
+        obdSetEtat("off");
+    }
+
+    private void obdFermer() {
+        try { if (obdSock != null) obdSock.close(); } catch (Exception e) { }
+        obdSock = null;
+        obdIn = null;
+        obdOut = null;
+    }
+
+    private void obdDormir(long ms) {
+        long fin = System.currentTimeMillis() + ms;
+        while (obdRun && System.currentTimeMillis() < fin) {
+            try { Thread.sleep(200); } catch (InterruptedException e) { return; }
+        }
+    }
+
+    /** Envoie une commande et lit jusqu'au « > » de la prise. Réponse nettoyée (sans espaces). */
+    private String obdCmd(String c, long attente) throws Exception {
+        if (obdOut == null || obdIn == null) throw new Exception("fermé");
+        while (obdIn.available() > 0) obdIn.read();
+        obdOut.write((c + "\r").getBytes("US-ASCII"));
+        obdOut.flush();
+        StringBuilder sb = new StringBuilder();
+        long fin = System.currentTimeMillis() + attente;
+        while (System.currentTimeMillis() < fin) {
+            if (obdIn.available() > 0) {
+                int b = obdIn.read();
+                if (b < 0) throw new Exception("coupé");
+                if (b == '>') break;
+                sb.append((char) b);
+            } else {
+                Thread.sleep(15);
+            }
+        }
+        return sb.toString().replace("SEARCHING...", "").replaceAll("[\\s\\x00]", "").toUpperCase(Locale.ROOT);
+    }
+
+    /** Octets de données qui suivent l'en-tête (ex. « 410C ») dans la réponse, ou null. */
+    private int[] obdOctets(String r, String tete, int n) {
+        int i = r.indexOf(tete);
+        if (i < 0) return null;
+        i += tete.length();
+        if (r.length() < i + n * 2) return null;
+        int[] o = new int[n];
+        try {
+            for (int k = 0; k < n; k++) o[k] = Integer.parseInt(r.substring(i + k * 2, i + k * 2 + 2), 16);
+        } catch (Exception e) {
+            return null;
+        }
+        return o;
+    }
+
+    private void obdBoucle(String addr) {
+        // PID lus : régime, vitesse, liquide de refroidissement, admission, charge, essence, air extérieur, huile, débit d'essence
+        final int[] PIDS = {0x0C, 0x0D, 0x05, 0x0F, 0x04, 0x2F, 0x46, 0x5C, 0x5E};
+        while (obdRun) {
+            try {
+                BluetoothAdapter a = BluetoothAdapter.getDefaultAdapter();
+                if (a == null || !a.isEnabled()) {
+                    obdSetEtat("bt_off");
+                    obdDormir(10000);
+                    continue;
+                }
+                BluetoothDevice d = a.getRemoteDevice(addr);
+                String n = null;
+                try { n = d.getName(); } catch (Exception e) { }
+                obdNom = n != null ? n : addr;
+                obdSetEtat("connexion");
+                try { a.cancelDiscovery(); } catch (Exception e) { }
+                android.bluetooth.BluetoothSocket s;
+                try {
+                    s = d.createRfcommSocketToServiceRecord(OBD_SPP);
+                    s.connect();
+                } catch (Exception e1) {
+                    s = d.createInsecureRfcommSocketToServiceRecord(OBD_SPP);
+                    s.connect();
+                }
+                obdSock = s;
+                obdIn = s.getInputStream();
+                obdOut = s.getOutputStream();
+                obdCmd("ATZ", 3000);
+                obdCmd("ATE0", 1500);
+                obdCmd("ATL0", 1500);
+                obdCmd("ATS0", 1500);
+                obdCmd("ATH0", 1500);
+                obdCmd("ATSP0", 1500);
+                obdSetEtat("voiture");
+                String r = obdCmd("0100", 12000);   // la recherche du protocole peut être longue
+                int[] b = obdOctets(r, "4100", 4);
+                if (b == null) {
+                    // contact coupé ou voiture qui ne répond pas : on réessaie plus tard
+                    obdFermer();
+                    obdSetEtat("pas_voiture");
+                    obdDormir(15000);
+                    continue;
+                }
+                boolean[] sup = new boolean[0x61];
+                for (int base = 0; base <= 0x40; base += 0x20) {
+                    if (base > 0) {
+                        if (!sup[base]) break;
+                        String rr = obdCmd(String.format(Locale.ROOT, "01%02X", base), 4000);
+                        b = obdOctets(rr, String.format(Locale.ROOT, "41%02X", base), 4);
+                        if (b == null) break;
+                    }
+                    long m = ((long) b[0] << 24) | ((long) b[1] << 16) | ((long) b[2] << 8) | b[3];
+                    for (int k = 1; k <= 32; k++) sup[base + k] = ((m >> (32 - k)) & 1) == 1;
+                }
+                JSONArray js = new JSONArray();
+                final List<Integer> lus = new ArrayList<>();
+                for (int p : PIDS) if (p < sup.length && sup[p]) { lus.add(p); js.put(String.format(Locale.ROOT, "%02X", p)); }
+                String v0 = obdCmd("ATRV", 1500);
+                if (v0.matches(".*[0-9]+\\.?[0-9]*V.*")) js.put("RV");
+                obdSupp = js.toString();
+                obdLireDtc();
+                obdSetEtat("ok");
+                long dtcT = System.currentTimeMillis(), rvT = 0;
+                while (obdRun) {
+                    JSONObject o = new JSONObject();
+                    double kmh = -1;
+                    for (int p : lus) {
+                        String h = String.format(Locale.ROOT, "%02X", p);
+                        String rr = obdCmd("01" + h, 2500);
+                        if (rr.contains("UNABLETOCONNECT") || rr.contains("CANERROR")) throw new Exception("voiture");
+                        int nb = (p == 0x0C || p == 0x5E) ? 2 : 1;
+                        int[] x = obdOctets(rr, "41" + h, nb);
+                        if (x == null) continue;
+                        switch (p) {
+                            case 0x0C: o.put("rpm", (x[0] * 256 + x[1]) / 4); break;
+                            case 0x0D: kmh = x[0]; o.put("kmh", x[0]); break;
+                            case 0x05: o.put("cool", x[0] - 40); break;
+                            case 0x0F: o.put("intake", x[0] - 40); break;
+                            case 0x04: o.put("load", Math.round(x[0] * 100 / 255.0)); break;
+                            case 0x2F: o.put("fuel", Math.round(x[0] * 1000 / 255.0) / 10.0); break;
+                            case 0x46: o.put("amb", x[0] - 40); break;
+                            case 0x5C: o.put("oil", x[0] - 40); break;
+                            case 0x5E: {
+                                double lh = (x[0] * 256 + x[1]) / 20.0;
+                                o.put("lh", lh);
+                                if (kmh >= 5) o.put("cons", Math.round(lh / kmh * 1000) / 10.0);
+                                break;
+                            }
+                        }
+                    }
+                    long now = System.currentTimeMillis();
+                    if (now - rvT > 5000) {
+                        rvT = now;
+                        String rv = obdCmd("ATRV", 1500).replace("V", "");
+                        try { double v = Double.parseDouble(rv); if (v > 5 && v < 20) o.put("volt", v); } catch (Exception e) { }
+                    }
+                    if (now - dtcT > 300000) { dtcT = now; obdLireDtc(); obdSetEtat("ok"); }
+                    obdJs("window.onObd&&window.onObd(" + o.toString() + ")");
+                    obdDormir(400);
+                }
+            } catch (Throwable e) {
+                obdFermer();
+                if (obdRun) {
+                    obdSetEtat("erreur");
+                    obdDormir(10000);
+                }
+            }
+        }
+        obdFermer();
+    }
+
+    /** Codes défaut enregistrés (mode 03), lecture seule. */
+    private void obdLireDtc() {
+        JSONArray out = new JSONArray();
+        try {
+            String r = obdCmd("03", 5000);
+            // réponses CAN sur plusieurs lignes « 0:… 1:… » : on retire les numéros de ligne
+            r = r.replaceAll("[0-9A-F]:", "");
+            int i = r.indexOf("43");
+            if (i >= 0) {
+                String d = r.substring(i + 2).replaceAll("[^0-9A-F]", "");
+                if ((d.length() / 2) % 2 == 1) d = d.substring(2);   // octet « nombre de codes » (CAN)
+                String L = "PCBU";
+                for (int k = 0; k + 4 <= d.length(); k += 4) {
+                    String c = d.substring(k, k + 4);
+                    if (c.equals("0000")) continue;
+                    int a = Integer.parseInt(c.substring(0, 1), 16);
+                    String code = L.charAt(a >> 2) + Integer.toString(a & 3) + c.substring(1);
+                    out.put(code);
+                }
+            }
+        } catch (Exception e) {
+            // pas de codes lisibles
+        }
+        obdDtc = out.toString();
     }
 
     // ---------- Mode nuit du système ----------
@@ -768,6 +1174,248 @@ public class MainActivity extends Activity {
             startActivity(i);
         } catch (Exception e) {
             fondJs("window.updErr&&window.updErr('install')");
+        }
+    }
+
+    // ---------- Cockpit 3.0 : tracés des trajets (historique en 3D) ----------
+    // Un point tous les 25 m environ, en roulant. Fichier en cours : trajets/cur.txt ; à l'archivage du trajet
+    // par la page, il devient trajets/<id>.txt. Les données restent sur le poste. 60 tracés gardés au plus.
+    private static final int TRACE_GARDER = 60;
+    private double trLat = 999, trLon = 999;
+    private int trPts = 0;
+
+    private File dossierTrajets() {
+        File d = new File(getFilesDir(), "trajets");
+        if (!d.isDirectory()) d.mkdirs();
+        return d;
+    }
+
+    private synchronized void enregistrerPoint(Location l, float kmh, double alt) {
+        try {
+            if (!prefs.getBoolean("tr_trace", true) || kmh < 3f) return;
+            double la = l.getLatitude(), lo = l.getLongitude();
+            if (trLat != 999) {
+                float[] d = new float[1];
+                Location.distanceBetween(trLat, trLon, la, lo, d);
+                if (d[0] < 25f) return;
+            }
+            if (trPts >= 20000) return;   // garde-fou : environ 500 km
+            trLat = la; trLon = lo; trPts++;
+            String ligne = String.format(Locale.US, "%.6f,%.6f,%.0f,%.0f,%d\n", la, lo, alt, kmh, System.currentTimeMillis() / 1000);
+            FileOutputStream fo = new FileOutputStream(new File(dossierTrajets(), "cur.txt"), true);
+            try { fo.write(ligne.getBytes("UTF-8")); } finally { fo.close(); }
+        } catch (Throwable e) { /* un point perdu n'empêche rien */ }
+    }
+
+    private void nettoyerTrajets() {
+        File[] l = dossierTrajets().listFiles();
+        if (l == null) return;
+        java.util.Arrays.sort(l, new Comparator<File>() {
+            @Override public int compare(File a, File b) { return Long.compare(b.lastModified(), a.lastModified()); }
+        });
+        int n = 0;
+        for (File f : l) {
+            if (f.getName().equals("cur.txt")) continue;
+            if (++n > TRACE_GARDER) f.delete();
+        }
+    }
+
+    // ---------- Cockpit 3.0 — phase 2 : outils de sauvegarde complète ----------
+
+    private static final String[] PHOTOS_SAUV = {"fond_jour.jpg", "fond_on.jpg", "fond_off.jpg", "fond_lock.jpg", "fond_prof.jpg"};
+    private static final int SAUV_GARDER = 3;
+
+    private File dossierSauvegardes() {
+        return new File(getFilesDir(), "sauvegardes");
+    }
+
+    private synchronized String sauvegardeComplete(String localJson) {
+        try {
+            if (localJson == null) return "";
+            // identifiant de longueur fixe, toujours plus grand que les précédents : l'ordre alphabétique
+            // est l'ordre chronologique, même si l'horloge du poste recule ou si deux sauvegardes tombent la même seconde
+            java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss-SSS", Locale.US);
+            String max = "";
+            File[] ex = dossierSauvegardes().listFiles();
+            if (ex != null) for (File f : ex) if (f.getName().compareTo(max) > 0) max = f.getName();
+            long t = System.currentTimeMillis();
+            String id = fmt.format(new java.util.Date(t));
+            if (id.compareTo(max) <= 0) {
+                try { t = fmt.parse(max.substring(0, 19)).getTime(); } catch (Throwable e) { /* nom ancien : on garde t */ }
+                do { id = fmt.format(new java.util.Date(++t)); } while (id.compareTo(max) <= 0);
+            }
+            File dir = new File(dossierSauvegardes(), id);
+            if (!dir.mkdirs()) return "";
+            ecrireOctets(new File(dir, "local.json"), localJson.getBytes("UTF-8"));
+            ecrireOctets(new File(dir, "prefs.json"), prefsEnJson().getBytes("UTF-8"));
+            JSONArray ph = new JSONArray();
+            for (String p : PHOTOS_SAUV) {
+                File src = new File(getFilesDir(), p);
+                if (src.isFile()) {
+                    ecrireOctets(new File(dir, p), lireOctets(src));
+                    ph.put(p + ":" + src.length());
+                }
+            }
+            File[] trs = dossierTrajets().listFiles();
+            if (trs != null && trs.length > 0) {
+                File dt = new File(dir, "trajets");
+                dt.mkdirs();
+                for (File tf : trs) if (tf.isFile()) ecrireOctets(new File(dt, tf.getName()), lireOctets(tf));
+            }
+            // relecture de contrôle avant de déclarer la sauvegarde complète
+            if (!new String(lireOctets(new File(dir, "local.json")), "UTF-8").equals(localJson)) return "";
+            JSONObject man = new JSONObject();
+            man.put("id", dir.getName()).put("date", System.currentTimeMillis())
+                    .put("local", localJson.length()).put("prefs", prefs.getAll().size()).put("photos", ph);
+            ecrireOctets(new File(dir, "manifest.json"), man.toString().getBytes("UTF-8"));   // en DERNIER
+            nettoyerSauvegardes();
+            return dir.getName();
+        } catch (Throwable e) {
+            return "";
+        }
+    }
+
+    private synchronized String restaurationComplete(String id) {
+        try {
+            if (id == null || !id.matches("[0-9A-Za-z-]{1,40}")) return null;
+            File dir = new File(dossierSauvegardes(), id);
+            if (!new File(dir, "manifest.json").isFile()) return null;   // sauvegarde incomplète : on n'y touche pas
+            String local = new String(lireOctets(new File(dir, "local.json")), "UTF-8");
+            String pj = new String(lireOctets(new File(dir, "prefs.json")), "UTF-8");
+            new JSONObject(pj);   // lisible avant de toucher à quoi que ce soit
+            if (!prefsDepuisJson(pj, true)) return null;
+            for (String p : PHOTOS_SAUV) {
+                File s = new File(dir, p), d = new File(getFilesDir(), p);
+                if (s.isFile()) ecrireOctets(d, lireOctets(s));
+                else if (d.isFile()) d.delete();   // la photo n'existait pas au moment de la sauvegarde
+            }
+            File st = new File(dir, "trajets");
+            File[] trs = st.listFiles();
+            if (trs != null) for (File tf : trs) if (tf.isFile()) ecrireOctets(new File(dossierTrajets(), tf.getName()), lireOctets(tf));
+            return local;
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    private String listerSauvegardes() {
+        JSONArray a = new JSONArray();
+        File[] l = dossierSauvegardes().listFiles();
+        if (l == null) return "[]";
+        java.util.Arrays.sort(l);
+        for (int i = l.length - 1; i >= 0; i--) {
+            try {
+                File m = new File(l[i], "manifest.json");
+                JSONObject o = m.isFile() ? new JSONObject(new String(lireOctets(m), "UTF-8")) : new JSONObject().put("id", l[i].getName());
+                o.put("ok", m.isFile());
+                a.put(o);
+            } catch (Throwable e) { /* dossier abîmé : ignoré dans la liste, gardé sur le disque */ }
+        }
+        return a.toString();
+    }
+
+    /** Garde les SAUV_GARDER plus récentes sauvegardes complètes ; les incomplètes plus anciennes sont retirées. */
+    private void nettoyerSauvegardes() {
+        File[] l = dossierSauvegardes().listFiles();
+        if (l == null) return;
+        java.util.Arrays.sort(l);
+        int completes = 0;
+        for (int i = l.length - 1; i >= 0; i--) {
+            boolean ok = new File(l[i], "manifest.json").isFile();
+            if (ok && ++completes <= SAUV_GARDER) continue;
+            if (completes >= 1) supprimerDossier(l[i]);   // jamais avant d'avoir au moins une sauvegarde complète plus récente
+        }
+    }
+
+    private void supprimerDossier(File d) {
+        File[] l = d.listFiles();
+        if (l != null) for (File f : l) { if (f.isDirectory()) supprimerDossier(f); else f.delete(); }
+        d.delete();
+    }
+
+    /** Préférences Android en JSON, avec leurs types (__t) pour les remettre à l'identique. */
+    private String prefsEnJson() {
+        try {
+            JSONObject o = new JSONObject(), t = new JSONObject();
+            for (java.util.Map.Entry<String, ?> e : prefs.getAll().entrySet()) {
+                Object v = e.getValue();
+                String k = e.getKey();
+                if (v instanceof Boolean) { o.put(k, v); t.put(k, "b"); }
+                else if (v instanceof Integer) { o.put(k, v); t.put(k, "i"); }
+                else if (v instanceof Long) { o.put(k, v); t.put(k, "l"); }
+                else if (v instanceof Float) { o.put(k, ((Float) v).doubleValue()); t.put(k, "f"); }
+                else if (v instanceof Set) { o.put(k, new JSONArray((Set<?>) v)); t.put(k, "set"); }
+                else if (v != null) { o.put(k, String.valueOf(v)); t.put(k, "s"); }
+            }
+            o.put("__t", t);
+            return o.toString();
+        } catch (Throwable e) {
+            return "{}";
+        }
+    }
+
+    /** exact = true : état identique à la sauvegarde (les clés absentes sont retirées). Sinon : fusion. */
+    private boolean prefsDepuisJson(String json, boolean exact) {
+        try {
+            JSONObject o = new JSONObject(json), t = o.optJSONObject("__t");
+            SharedPreferences.Editor ed = prefs.edit();
+            if (exact) ed.clear();
+            java.util.Map<String, ?> avant = prefs.getAll();
+            java.util.Iterator<String> it = o.keys();
+            while (it.hasNext()) {
+                String k = it.next();
+                if ("__t".equals(k)) continue;
+                Object v = o.get(k);
+                String ty = t != null ? t.optString(k, "") : "";
+                if (ty.isEmpty()) {   // fichier sans types : on reprend le type actuel, sinon on le déduit
+                    Object cur = avant.get(k);
+                    ty = cur instanceof Boolean ? "b" : cur instanceof Integer ? "i" : cur instanceof Long ? "l"
+                            : cur instanceof Float ? "f" : v instanceof Boolean ? "b" : v instanceof Integer ? "i"
+                            : v instanceof Long ? "l" : v instanceof Number ? "f" : "s";
+                }
+                if ("b".equals(ty)) ed.putBoolean(k, v instanceof Boolean ? (Boolean) v : "true".equals(String.valueOf(v)));
+                else if ("i".equals(ty)) ed.putInt(k, (int) Double.parseDouble(String.valueOf(v)));
+                else if ("l".equals(ty)) ed.putLong(k, (long) Double.parseDouble(String.valueOf(v)));
+                else if ("f".equals(ty)) ed.putFloat(k, (float) Double.parseDouble(String.valueOf(v)));
+                else if ("set".equals(ty)) {
+                    Set<String> s = new HashSet<String>();
+                    JSONArray a = o.getJSONArray(k);
+                    for (int i = 0; i < a.length(); i++) s.add(a.getString(i));
+                    ed.putStringSet(k, s);
+                } else ed.putString(k, String.valueOf(v));
+            }
+            return ed.commit();   // écriture immédiate et vérifiée (pas apply)
+        } catch (Throwable e) {
+            return false;
+        }
+    }
+
+    private byte[] lireOctets(File f) throws Exception {
+        InputStream in = new java.io.FileInputStream(f);
+        try {
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            byte[] b = new byte[16384];
+            int n;
+            while ((n = in.read(b)) > 0) bo.write(b, 0, n);
+            return bo.toByteArray();
+        } finally {
+            in.close();
+        }
+    }
+
+    /** Écrit dans un fichier temporaire puis le renomme : jamais de fichier à moitié écrit. */
+    private void ecrireOctets(File f, byte[] b) throws Exception {
+        File tmp = new File(f.getPath() + ".part");
+        FileOutputStream fo = new FileOutputStream(tmp);
+        try {
+            fo.write(b);
+            fo.getFD().sync();
+        } finally {
+            fo.close();
+        }
+        if (!tmp.renameTo(f)) {
+            tmp.delete();
+            throw new Exception("renommage impossible : " + f.getName());
         }
     }
 
@@ -914,10 +1562,18 @@ public class MainActivity extends Activity {
                         ByteArrayOutputStream bo = new ByteArrayOutputStream();
                         byte[] b = new byte[4096];
                         int n;
-                        while ((n = in.read(b)) > 0 && bo.size() < 300000) {
+                        // Cockpit 3.0 : plus de coupure silencieuse à 300 000 octets.
+                        // Au-delà de 40 Mo le fichier est refusé avec un message, jamais tronqué.
+                        boolean tropGros = false;
+                        while ((n = in.read(b)) > 0) {
+                            if (bo.size() + n > 40 * 1024 * 1024) { tropGros = true; break; }
                             bo.write(b, 0, n);
                         }
                         in.close();
+                        if (tropGros) {
+                            fondJs("window.importDone&&window.importDone(null,'trop gros')");
+                            return;
+                        }
                         String t = bo.toString("UTF-8");
                         fondJs("window.importDone&&window.importDone(" + JSONObject.quote(t) + ")");
                     } catch (Exception e) {
@@ -948,6 +1604,7 @@ public class MainActivity extends Activity {
                     float v = l.hasSpeed() ? l.getSpeed() * 3.6f : 0f;
                     float b = l.hasBearing() ? l.getBearing() : -1f;
                     double alt = l.hasAltitude() ? l.getAltitude() : -9999d;
+                    enregistrerPoint(l, v, alt);   // 3.0 : tracé du trajet (sur le poste seulement)
                     int seuil = prefs.getInt("speed_alert", 0);
                     if (seuil > 0) {
                         if (v > seuil && !alerteDeclenchee) {
@@ -2199,7 +2856,7 @@ public class MainActivity extends Activity {
                         Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                         i.setType("application/json");
                         i.addCategory(Intent.CATEGORY_OPENABLE);
-                        i.putExtra(Intent.EXTRA_TITLE, "accueil-golf6-reglages.json");
+                        i.putExtra(Intent.EXTRA_TITLE, "cockpit-sauvegarde-" + new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new java.util.Date()) + ".json");
                         startActivityForResult(i, REQ_EXPORT);
                     } catch (Exception e) {
                         fondJs("window.exportDone&&window.exportDone(false)");
@@ -2223,6 +2880,124 @@ public class MainActivity extends Activity {
                     }
                 }
             });
+        }
+
+        // ---------- Cockpit 3.0 : tracés des trajets ----------
+        @JavascriptInterface
+        public void traceEnable(boolean on) {
+            prefs.edit().putBoolean("tr_trace", on).apply();
+        }
+
+        /** Le trajet en cours est archivé par la page : son tracé prend le même identifiant. */
+        @JavascriptInterface
+        public boolean traceSave(String id) {
+            synchronized (MainActivity.this) {
+                try {
+                    if (id == null || !id.matches("[0-9]{1,15}")) return false;
+                    File cur = new File(dossierTrajets(), "cur.txt");
+                    trLat = 999; trLon = 999; trPts = 0;
+                    if (!cur.isFile() || cur.length() == 0) return false;
+                    boolean ok = cur.renameTo(new File(dossierTrajets(), id + ".txt"));
+                    nettoyerTrajets();
+                    return ok;
+                } catch (Throwable e) { return false; }
+            }
+        }
+
+        /** Remise à zéro du compteur de trajet sans archivage : on repart d'un tracé vide. */
+        @JavascriptInterface
+        public void traceReset() {
+            synchronized (MainActivity.this) {
+                new File(dossierTrajets(), "cur.txt").delete();
+                trLat = 999; trLon = 999; trPts = 0;
+            }
+        }
+
+        @JavascriptInterface
+        public String traceGet(String id) {
+            try {
+                if (id == null || !id.matches("[0-9]{1,15}|cur")) return "";
+                File f = new File(dossierTrajets(), id + ".txt");
+                return f.isFile() ? new String(lireOctets(f), "UTF-8") : "";
+            } catch (Throwable e) { return ""; }
+        }
+
+        @JavascriptInterface
+        public String traceList() {
+            JSONArray a = new JSONArray();
+            File[] l = dossierTrajets().listFiles();
+            if (l != null) for (File f : l) { String n = f.getName(); if (n.endsWith(".txt") && !n.equals("cur.txt")) a.put(n.substring(0, n.length() - 4)); }
+            return a.toString();
+        }
+
+        @JavascriptInterface
+        public void traceDelete(String id) {
+            if (id != null && id.matches("[0-9]{1,15}")) new File(dossierTrajets(), id + ".txt").delete();
+        }
+
+        // ---------- Cockpit 3.0 — phase 2 : sauvegarde complète (page + préférences + photos) ----------
+
+        /** Copie complète dans files/sauvegardes/<id>/ ; renvoie l'identifiant, "" si échec. */
+        @JavascriptInterface
+        public String backupFull(String localJson) {
+            return sauvegardeComplete(localJson);
+        }
+
+        /** Remet préférences et photos d'une sauvegarde, renvoie le stockage de la page (null si échec). */
+        @JavascriptInterface
+        public String restoreFull(String id) {
+            return restaurationComplete(id);
+        }
+
+        @JavascriptInterface
+        public String listBackups() {
+            return listerSauvegardes();
+        }
+
+        @JavascriptInterface
+        public String getAllPrefs() {
+            return prefsEnJson();
+        }
+
+        @JavascriptInterface
+        public boolean setAllPrefs(String json) {
+            return prefsDepuisJson(json, false);
+        }
+
+        @JavascriptInterface
+        public String photoList() {
+            JSONArray a = new JSONArray();
+            for (String p : PHOTOS_SAUV) {
+                File f = new File(getFilesDir(), p);
+                if (f.isFile()) a.put(p);
+            }
+            return a.toString();
+        }
+
+        /** Photos de fond en base64 pour le fichier d'export : {"fond_jour.jpg":"…"}. */
+        @JavascriptInterface
+        public String photosBase64() {
+            JSONObject o = new JSONObject();
+            for (String p : PHOTOS_SAUV) {
+                try {
+                    File f = new File(getFilesDir(), p);
+                    if (f.isFile()) o.put(p, android.util.Base64.encodeToString(lireOctets(f), android.util.Base64.NO_WRAP));
+                } catch (Throwable e) { /* photo illisible : signalée par son absence */ }
+            }
+            return o.toString();
+        }
+
+        /** Remet une photo de fond venant d'un fichier d'export (noms autorisés uniquement). */
+        @JavascriptInterface
+        public boolean putPhotoBase64(String nom, String b64) {
+            if (!java.util.Arrays.asList(PHOTOS_SAUV).contains(nom)) return false;
+            try {
+                byte[] b = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                if (BitmapFactory.decodeByteArray(b, 0, b.length) == null) return false;   // pas une image : on ne remplace rien
+                File tmp = new File(getFilesDir(), nom + ".tmp");
+                ecrireOctets(tmp, b);
+                return tmp.renameTo(new File(getFilesDir(), nom));
+            } catch (Throwable e) { return false; }
         }
 
         @JavascriptInterface
@@ -2332,6 +3107,81 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 return "na";
             }
+        }
+
+        // ---------- Cockpit 3.0 : voitures à télécharger ----------
+        @JavascriptInterface
+        public String carStatus(String id) {
+            try {
+                JSONObject o = new JSONObject();
+                String[] c = carPack(id);
+                o.put("pack", c != null);
+                File d = carDir(id);
+                boolean ok = c != null && new File(d, "car.json").exists() && new File(d, "rot.mp4").exists();
+                o.put("installed", ok);
+                o.put("bytes", ok ? dirSize(d) : 0);
+                Integer p;
+                synchronized (carDl) { p = carDl.get(id); }
+                o.put("dl", p != null);
+                o.put("pct", p != null ? p : 0);
+                return o.toString();
+            } catch (Exception e) {
+                return "{}";
+            }
+        }
+
+        @JavascriptInterface
+        public void carDownload(String id) {
+            if (id != null && carPack(id) != null) carTelecharger(id);
+        }
+
+        @JavascriptInterface
+        public void carDelete(String id) {
+            if (id != null && carPack(id) != null) supprimerDossier(carDir(id));
+        }
+
+        // ---------- Cockpit 3.0 : prise OBD Bluetooth ----------
+        @JavascriptInterface
+        public String obdDevices() {
+            JSONArray arr = new JSONArray();
+            try {
+                BluetoothAdapter a = btAdapter();
+                if (a != null && btPermissionOk()) {
+                    for (BluetoothDevice d : a.getBondedDevices()) {
+                        JSONObject o = new JSONObject();
+                        String n = d.getName();
+                        o.put("nom", n != null ? n : d.getAddress());
+                        o.put("addr", d.getAddress());
+                        arr.put(o);
+                    }
+                }
+            } catch (Exception e) {
+                // liste vide
+            }
+            return arr.toString();
+        }
+
+        @JavascriptInterface
+        public void obdUse(String addr) {
+            if (addr == null || !addr.matches("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")) return;
+            obdArreter();
+            prefs.edit().putString("obd_addr", addr.toUpperCase(Locale.ROOT)).apply();
+            obdDemarrer();
+        }
+
+        @JavascriptInterface
+        public void obdForget() {
+            obdArreter();
+            prefs.edit().remove("obd_addr").apply();
+            obdSupp = "[]";
+            obdDtc = "[]";
+            obdNom = "";
+            obdSetEtat("off");
+        }
+
+        @JavascriptInterface
+        public String obdState() {
+            return obdInfo();
         }
 
         @JavascriptInterface
