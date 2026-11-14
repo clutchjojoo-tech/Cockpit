@@ -826,6 +826,22 @@ body.persOn #persLbl{display:block}
 body.persOn #hw{transform:translate(520px,150px) scale(.585)!important}
 #persLbl{left:520px!important;width:750px!important}
 body.persOn .wSelP{outline:4px solid #4aa3ff;outline-offset:6px;border-radius:22px}
+/* 3.0 : Personnaliser — déplacement au doigt fiable (le navigateur ne vole plus le geste) */
+body.persOn #stage,body.persOn #stage *{touch-action:none}
+body.persOn #pers,body.persOn #pers *{touch-action:pan-y}
+body.persOn #pers input[type=range]{touch-action:none}
+/* 3.0 : bouton fermer et barre du bas refaits (texte centré, rien ne déborde) */
+#pers .pClose{display:flex!important;align-items:center;justify-content:center;padding:0!important;width:44px!important;height:44px!important;flex:none;line-height:1;font-size:18px!important;background:rgba(255,255,255,.1)!important;border:1px solid rgba(255,255,255,.14)!important;color:#e8f0ff!important}
+#pers .pBt{display:grid!important;grid-template-columns:1fr 44px 44px auto;grid-template-areas:"sel sel sel sel" "op mn pl rm";align-items:center;column-gap:0;row-gap:10px;padding-top:12px!important}
+#pers .pBt #pSel{grid-area:sel;font-size:14px!important;font-weight:600;opacity:.85!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+#pers .pBt .pOp{grid-area:op;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:rgba(230,238,255,.75);margin-right:12px;min-width:0}
+#pers .pBt .pOp input{flex:1;min-width:0;accent-color:#4aa3ff;height:28px}
+#pers .pBt .pX{display:flex!important;align-items:center;justify-content:center;height:44px!important;min-width:0!important;padding:0!important;line-height:1;font-size:22px!important;font-weight:600;color:#e8f0ff!important;background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.14)!important;white-space:nowrap}
+#pers .pBt #pMn{grid-area:mn;border-radius:22px 0 0 22px!important;border-right-width:0!important}
+#pers .pBt #pPl{grid-area:pl;border-radius:0 22px 22px 0!important}
+#pers .pBt #pRm{grid-area:rm;margin-left:10px;padding:0 16px!important;border-radius:22px!important;font-size:15px!important;color:#ff9a90!important;background:rgba(255,69,58,.14)!important;border-color:rgba(255,99,88,.4)!important;gap:6px}
+#pers .pBt #pRm:before{content:"";width:15px;height:15px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/%3E%3C/svg%3E") center/contain no-repeat}
+#pers .pBt .pX:active{transform:scale(.96)}
 /* les widgets en image ne sont jamais découpés par les thèmes */
 body[class*="th-"] .gc.cwW,body[class*="th-"].dialCut #cardS{clip-path:none!important;border:0!important;border-radius:0!important;overflow:visible!important;background:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 body[class*="th-"] .gc.cwW:after,body[class*="th-"] .gc.cwW:before,body[class*="th-"].dialCut #cardS:after,body[class*="th-"].dialCut #cardS:before{display:none!important}
@@ -2042,15 +2058,17 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   setInterval(loadWeather,600000);
 
   /* Démarrage : animation une seule fois par démarrage du poste, sinon on retrouve la dernière page */
-  var fresh=A?call(function(){return A.splashNeeded()},true):true;
+  var fresh=A?call(function(){return A.splashNeeded()},true):true;window.__fresh=fresh;
   applyAnim();applyVoice();
   /* 3.0 : la vidéo se joue seulement au vrai démarrage (processus neuf), jamais au simple retour à l'écran.
      Elle passe au-dessus de tout ; à la fin, fondu vers ce qui attend derrière (bienvenue, profils ou accueil). */
   function intro(done){var box=$('#intro'),v=$('#introV');if(!box||!v){done&&done();return}
-    var fin=false;function end(){if(fin)return;fin=true;box.classList.add('out');setTimeout(function(){box.classList.remove('on','out');try{v.pause();v.removeAttribute('src');v.load()}catch(e){}},500);done&&done()}
+    window.__introBusy=true;var fin=false;function end(){if(fin)return;fin=true;window.__introBusy=false;box.classList.add('out');setTimeout(function(){box.classList.remove('on','out');try{v.pause();v.removeAttribute('src');v.load()}catch(e){}},500);done&&done()}
     box.classList.add('on');v.src='cockpit-intro.mp4';v.onended=end;v.onerror=end;setTimeout(end,8000);
     var pr=v.play();if(pr&&pr.catch)pr.catch(function(){v.muted=true;var p2=v.play();if(p2&&p2.catch)p2.catch(end)})}
   window.__intro=intro;
+  /* 3.0 : la voix de bienvenue part seulement quand un profil est choisi (ou au démarrage s'il n'y a aucun profil), après l'intro */
+  window.__greet=function(){var n=0;(function w(){if(window.__introBusy&&n++<40){setTimeout(w,400);return}setTimeout(function(){try{if(window.Android&&Android.greetNow)Android.greetNow()}catch(e){}},600)})()};
   if(get('setup','0')!=='1'){go('home');if(fresh)intro(helloShow);else helloShow()}
   else if(fresh){go('home');intro()}
   else{go(get('page','home'))}
@@ -2107,7 +2125,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
 
   /* ===== Étape 8 : À propos, vitesse GPS, musique, raccourcis, luminosité auto, styles ===== */
-  var APP_VERSION='3.0';
+  var APP_VERSION='3.1';
   function updateAbout(){$('#aboutTxt').textContent=T('Version')+' '+APP_VERSION}
 
   /* Vitesse GPS */
@@ -3332,6 +3350,11 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
   /* Nouveautés */
   var NEWS=[
+    ['Voiture 3D corrigée','Sur certains postes la voiture n\'apparaissait pas (rectangle noir ou showroom vide) : elle s\'affiche maintenant partout.'],
+    ['Plaque et enseigne','L\'aperçu de la plaque s\'affiche, ses boutons sont plus clairs, et le nom de ta voiture est bien centré dans son cadre sur tous les écrans.'],
+    ['Personnaliser plus simple','Les widgets se déplacent au doigt sans accroc dans l\'aperçu, et la barre du bas (taille, opacité, retirer) est plus lisible.'],
+    ['Voix de bienvenue','Elle te salue une fois ton profil choisi, après l\'animation de démarrage.'],
+    ['Nouvelle intro','Animation de démarrage retouchée, sans image grise avant.'],
     ['Nouvelle voiture 3D','Une Golf 6 refaite en entier : plus nette, plus fluide, avec ses vraies portes, ses phares et sa vue éclatée.'],
     ['10 showrooms','Actuel, rouge, rose, orange ou vert, de jour comme de nuit. Les LED du plateau prennent la couleur du décor (Réglages, Ma voiture).'],
     ['Couleur de carrosserie','Choisis la teinte de ta voiture parmi les couleurs d\'origine du constructeur, pour chaque profil.'],
@@ -3836,7 +3859,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     window.__wRemoveId=function(id){if(STDW[id]){wEnsure(id).h=1;wApply(id)}else{var e=wEl(id);if(e)e.remove();cws=cws.filter(function(c){return c.id!==id});delete wpos[id]}wSave();setSel('')};
     document.addEventListener('pointerdown',function(e){
       if(!document.body.classList.contains('persOn'))return;if(e.target.closest&&e.target.closest('#pers'))return;
-      var hit='';wAllIds().forEach(function(id){var el=wEl(id);if(!el||el.classList.contains('wHide')||el.offsetParent===null)return;var r=el.getBoundingClientRect();if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)hit=id});
+      var hit='';wAllIds().forEach(function(id){var el=wEl(id);if(!el||el.classList.contains('wHide')||el.offsetParent===null)return;var r=el.getBoundingClientRect(),m=10;if(e.clientX>=r.left-m&&e.clientX<=r.right+m&&e.clientY>=r.top-m&&e.clientY<=r.bottom+m)hit=id});
       if(!hit){setSel('');return}
       setSel(hit);var o=wEnsure(hit);pd={id:hit,sx:e.clientX,sy:e.clientY,x:o.x,y:o.y};e.preventDefault();e.stopPropagation();
     },true);
@@ -4071,6 +4094,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(pfAfter){var f=pfAfter;pfAfter=null;return f()}
     try{sessionStorage.setItem('profOk','1')}catch(e){}
     var cur=get('profCur','');
+    try{if(cur===p.id)window.__greet();else sessionStorage.setItem('greetNext','1')}catch(e){}
     if(cur&&cur!==p.id&&cur!=='guest')put('pfSnap_'+cur,JSON.stringify(pfSnapKeys()));
     if(cur===p.id){put('wheel',p.wheel);$('#prof').classList.remove('on');return}
     put('profCur',p.id);put('wheel',p.wheel);put('profHalo',p.halo);
@@ -4117,12 +4141,13 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   /* au démarrage */
   (function(){
     var a=pfList(),shown=false;try{shown=sessionStorage.getItem('profOk')==='1'}catch(e){}
+    try{if(sessionStorage.getItem('greetNext')==='1'){sessionStorage.removeItem('greetNext');window.__greet()}else if(get('setup','0')==='1'&&!a.length&&window.__fresh)window.__greet()}catch(e){}
     if(get('setup','0')==='1'&&a.length&&!shown)pfShow('pick');
     var cc=$('#ccProf');if(cc)cc.addEventListener('click',function(){ccClose();if(!pfList().length){toast('Crée un profil dans Réglages › Profils');return}pfShow('pick')});
     var mg=$('#profManage');if(mg)mg.addEventListener('click',function(){pfShow('manage')});
   })();
   /* à chaque remise du contact (écran du poste rallumé après une coupure) : choix du profil */
-  window.onPowerOn=function(){try{sessionStorage.removeItem('profOk')}catch(e){}if(get('setup','0')==='1'&&pfList().length){try{go('home')}catch(e){}pfShow('pick')}};
+  window.onPowerOn=function(){try{sessionStorage.removeItem('profOk')}catch(e){}if(get('setup','0')==='1'&&pfList().length){try{go('home')}catch(e){}pfShow('pick')}else if(get('setup','0')==='1')window.__greet()};
   /* astuce centre de contrôle */
   (function(){
     var n=parseInt(get('hintN','0'),10)||0,h=$('#ccHint');if(!h)return;

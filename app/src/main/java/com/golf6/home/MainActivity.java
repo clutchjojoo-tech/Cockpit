@@ -115,6 +115,7 @@ public class MainActivity extends Activity {
         // 3.0 : la page est ouverte depuis file:///android_asset/. Sans ces deux réglages, Android bloque la lecture des
         // fichiers de la plaque (JSON) et l'envoi des vidéos 3D à la carte graphique (WebGL) : aperçu vide et rectangle noir.
         // Seules les pages de l'appli sont chargées dans cette WebView.
+        s.setAllowFileAccess(true);   // 3.0 : les voitures téléchargées sont lues directement dans files/cars/ (file://)
         s.setAllowFileAccessFromFileURLs(true);
         s.setAllowUniversalAccessFromFileURLs(true);
         s.setMediaPlaybackRequiresUserGesture(false);   // 3.0 : la vidéo de démarrage joue avec son sans toucher l'écran
@@ -213,15 +214,7 @@ public class MainActivity extends Activity {
                     } else if (Intent.ACTION_SCREEN_ON.equals(a) && ecranEteintA > 0
                             && System.currentTimeMillis() - ecranEteintA > 20000) {
                         ecranEteintA = 0;
-                        fondJs("window.onPowerOn&&window.onPowerOn()");
-                        if (prefs.getBoolean("voice_on", true)) {
-                            handler.postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    saluer();
-                                }
-                            }, 2500);
-                        }
+                        fondJs("window.onPowerOn&&window.onPowerOn()");   // la page salue après le choix du profil
                     }
                 }
             };
@@ -317,29 +310,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        if (!dejaSalue) {
-            dejaSalue = true;
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (!prefs.getBoolean("voice_on", true)) {
-                        return;
-                    }
-                    // Voix enregistrée (ElevenLabs) d'abord : ne dépend pas de la synthèse vocale.
-                    if (jouerVoix(nomSalut())) {
-                        return;
-                    }
-                    if (jouerSalutCache()) {
-                        return;
-                    }
-                    if (ttsPret) {
-                        saluer();
-                    } else {
-                        salutationEnAttente = true;
-                    }
-                }
-            }, DELAI_VOIX);
-        }
+        // 3.0 : plus de salut automatique au lancement : la page appelle greetNow() quand un profil est choisi.
     }
 
     private String langue() {
@@ -3021,6 +2992,21 @@ public class MainActivity extends Activity {
             handler.postDelayed(regenerer, 2500);
         }
 
+        // 3.0 : salut de bienvenue, demandé par la page une fois le profil choisi
+        @JavascriptInterface
+        public void greetNow() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!prefs.getBoolean("voice_on", true)) return;
+                    if (jouerVoix(nomSalut())) return;
+                    if (jouerSalutCache()) return;
+                    if (ttsPret) saluer();
+                    else salutationEnAttente = true;
+                }
+            });
+        }
+
         @JavascriptInterface
         public void testVoice() {
             runOnUiThread(new Runnable() {
@@ -3124,6 +3110,7 @@ public class MainActivity extends Activity {
                 File d = carDir(id);
                 boolean ok = c != null && new File(d, "car.json").exists() && new File(d, "rot.mp4").exists();
                 o.put("installed", ok);
+                if (ok) o.put("path", "file://" + d.getAbsolutePath() + "/");   // 3.0 : chemin direct des fichiers de la voiture
                 o.put("bytes", ok ? dirSize(d) : 0);
                 Integer p;
                 synchronized (carDl) { p = carDl.get(id); }

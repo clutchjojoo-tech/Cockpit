@@ -29,6 +29,9 @@ var SRC=window.__m3dSrc||{rot:'m3d/rot.mp4',rotl:'m3d/rotl.mp4',rot_j:'m3d/rot_j
 var LIGHT=document.body.classList.contains('clair');
 /* 3.0 : plusieurs voitures. La Golf 6 garde ses fichiers à la racine de m3d/, la 207 dans m3d/207/ (3 portes : pas de portes arrière, pas de plongée dans l'habitacle) */
 var CARS={golf6:{dir:'m3d/golf6/',rear:true,hood:true,dive:true,top:true},p207:{dir:'m3d/207/',rear:false,hood:false,dive:false,top:true}};   /* fichiers des packs téléchargés, servis par l'appli */
+/* 3.0 : une voiture téléchargée est lue directement là où l'appli l'a rangée (file:///data/…/files/cars/<id>/).
+   Plus sûr que le détour par m3d/<dossier>/ : certains Android ne font pas passer les vidéos par ce détour. */
+var _cp={};function cdir(c){if(_cp[c])return _cp[c];try{if(window.Android&&Android.carStatus){var s=JSON.parse(Android.carStatus(c)||'{}');if(s&&s.installed&&s.path)return _cp[c]=s.path}}catch(e){}return CARS[c].dir}
 function hasCar(){var c=window.CockpitLook&&CockpitLook.car?CockpitLook.car():null;return CARS[c]?c:null}
 function carId(){return hasCar()||'golf6'}
 /* portes absentes du modèle (207 : pas de portes arrière ni de capot qui s'ouvre) */
@@ -51,11 +54,11 @@ VA.style.cssText='position:absolute;left:0;top:0;width:2px;height:2px;opacity:0;
 
 var running=false,mode='rot',mask=0,view='R',dive=0,drag=null,hold=0,closeT=0,posed=false,litSrc=false,litL=null;
 /* mode jour : même voiture sur le plateau clair (vidéos et vues _j) */
-function rotSrc(lit){return CARS[CAR].dir+(LIGHT?(lit?'rotl_j.mp4':'rot_j.mp4'):(lit?'rotl.mp4':'rot.mp4'))}
+function rotSrc(lit){return cdir(CAR)+(LIGHT?(lit?'rotl_j.mp4':'rot_j.mp4'):(lit?'rotl.mp4':'rot.mp4'))}
 var ST=window.__m3dStats={doorMs:[],imgs:0,videosActive:0,renderer:'',lite:false,fps:0,vfps:0};
 
 /* ---------- plaques : coins par image (fichier fabriqué au calcul) ---------- */
-var PLATES=null;function loadPlates(){var c=CAR,x=new XMLHttpRequest();x.open('GET',CARS[c].dir+'plates.json');x.onload=function(){if(c!==CAR)return;try{PLATES=JSON.parse(x.responseText)}catch(e){}};x.send()}loadPlates();
+var PLATES=null;function loadPlates(){var c=CAR,x=new XMLHttpRequest();x.open('GET',cdir(c)+'plates.json');x.onload=function(){if(c!==CAR)return;try{PLATES=JSON.parse(x.responseText)}catch(e){}};x.send()}loadPlates();
 
 /* ============================================================
    gpu : recomposition WebGL (ou null si indisponible)
@@ -205,7 +208,7 @@ var renderer=(function(){
 /* ---------- memoryManager : cache d'images limité (LRU) ---------- */
 var memoryManager=(function(){
   var C=new Map(),PIN={};
-  function url(n){return CARS[CAR].dir+'pn/'+n+(LIGHT?'_j':'')+'.webp'}
+  function url(n){return cdir(CAR)+'pn/'+n+(LIGHT?'_j':'')+'.webp'}
   function get(n){var u=url(n),e=C.get(u);
     if(e){C.delete(u);C.set(u,e);return e}
     var i=new Image();i.decoding='async';e={u:u,img:i,ready:false,p:null};
@@ -279,7 +282,7 @@ function playSeg(file,done){var fin=false;
   function end(){if(fin)return;fin=true;VA.removeEventListener('ended',end);done()}
   var go=function(){VA.removeEventListener('loadeddata',go);VA.loop=false;try{VA.currentTime=0}catch(e){}VA.addEventListener('ended',end);
     try{VA.playbackRate=1}catch(e){}var pr=VA.play();if(pr&&pr.catch)pr.catch(end);renderer.kick()};
-  VA.addEventListener('loadeddata',go);VA.src=CARS[CAR].dir+file;VA.load();
+  VA.addEventListener('loadeddata',go);VA.src=cdir(CAR)+file;VA.load();
   setTimeout(end,6000)}   /* garde-fou : on ne reste jamais bloqué entre deux vues */
 function climbUp(done){var c=CARS[CAR];if(!c||!c.top){done();return}
   climbing=true;rotationManager.stop();
@@ -354,7 +357,7 @@ document.addEventListener('pointerup',up,true);document.addEventListener('pointe
 
 /* ---------- plongée dans l'habitacle (onglet Véhicule) ---------- */
 function releaseDive(){try{VD.pause();VD.removeAttribute('src');VD.load()}catch(e){}}
-function diveSrc(on){return CARS[CAR].dir+(LIGHT?(on?'dive_j.mp4':'dive_r_j.mp4'):(on?'dive.mp4':'dive_r.mp4'))}
+function diveSrc(on){return cdir(CAR)+(LIGHT?(on?'dive_j.mp4':'dive_r_j.mp4'):(on?'dive.mp4':'dive_r.mp4'))}
 function diveTo(on,cb){if(!CARS[CAR].dive){cb&&cb();return}if(on&&dive===1||!on&&dive===0){cb&&cb();return}
   if(on){window.__m3dExp=false;if(mode!=='rot'){mode='rot';mask=0;doorAnimationManager.hide()}}
   rotationManager.stop();dive=2;VD.src=diveSrc(on);VD.style.display='block';VD.style.opacity=0;
