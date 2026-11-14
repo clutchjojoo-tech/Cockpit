@@ -50,7 +50,7 @@ var PEINTURES_207=[
 var BASE_PAINT='#c9cdd3';   // teinte des images calculées (Argent Reflex)
 /* voiture choisie (par profil) : golf6 ou p207 */
 /* 3.0 : les voitures 3D se téléchargent (packs). Une voiture n'est utilisée que si son pack est sur le poste. */
-var CARLIST=[{id:'golf6',nom:'Volkswagen Golf 6',court:'Golf 6',info:'5 portes',mo:38},{id:'p207',nom:'Peugeot 207',court:'207',info:'3 portes',mo:20}];
+var CARLIST=[{id:'golf6',nom:'Volkswagen Golf 6',court:'Golf 6',info:'5 portes',mo:38}];   /* 207 retirée de la liste (modèle à revoir) : le moteur la gère toujours, il suffit de la remettre ici */
 function carInstalled(c){var A=window.Android;if(!A||!A.carStatus)return !!(window.__carDev&&window.__carDev[c]);try{return !!JSON.parse(A.carStatus(c)).installed}catch(e){return false}}
 var _carC={t:0,v:{}};function carOk(c){var n=Date.now();if(n-_carC.t>3000){_carC={t:n,v:{}}}if(!(c in _carC.v))_carC.v[c]=carInstalled(c);return _carC.v[c]}
 /* voiture affichée : celle choisie si elle est là, sinon la première téléchargée, sinon aucune (accueil en 2D) */
