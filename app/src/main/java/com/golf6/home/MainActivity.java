@@ -112,6 +112,11 @@ public class MainActivity extends Activity {
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
+        // 3.0 : la page est ouverte depuis file:///android_asset/. Sans ces deux réglages, Android bloque la lecture des
+        // fichiers de la plaque (JSON) et l'envoi des vidéos 3D à la carte graphique (WebGL) : aperçu vide et rectangle noir.
+        // Seules les pages de l'appli sont chargées dans cette WebView.
+        s.setAllowFileAccessFromFileURLs(true);
+        s.setAllowUniversalAccessFromFileURLs(true);
         s.setMediaPlaybackRequiresUserGesture(false);   // 3.0 : la vidéo de démarrage joue avec son sans toucher l'écran
         web.addJavascriptInterface(new Bridge(), "Android");
         web.setWebViewClient(new WebViewClient() {

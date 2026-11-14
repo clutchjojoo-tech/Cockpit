@@ -761,6 +761,8 @@ body.dialCut #dKm.on{display:block}
 #m3d{position:absolute;inset:0;display:none;background:#05080f url(m3d/sr/actuel_nuit.webp) center/cover}
 body.m3dOn #m3d{display:block}
 #m3v{position:absolute;left:140px;top:120px;width:1000px;height:500px;transition:opacity .18s}
+/* 3.0 : la zone voiture suit le fond recadré en « cover » (écrans 16:10, 1920×720…), sinon le décor dessiné dans la zone ne raccorde pas */
+#m3v{left:var(--m3x,140px);top:var(--m3y,120px);width:var(--m3w,1000px);height:var(--m3h,500px)}
 #m3v img{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;opacity:1;transform:none!important}
 #m3v #m3b{opacity:0}
 #m3v img.glw{transition:opacity .25s}
@@ -778,7 +780,22 @@ body.edit #m3btn{display:none}
 #m3b3d .t1{opacity:0}#m3b3d.on .t1{opacity:1}#m3b3d.on .t0{opacity:0}
 #m3b3d.on{filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))!important}
 #edBtn{display:none!important}
-.m3dCols{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;max-width:520px}.m3sr{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:560px}.m3sr button{width:96px;height:54px;border-radius:12px;background-size:cover;background-position:center;border:2px solid transparent;position:relative;color:#fff;font-size:13px;font-weight:600;text-shadow:0 1px 3px #000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;box-shadow:inset 0 -18px 18px -6px rgba(0,0,0,.7)}.m3sr button.on{border-color:#fff;box-shadow:0 0 12px 2px var(--led),inset 0 -18px 18px -6px rgba(0,0,0,.7)}.plSeg{display:flex;gap:10px;margin:6px 0 14px}.plSeg button{flex:1;height:52px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:#fff;font-weight:600;font-size:16px}.plSeg button.on{background:rgba(74,163,255,.25);border-color:#4aa3ff}#plPrev{display:block;width:100%;max-width:520px;margin:4px auto 14px;border-radius:6px}.plRow{display:flex;gap:12px;align-items:center;margin-bottom:12px}.plRow .vIn{flex:1;width:auto}.plOk{font-size:14px;font-weight:600}.m3dCols i{width:36px;height:36px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);cursor:pointer}.m3dCols i.on{box-shadow:0 0 0 3px #fff,0 0 12px 3px rgba(74,163,255,.7)}
+.m3dCols{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;max-width:520px}.m3sr{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:560px}.m3sr button{width:96px;height:54px;border-radius:12px;background-size:cover;background-position:center;border:2px solid transparent;position:relative;color:#fff;font-size:13px;font-weight:600;text-shadow:0 1px 3px #000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;box-shadow:inset 0 -18px 18px -6px rgba(0,0,0,.7)}.m3sr button.on{border-color:#fff;box-shadow:0 0 12px 2px var(--led),inset 0 -18px 18px -6px rgba(0,0,0,.7)}.plSeg{display:flex;gap:10px;margin:6px 0 14px}.plSeg button{flex:1;height:52px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:#fff;font-weight:600;font-size:16px}.plSeg button.on{background:rgba(74,163,255,.25);border-color:#4aa3ff}#plPrev{display:block;width:100%;max-width:520px;margin:4px auto 14px;border-radius:6px}
+/* 3.0 : fenêtre de la plaque, boutons en sélecteur segmenté centré, avec une mini plaque devant chaque choix */
+.plSeg{gap:6px!important;padding:6px;border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);margin:4px 0 16px!important}
+.plSeg button{height:50px!important;border:0!important;border-radius:13px!important;background:transparent!important;color:rgba(255,255,255,.72)!important;font-family:inherit;font-size:calc(17px*var(--fz,1))!important;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 10px;line-height:1;transition:background .2s,color .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.plSeg button:before{content:"";flex:none;width:30px;height:16px;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 2px 4px rgba(0,0,0,.3)}
+.plSeg button[data-s="bleue"]:before{background:linear-gradient(90deg,#1747c4 0 20%,#f4f6fa 20% 80%,#1747c4 80%)}
+.plSeg button[data-s="noire"]:before{background:#121315;box-shadow:0 0 0 1px rgba(255,255,255,.45),0 2px 4px rgba(0,0,0,.3)}
+.plSeg button[data-s="masquee"]:before{background:transparent;box-shadow:none;border:1.5px dashed rgba(255,255,255,.55);box-sizing:border-box}
+.plSeg button.on{background:linear-gradient(180deg,#3b93ff,#1f6fe0)!important;color:#fff!important;box-shadow:0 6px 18px rgba(40,130,255,.35),inset 0 1px 0 rgba(255,255,255,.25)}
+.plSeg button.on[data-s="masquee"]:before{border-color:#fff}
+#plPrev{margin:2px auto 18px!important;filter:drop-shadow(0 10px 22px rgba(0,0,0,.45))}
+.plRow .vIn{height:54px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+.plRow .vIn:focus{outline:none;border-color:#4aa3ff;box-shadow:0 0 0 3px rgba(74,163,255,.25)}
+#plNum{letter-spacing:2px;text-transform:uppercase}
+#plDep{width:auto!important;padding-right:46px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23c9d6ea' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 18px center}
+.plOk{min-width:130px;font-size:calc(14px*var(--fz,1));font-weight:600;white-space:nowrap}.plRow{display:flex;gap:12px;align-items:center;margin-bottom:12px}.plRow .vIn{flex:1;width:auto}.plOk{font-size:14px;font-weight:600}.m3dCols i{width:36px;height:36px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);cursor:pointer}.m3dCols i.on{box-shadow:0 0 0 3px #fff,0 0 12px 3px rgba(74,163,255,.7)}
 .pEd .wPrev{width:112px;height:112px;border-radius:50%;object-fit:contain;display:block;margin:2px auto 10px;box-shadow:0 0 0 3px rgb(var(--h)),0 0 0 6px rgba(var(--h),.28),0 0 22px 6px rgba(var(--h),.8);transition:box-shadow .3s}
 .pEd .mw img.on{box-shadow:0 0 0 4px rgb(var(--h)),0 0 14px 4px rgba(var(--h),.8)!important}
 #wStyG>button{min-width:0;overflow:hidden}
@@ -963,6 +980,8 @@ body.m3dOn #ident img{width:60px!important;height:60px!important}
 body.m3dOn #ident .sep{height:56px!important}
 body.m3dOn #ident b{font-size:calc(36px*var(--fz,1))!important;line-height:1!important}
 body.m3dOn #ident span{font-size:calc(19px*var(--fz,1))!important;margin-top:3px}
+/* 3.0 : l'enseigne suit le cadre du mur quel que soit le format d'écran (le fond est recadré en « cover ») */
+body.m3dOn #top #ident{top:var(--idY,158px)!important;left:var(--idX,640px)!important;transform:translate(-50%,-50%) scale(var(--idS,1))!important}
 body.m3dOn #ident{top:182px!important;left:639px!important}
 #tgTheme .tgC{display:none}
 body.m3dOn.clair #tgTheme.day img.tj{display:none!important}
@@ -1433,7 +1452,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 <div id="picker"><div class="pbox"><div class="ph" id="pTitle">Choisir un raccourci</div><div class="pg" id="pGrid"></div><button class="mini" id="pClose">Fermer</button></div></div>
 
 <div id="hello"><div class="hg"></div><img src="cockpit_logo.webp" alt="Cockpit"><div class="hw" id="hWord"></div><button id="hGo"><span>Commencer</span> →</button></div>
-<div id="intro" aria-hidden="true"><video id="introV" playsinline preload="none"></video></div>
+<div id="intro" aria-hidden="true"><video id="introV" playsinline preload="none" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="background:#000"></video></div>
 <div id="splash" style="display:none">
 <img src="nuit_off.jpg" alt="Golf 6">
 <img class="sOn" src="nuit_on.jpg" alt="">
@@ -1540,6 +1559,9 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     stage.style.left=ox+'px';stage.style.top=oy+'px';
     stage.style.width=w+'px';stage.style.height=h+'px';
     stage.style.transform='scale('+sc+')';
+    /* cadre de l'enseigne : centre (640,158) dans l'image de fond 1280×720 recadrée en cover sur la scène */
+    var k=Math.max(w/1280,h/720);stage.style.setProperty('--idX',(w/2)+'px');stage.style.setProperty('--idY',(h/2+(158-360)*k)+'px');stage.style.setProperty('--idS',k.toFixed(4));
+    stage.style.setProperty('--m3x',(w/2+(140-640)*k)+'px');stage.style.setProperty('--m3y',(h/2+(120-360)*k)+'px');stage.style.setProperty('--m3w',(1000*k)+'px');stage.style.setProperty('--m3h',(500*k)+'px');
   }
   window.addEventListener('resize',fit);fit();
 

@@ -62,6 +62,8 @@ var PLATES=null;function loadPlates(){var c=CAR,x=new XMLHttpRequest();x.open('G
    ============================================================ */
 var gpu=(function(){
   /* mode léger mémorisé 7 jours au plus, puis on réessaie (le poste a pu être mis à jour) */
+  /* 3.0.1 : le mode léger a pu être activé à tort (accès aux fichiers bloqué, corrigé) : on l'efface une fois */
+  if(lsGet('m3dLiteV','')!=='2'){lsPut('m3dLite','0');lsPut('m3dLiteV','2')}
   var lt=parseInt(lsGet('m3dLite','0'),10)||0;if(lt===1||lt>Date.now()-7*864e5){ST.liteReason=ST.liteReason||'mémorisé';return null}if(lt)lsPut('m3dLite','0');
   var gl=null;try{gl=CV.getContext('webgl',{alpha:false,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:true})||CV.getContext('experimental-webgl')}catch(e){}
   if(!gl)return null;
@@ -95,7 +97,10 @@ var gpu=(function(){
   var T={V:tex(0),I1:tex(1),I2:tex(2),D0:tex(3),D1:tex(4),P:tex(5)};
   gl.uniform1i(U.uV,0);gl.uniform1i(U.uI1,1);gl.uniform1i(U.uI2,2);gl.uniform1i(U.uD0,3);gl.uniform1i(U.uD1,4);gl.uniform1i(U.uP,5);
   function up(unit,t,src,fmt){gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,t);
-    try{gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,fmt||gl.RGB,fmt||gl.RGB,gl.UNSIGNED_BYTE,src);return true}catch(e){return false}}
+    try{gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,fmt||gl.RGB,fmt||gl.RGB,gl.UNSIGNED_BYTE,src);upFail=0;return true}catch(e){ST.glError=String(e);
+      /* 3.0 : si le poste refuse d'envoyer les images à la carte graphique (sécurité), on passe en mode léger au lieu d'un rectangle noir */
+      if(++upFail>=4){var k='m3dFB';try{if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');lsPut('m3dLite',String(Date.now()));ST.liteReason='refus WebGL';setTimeout(function(){location.reload()},50)}}catch(x){}}return false}}
+  var upFail=0;
   try{var dbg=gl.getExtension('WEBGL_debug_renderer_info');ST.renderer=dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)}catch(e){}
   var H=new Float32Array(54),L=new Float32Array(6);
   return {gl:gl,U:U,T:T,up:up,H:H,L:L,
