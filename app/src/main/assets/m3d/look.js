@@ -64,7 +64,7 @@ function showroom(jour){var s=byId(get(jour?'sroomJ':'sroomN',jour?'actuel_jour'
 function paint(){var v=get('m3dCol',car()==='p207'?PEINTURES_207[0].hex:BASE_PAINT);return /^#[0-9a-f]{6}$/i.test(v)?v:BASE_PAINT}
 
 /* ---------- plaque d'immatriculation (dessinée une fois dans un canvas, puis envoyée à la carte graphique) ---------- */
-var PL={W:520,H:174};   // taille de la texture de plaque (proportions du modèle 2172×724 recadré)
+var PL={W:1040,H:348};   /* 3.2 : texture deux fois plus fine (plaque nette de près) */   // taille de la texture de plaque (proportions du modèle 2172×724 recadré)
 var atlas=null,atlasJ=null,imgs={},deps={};
 function img(src){if(imgs[src])return imgs[src];var i=new Image();i.decoding='async';i.src=src;imgs[src]=i;return i}
 function ready(i){return i&&i.complete&&i.naturalWidth>0}
@@ -73,12 +73,18 @@ function plateText(){var t=String(get('plNum','')).toUpperCase().replace(/[^A-Z0
 function plateDep(){var d=String(get('plDep',''));return /^(\d{2,3}|2A|2B)$/.test(d)?d:''}
 var SIV=/^[A-HJ-NP-TV-Z]{2}-(?!000)\d{3}-[A-HJ-NP-TV-Z]{2}$/;   // format français (lettres I, O et U exclues)
 function plateValid(t){return SIV.test(t)}
+/* 3.2 : police agrandie ×4 une seule fois, avec bords redurcis (sinon les lettres, tirées d'images de 64 px, sont floues) */
+var crispC=null;function crisp(at){if(crispC)return crispC;try{var K=4,c=document.createElement('canvas');c.width=at.naturalWidth*K;c.height=at.naturalHeight*K;
+  var x=c.getContext('2d');x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(at,0,0,c.width,c.height);
+  var d=x.getImageData(0,0,c.width,c.height),a=d.data;for(var i=3;i<a.length;i+=4){var v=(a[i]-128)*3+128;a[i]=v<0?0:v>255?255:v}
+  x.putImageData(d,0,0);c.__k=K;crispC=c;return c}catch(e){return at}}
 /* fabrique l'image de la plaque ; renvoie null tant que les fichiers ne sont pas chargés */
 function plateCanvas(cv){
   var st=plateStyle();if(st==='masquee')return null;
   var tpl=img('m3d/plaque/'+(st==='noire'?'noire':'bleue')+'.webp'),at=img('m3d/plaque/police.png');
   if(!atlasJ){atlasJ='…';var x=new XMLHttpRequest();x.open('GET','m3d/plaque/police.json');x.onload=function(){try{atlas=JSON.parse(x.responseText)}catch(e){}};x.send()}
   if(!ready(tpl)||!ready(at)||!atlas)return null;
+  at=crisp(at);
   var dep=plateDep(),sp=null;
   if(dep){var key=(st==='noire'?'n':'b');sp=img('m3d/plaque/dep_'+key+'.webp');if(!ready(sp))return null}
   cv=cv||document.createElement('canvas');cv.width=PL.W;cv.height=PL.H;var c=cv.getContext('2d');c.clearRect(0,0,PL.W,PL.H);
@@ -86,20 +92,26 @@ function plateCanvas(cv){
   var sx=PL.W/2140,sy=PL.H/457;c.drawImage(tpl,0,0,PL.W,PL.H);   // modèle déjà recadré sur la plaque utile
   function X(v){return (v-16)*sx}function Y(v){return (v-136)*sy}
   /* texte noir centré dans la zone blanche */
-  var t=plateText(),h=(550-185)*0.74*sy,s=h/atlas.h,gap=0.12*h,w=0,G=[];
-  for(var i=0;i<t.length;i++){var g=atlas.g[t[i]];if(!g)continue;G.push(g);w+=g[1]*s}
-  w+=gap*Math.max(0,G.length-1);var zx0=X(280),zx1=X(1895),k=Math.min(1,(zx1-zx0)/w),x0=zx0+((zx1-zx0)-w*k)/2,y0=Y(185)+((Y(550)-Y(185))-h*k)/2;
+  /* 3.2 : la texture (3:1) est étirée sur la plaque du modèle (4,68:1, comme une vraie plaque 520×110 mm) :
+     on dessine les caractères plus étroits d'autant, pour qu'ils aient les vraies proportions sur la voiture,
+     et plus hauts (environ 75 % de la zone blanche, comme sur une vraie plaque) */
+  var F=(1040/222)/(PL.W/PL.H);
+  var t=plateText(),h=(550-185)*0.76*sy,s=h/atlas.h,gap=0.09*h/F,w=0,G=[];
+  for(var i=0;i<t.length;i++){var g=atlas.g[t[i]];if(!g)continue;G.push(g);w+=g[1]*s/F}
+  w+=gap*Math.max(0,G.length-1);var zx0=X(272),zx1=X(1888),k=Math.min(1,(zx1-zx0)/w),x0=zx0+((zx1-zx0)-w*k)/2,y0=Y(185)+((Y(550)-Y(185))-h*k)/2;
   /* le masque de la police est en niveaux de gris : on le teinte en noir sur un canvas intermédiaire */
-  var tc=document.createElement('canvas');tc.width=Math.ceil(w*k)+2;tc.height=Math.ceil(h*k)+2;var tx=tc.getContext('2d'),xx=0;
-  G.forEach(function(g){tx.drawImage(at,g[0],0,g[1],atlas.h,xx,0,g[1]*s*k,h*k);xx+=(g[1]*s+gap)*k});
+  var tc=document.createElement('canvas');tc.width=Math.ceil(w*k)+2;tc.height=Math.ceil(h*k)+2;var tx=tc.getContext('2d'),xx=0,AS=at.__k||1;
+  tx.imageSmoothingQuality='high';
+  G.forEach(function(g){tx.drawImage(at,g[0]*AS,0,g[1]*AS,atlas.h*AS,xx,0,g[1]*s*k/F,h*k);xx+=(g[1]*s/F+gap)*k});
   tx.globalCompositeOperation='source-in';tx.fillStyle='#111';tx.fillRect(0,0,tc.width,tc.height);
   c.drawImage(tc,x0,y0);
   if(dep&&sp&&deps.idx){var e=deps.idx[(st==='noire'?'n':'b')+'_'+dep];
     if(e){var bx0=X(1912),bx1=X(2124),by0=Y(170),by1=Y(566);c.fillStyle=st==='noire'?'#050505':'#0a39a6';
       c.beginPath();c.rect(bx0,by0,bx1-bx0,by1-by0);c.fill();
-      var kk=Math.min((bx1-bx0-3)/e[2],(by1-by0-3)/e[3]);c.drawImage(sp,e[0],e[1],e[2],e[3],bx0+((bx1-bx0)-e[2]*kk)/2,by0+((by1-by0)-e[3]*kk)/2,e[2]*kk,e[3]*kk)}
+      /* 3.2 : badge à ses vraies proportions sur la voiture, donc plus grand */
+      var kk=Math.min((bx1-bx0-2)*F/e[2],(by1-by0-2)/e[3]),bw=e[2]*kk/F,bh=e[3]*kk;c.imageSmoothingQuality='high';c.drawImage(sp,e[0],e[1],e[2],e[3],bx0+((bx1-bx0)-bw)/2,by0+((by1-by0)-bh)/2,bw,bh)}
     else{/* pas de badge pour ce département (absent ou faux dans les planches d'origine) : le numéro seul, en blanc */
-      var cx=(X(1912)+X(2124))/2;c.fillStyle='#fff';c.font='bold '+Math.round(PL.H*.3)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(dep,cx,Y(470))}}
+      var cx=(X(1912)+X(2124))/2;c.fillStyle='#fff';c.font='bold '+Math.round(PL.H*.34)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.save();c.translate(cx,Y(470));c.scale(1/F,1);c.fillText(dep,0,0);c.restore()}}
   return cv}
 (function(){var x=new XMLHttpRequest();x.open('GET','m3d/plaque/dep.json');x.onload=function(){try{deps.idx=JSON.parse(x.responseText)}catch(e){}};x.send()})();
 

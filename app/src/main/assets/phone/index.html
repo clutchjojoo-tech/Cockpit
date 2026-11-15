@@ -184,7 +184,8 @@ $('#file').onchange=function(){
 
 /* ---------- aperçu en direct ---------- */
 var shotT=0;
-function shot(){var i=$('#shot');if(!i)return;clearTimeout(shotT);var n=new Image();n.onload=function(){var j=$('#shot');if(j){j.src=n.src;j.style.opacity=1}shotT=setTimeout(shot,2500)};n.onerror=function(){shotT=setTimeout(shot,4000)};n.src='/api/shot?t='+encodeURIComponent(TOK)+'&_='+Date.now()}
+/* 3.2 : capture seulement quand l'aperçu est ouvert et visible sur le téléphone, toutes les 5 s (demi-résolution côté poste) */
+function shot(){var i=$('#shot');if(!i)return;clearTimeout(shotT);if(document.hidden){shotT=setTimeout(shot,5000);return}var n=new Image();n.onload=function(){var j=$('#shot');if(j){j.src=n.src;j.style.opacity=1}shotT=setTimeout(shot,5000)};n.onerror=function(){shotT=setTimeout(shot,8000)};n.src='/api/shot?t='+encodeURIComponent(TOK)+'&_='+Date.now()}
 
 /* ---------- disposition ---------- */
 function layPage(){

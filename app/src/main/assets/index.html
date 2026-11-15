@@ -4,6 +4,45 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Cockpit</title>
+<script>/* 3.2 — démarrage : l'accueil attend la fin de la vidéo. Lu UNE fois, avant tout le reste (A.splashNeeded ne répond vrai qu'une fois). */
+(function(){
+  var A=window.Android,f=true,de=document.documentElement;
+  try{if(A&&A.splashNeeded)f=!!A.splashNeeded()}catch(e){}
+  window.__freshBoot=f;
+  /* 3.2 : le profil choisi tient tant que l'appli n'est pas vraiment redémarrée (retour depuis CarPlay compris) ; demandé à nouveau au démarrage et à chaque remise du contact */
+  var rall=false;try{rall=!f&&A&&A.ecranRallume&&!!A.ecranRallume()}catch(e){}
+  if(f||rall){try{localStorage.removeItem('profOk')}catch(e){}}
+  /* poste léger : automatique si peu de mémoire, ou choix de l'utilisateur (Réglages › Système) */
+  var auto=false,lite=false;try{if(A&&A.memInfo){var di=JSON.parse(A.memInfo()||'{}');auto=!!(di.lowRam||(di.totalMB>0&&di.totalMB<3072))}}catch(e){}
+  try{var lp=localStorage.getItem('lite')||'auto';lite=lp==='on'||(lp==='auto'&&auto)}catch(e){lite=auto}
+  window.__liteAuto=auto;window.__lite=lite;
+  /* tout ce qui anime l'accueil n'est vivant que s'il est visible */
+  window.__homeLive=function(){var st=document.getElementById('stage'),b=document.body;if(document.hidden||!st||!b||b.classList.contains('inBg'))return false;return st.getAttribute('data-page')==='home'||b.classList.contains('persOn')};
+  var Q=[],done=!f,fake=1e9,map={};
+  window.__afterIntro=function(fn){if(done)fn();else Q.push(fn)};
+  /* vrai = l'appel est remis à la fin de l'intro (une seule fois) */
+  var gated=false;window.__introGate=function(fn){if(done)return false;if(!gated){gated=true;Q.push(function(){setTimeout(fn,300)})}return true};
+  if(!f){setTimeout(function(){try{if(A&&A.introDone)A.introDone()}catch(e){}},0);return}
+  de.classList.add('introRun');
+  var sI=window.setInterval,cI=window.clearInterval,rA=window.requestAnimationFrame,cA=window.cancelAnimationFrame,fe=window.fetch;
+  window.setInterval=function(){if(done)return sI.apply(window,arguments);var id=++fake;map[id]={t:'i',a:[].slice.call(arguments)};return id};
+  window.clearInterval=function(id){var m=map[id];if(m){if(m.r!=null)cI(m.r);m.x=1;return}return cI(id)};
+  window.requestAnimationFrame=function(fn){if(done)return rA(fn);var id=++fake;map[id]={t:'r',a:[fn]};return id};
+  window.cancelAnimationFrame=function(id){var m=map[id];if(m){if(m.r!=null)cA(m.r);m.x=1;return}return cA(id)};
+  if(fe)window.fetch=function(){var a=arguments;if(done)return fe.apply(window,a);return new Promise(function(ok,ko){Q.push(function(){fe.apply(window,a).then(ok,ko)})})};
+  window.__introRelease=function(){if(done)return;done=true;de.classList.remove('introRun');
+    window.setInterval=sI;window.requestAnimationFrame=rA;if(fe)window.fetch=fe;
+    Object.keys(map).forEach(function(id){var m=map[id];if(m.x||m.r!=null)return;m.r=m.t==='i'?sI.apply(window,m.a):rA(m.a[0])});
+    var q=Q;Q=[];q.forEach(function(fn){try{fn()}catch(e){}});
+    try{if(A&&A.introDone)A.introDone()}catch(e){}};
+  setTimeout(function(){window.__introRelease()},12000);   /* sécurité : tout repart au bout de 12 s quoi qu'il arrive */
+})();
+</script>
+<style>
+html.introRun #stage>*{visibility:hidden!important}
+html.introRun *,html.introRun *::before,html.introRun *::after{animation-play-state:paused!important}
+html.introRun #intro{display:block}
+</style>
 <style>
 #hw{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;transform-origin:0 0;transition:transform .45s cubic-bezier(.2,.8,.2,1),border-radius .45s}
 #hw>*{pointer-events:auto}
@@ -198,7 +237,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;heigh
 #splash .sub2{position:absolute;left:50%;bottom:22px;margin-left:-62px;width:124px;height:28px;line-height:26px;text-align:center;font-size:calc(15px*var(--fz,1));font-weight:600;letter-spacing:6px;text-indent:6px;color:#e8eefc;border:1px solid rgba(255,255,255,.4);border-radius:14px;background:rgba(10,14,24,.5);opacity:0;animation:fadeIn 1s ease 2s forwards}
 #stage.reduced #splash{display:none}
 /* 3.0 : vidéo de démarrage officielle (6 s, son d'origine), jouée au vrai démarrage du poste */
-#intro{position:absolute;inset:0;z-index:240;background:#000;display:none;opacity:1;transition:opacity .45s ease}
+#intro{position:fixed;inset:0;z-index:2400;background:#000;display:none;opacity:1;transition:opacity .45s ease}
 #intro.on{display:block}#intro.out{opacity:0}
 #intro video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
 @keyframes blink{0%,8%{opacity:0}9%,22%{opacity:1}23%,32%{opacity:0}33%,46%{opacity:1}47%,56%{opacity:0}57%,100%{opacity:1}}
@@ -372,12 +411,12 @@ select.vIn option{color:#000}
 #hello.on{display:flex}
 #hello.out{opacity:0}
 #hello .hg{position:absolute;inset:0;background:radial-gradient(ellipse 55% 50% at 50% 42%,rgba(40,120,255,.30),transparent 70%)}
-#hello img{position:relative;width:560px;height:373px;object-fit:contain;-webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 72%,transparent 100%);animation:hIn 1.8s cubic-bezier(.2,.8,.2,1) both,hPulse 4s ease-in-out 1.8s infinite}
+#hello img{position:relative;width:560px;height:373px;object-fit:contain;-webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 72%,transparent 100%);animation:hIn 1.8s cubic-bezier(.2,.8,.2,1) both}
 #hello .hw{position:relative;height:60px;margin-top:6px;font-size:calc(46px*var(--fz,1));font-weight:300;letter-spacing:.5px;color:#fff;opacity:0;transition:opacity .5s}
 #hello .hw.v{opacity:1}
 #hello button{position:relative;margin-top:26px;height:64px;padding:0 40px;border-radius:32px;background:linear-gradient(135deg,#2f7bff,#00b4ff);color:#fff;font-size:calc(22px*var(--fz,1));font-weight:700;box-shadow:0 12px 34px rgba(30,120,255,.45);opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}
 #hello button.v{opacity:1;transform:none}
-@keyframes hIn{from{opacity:0;transform:scale(.85);filter:blur(14px)}to{opacity:1;transform:none;filter:none}}
+@keyframes hIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
 @keyframes hPulse{50%{filter:drop-shadow(0 0 26px rgba(40,140,255,.6))}}
 
 /* Étape 14 : réglages simplifiés, confort */
@@ -403,8 +442,8 @@ body.hc small{opacity:.95}
 
 #coach{position:absolute;left:0;top:0;right:0;bottom:0;z-index:96;display:none}
 #coach.on{display:block}
-#coachHole{position:absolute;border-radius:22px;box-shadow:0 0 0 2000px rgba(0,0,0,.74),0 0 0 3px rgba(120,180,255,.9);transition:all .35s ease}
-#coachBub{position:absolute;width:430px;background:rgba(18,26,44,.98);border:1px solid var(--stroke);border-radius:22px;padding:18px 20px;color:#fff;box-sizing:border-box;transition:all .35s ease}
+#coachHole{position:absolute;border-radius:22px;box-shadow:0 0 0 2000px rgba(0,0,0,.74),0 0 0 3px rgba(120,180,255,.9);transition:left .35s ease,top .35s ease,width .35s ease,height .35s ease}
+#coachBub{position:absolute;width:430px;background:rgba(18,26,44,.98);border:1px solid var(--stroke);border-radius:22px;padding:18px 20px;color:#fff;box-sizing:border-box;transition:left .35s ease,top .35s ease,opacity .35s ease}
 #coachTx{font-size:21px;line-height:1.35}
 #coachBub .row2{display:flex;gap:12px;justify-content:flex-end;margin-top:12px;position:static;padding:0}
 .stBars{display:flex;align-items:flex-end;gap:12px;height:150px;margin:6px 0 10px}
@@ -537,7 +576,7 @@ body.th-luxe .gc,body.th-luxe .tile,body.th-luxe #cc,body.th-luxe .ccT,body.th-l
 body.th-luxe *{transition-duration:.7s!important}
 body.th-luxe .gc{position:absolute;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,225,140,.35)}
 body.th-luxe .gc:after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,235,170,.16),transparent);transform:skewX(-18deg);animation:shine 9s ease-in-out infinite;pointer-events:none}
-@keyframes shine{0%,60%{left:-60%}100%{left:130%}}
+@keyframes shine{0%,60%{transform:translateX(0) skewX(-18deg)}100%{transform:translateX(475%) skewX(-18deg)}}
 body.th-luxe .ccT.on,body.th-luxe #thBar button.pri{background:linear-gradient(135deg,#d4af37,#8a6d1c);color:#1a1405}
 /* ---- Thème Minimal : clair, aéré, sans ombre ni transparence ---- */
 body.th-mini #stage{--card:#f4f5f7;--tile:#eceef2;--stroke:#d8dce3;--sub:#6b7280;--accent:#111827;--blue:#111827;--ic:#374151;color:#111827}
@@ -697,7 +736,7 @@ body.fall,body.fall button,body.fall input,body.fall select{font-family:var(--fa
 .pScan svg{width:112px;filter:drop-shadow(0 0 8px #6cc0ff)}
 .pScan .beam{position:absolute;left:0;right:0;height:5px;background:linear-gradient(90deg,#0000,#9fe0ff,#0000);box-shadow:0 0 18px 6px #4db6ff;top:10%;opacity:0}
 .pScan.go .beam{opacity:1;animation:pbeam 1.1s ease-in-out infinite alternate}
-@keyframes pbeam{to{top:88%}}
+@keyframes pbeam{to{transform:translateY(156px)}}
 .pOk{color:#8ff0b0}
 .pEd .lab{font-size:17px;opacity:.75;margin:14px 0 6px;text-align:left}
 .pEd input[type=text]{width:100%;height:50px;border-radius:14px;background:#ffffff1c;border:1px solid #ffffff44;color:#fff;font-size:22px;padding:0 14px;box-sizing:border-box}
@@ -780,7 +819,7 @@ body.edit #m3btn{display:none}
 #m3b3d .t1{opacity:0}#m3b3d.on .t1{opacity:1}#m3b3d.on .t0{opacity:0}
 #m3b3d.on{filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))!important}
 #edBtn{display:none!important}
-.m3dCols{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;max-width:520px}.m3sr{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:560px}.m3sr button{width:96px;height:54px;border-radius:12px;background-size:cover;background-position:center;border:2px solid transparent;position:relative;color:#fff;font-size:13px;font-weight:600;text-shadow:0 1px 3px #000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;box-shadow:inset 0 -18px 18px -6px rgba(0,0,0,.7)}.m3sr button.on{border-color:#fff;box-shadow:0 0 12px 2px var(--led),inset 0 -18px 18px -6px rgba(0,0,0,.7)}.plSeg{display:flex;gap:10px;margin:6px 0 14px}.plSeg button{flex:1;height:52px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:#fff;font-weight:600;font-size:16px}.plSeg button.on{background:rgba(74,163,255,.25);border-color:#4aa3ff}#plPrev{display:block;width:100%;max-width:520px;margin:4px auto 14px;border-radius:6px}
+.m3dCols{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;max-width:520px}.m3sr{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:560px}.m3sr button{width:96px;height:54px;border-radius:12px;background-size:cover;background-position:center;border:2px solid transparent;position:relative;color:#fff;font-size:13px;font-weight:600;text-shadow:0 1px 3px #000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;box-shadow:inset 0 -18px 18px -6px rgba(0,0,0,.7)}.m3sr button.on{border-color:#fff;box-shadow:0 0 12px 2px var(--led),inset 0 -18px 18px -6px rgba(0,0,0,.7)}.plSeg{display:flex;gap:10px;margin:6px 0 14px}.plSeg button{flex:1;height:52px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:#fff;font-weight:600;font-size:16px}.plSeg button.on{background:rgba(74,163,255,.25);border-color:#4aa3ff}#plPrev{display:block;width:100%;max-width:560px;aspect-ratio:1040/222;height:auto;margin:4px auto 14px;border-radius:6px}
 /* 3.0 : fenêtre de la plaque, boutons en sélecteur segmenté centré, avec une mini plaque devant chaque choix */
 .plSeg{gap:6px!important;padding:6px;border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);margin:4px 0 16px!important}
 .plSeg button{height:50px!important;border:0!important;border-radius:13px!important;background:transparent!important;color:rgba(255,255,255,.72)!important;font-family:inherit;font-size:calc(17px*var(--fz,1))!important;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 10px;line-height:1;transition:background .2s,color .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
@@ -997,7 +1036,7 @@ body.m3dOn #ident .sep{height:56px!important}
 body.m3dOn #ident b{font-size:calc(36px*var(--fz,1))!important;line-height:1!important}
 body.m3dOn #ident span{font-size:calc(19px*var(--fz,1))!important;margin-top:3px}
 /* 3.0 : l'enseigne suit le cadre du mur quel que soit le format d'écran (le fond est recadré en « cover ») */
-body.m3dOn #top #ident{top:var(--idY,158px)!important;left:var(--idX,640px)!important;transform:translate(-50%,-50%) scale(var(--idS,1))!important}
+body.m3dOn #top #ident{top:calc(var(--idY,181px) + var(--idOY,0px))!important;left:calc(var(--idX,640px) + var(--idOX,0px))!important;transform:translate(-50%,-50%) scale(calc(var(--idS,1) * var(--idF,1) * var(--idU,1)))!important}
 body.m3dOn #ident{top:182px!important;left:639px!important}
 #tgTheme .tgC{display:none}
 body.m3dOn.clair #tgTheme.day img.tj{display:none!important}
@@ -1039,7 +1078,7 @@ body.m3dOn.clair #tgTheme .tgC svg{width:22px!important;height:22px!important}
 #rvAn i[data-f="0"]{opacity:1}
 #rvAn i.on{opacity:1;filter:brightness(1.15) saturate(1.15)}
 #rvAn i.pu{animation:rvPu .7s ease-in-out infinite alternate}
-@keyframes rvPu{from{opacity:1;filter:brightness(1.35) drop-shadow(0 0 6px rgba(255,255,255,.5))}to{opacity:.45;filter:none}}
+@keyframes rvPu{from{opacity:1}to{opacity:.45}}
 #rev #rvImg{visibility:hidden}
 @media (prefers-reduced-motion:reduce){#rvAn i.pu{animation:none}}
 #m3sl{position:absolute;left:470px;top:541px;width:340px;height:34px;z-index:3;display:none;touch-action:none;cursor:grab}
@@ -1055,13 +1094,130 @@ body.clair #m3sl .kn{background:rgba(255,255,255,.9);border-color:#3d8cff}body.c
 .ov{background:rgba(3,6,14,.82)}
 #stage:not([data-page="home"]) .wxA,#stage:not([data-page="home"]) #rvAn i,body.inBg *{animation-play-state:paused!important}
 body.inBg *{transition:none!important}
+
+
+/* 3.2 : éditeur de l'écran d'accueil */
+#pers .pDone{flex:none;height:42px;padding:0 18px;border-radius:21px;border:0;background:linear-gradient(180deg,#3b93ff,#1f6fe0);color:#fff;font:inherit;font-size:15px;font-weight:700;box-shadow:0 6px 16px rgba(40,130,255,.35);display:flex;align-items:center;justify-content:center;line-height:1}
+#persLbl .plT{display:block;font-size:22px;font-weight:700;letter-spacing:-.2px}
+#persLbl .plS{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin-top:6px;font-size:14px;font-weight:500;color:rgba(230,238,255,.75)}
+#persLbl .plS i{font-style:normal;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(74,163,255,.22);color:#9fd0ff;font-size:12px;font-weight:800;margin-left:6px}
+#persLbl .plS i:first-child{margin-left:0}
+#pers .pAdd{justify-content:center;gap:8px}
+#pers .pAdd .pEm{font-size:44px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4))}
+#pers .pAdd .pPlus{position:absolute;right:12px;top:12px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:20px;font-weight:700;background:linear-gradient(180deg,#3b93ff,#1f6fe0);color:#fff;box-shadow:0 4px 10px rgba(40,130,255,.4)}
+#pers .pReset .pEm{font-size:36px;color:#ffb4a8}#pers .pReset.sure{border-color:#ff6a5a!important;background:rgba(255,69,58,.14)!important}
+#pers .pSimple .pBig{font-size:46px;font-weight:800;letter-spacing:-1px;line-height:1}#pers .pSimple .pBig em{font-style:normal;font-size:15px;font-weight:600;opacity:.7;margin-left:4px}
+
+/* 3.2 : création / modification du profil sur presque tout l'écran, en 2 colonnes */
+#prof .pPanel.pWide{width:min(1180px,94%);max-height:94%;display:grid;grid-template-columns:1fr 1fr;gap:0 44px;padding:26px 40px 26px;text-align:left}
+#prof .pPanel.pWide .pC1,#prof .pPanel.pWide .pC2{min-width:0;display:flex;flex-direction:column}
+#prof .pPanel.pWide .pBig{align-self:center}
+#prof .pPanel.pWide .mw{max-height:none}
+#prof .pPanel.pWide .btns{margin-top:auto;padding-top:16px}
+#prof .pPanel.pWide .seg span,#prof .pPanel.pWide .btns button,#prof .pPanel.pWide .btns a{text-align:center;justify-content:center}
+/* 3.2 : boutons du profil plus beaux + indice « encore des volants » */
+.pEd .seg span{display:flex;align-items:center;justify-content:center;gap:8px}
+.pEd .seg span svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pEd .seg span[data-l="code"] svg{fill:currentColor;stroke:none}
+#prof .pPanel.pWide .mwBox{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+#prof .pPanel.pWide .mw{max-height:262px!important;-webkit-mask-image:linear-gradient(#000 74%,transparent);mask-image:linear-gradient(#000 74%,transparent);padding-bottom:30px!important}
+#prof .pPanel.pWide .mw.fin{-webkit-mask-image:none;mask-image:none}
+#prof .mwMore{align-self:center;display:flex;align-items:center;gap:8px;margin-top:-22px;padding:8px 16px 8px 12px;border-radius:20px;background:rgba(var(--h),.25);border:1px solid rgba(var(--h),.6);color:#fff;font-size:15px;font-weight:600;pointer-events:none;transition:opacity .3s;position:relative}
+#prof .mwMore svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;animation:mwB 1.4s ease-in-out infinite}
+@keyframes mwB{50%{transform:translateY(4px)}}
+#prof .mwMore.fin{opacity:0}
+#prof .pPanel.pWide .seg{gap:6px;padding:5px;border-radius:20px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12)}
+#prof .pPanel.pWide .seg span{gap:9px;height:54px;padding:0;border-radius:15px;background:transparent;border:1px solid transparent;color:rgba(255,255,255,.72);font-size:18px;font-weight:600;transition:background .2s,color .2s}
+#prof .pPanel.pWide .seg span svg{width:22px;height:22px}
+#prof .pPanel.pWide .seg span.on{background:linear-gradient(180deg,rgba(var(--h),.95),rgba(var(--h),.7));border-color:rgba(255,255,255,.35);color:#fff;box-shadow:0 6px 18px rgba(var(--h),.35),inset 0 1px 0 rgba(255,255,255,.35)}
+#prof .pPanel.pWide .btns{gap:14px}
+#prof .pPanel.pWide .btns button{display:flex;align-items:center;justify-content:center;gap:10px;height:60px;border-radius:18px;font-size:20px;font-weight:700;letter-spacing:.2px}
+#prof .pPanel.pWide .btns button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+#prof .pPanel.pWide .btns button.d{flex:0 0 38%;background:rgba(255,70,70,.1);border:1.5px solid rgba(255,95,95,.6);color:#ff8a8a}
+#prof .pPanel.pWide .btns button.p{background:linear-gradient(180deg,#4aa3ff,#1f72e6);border:1px solid rgba(255,255,255,.35);color:#fff;box-shadow:0 8px 22px rgba(30,120,255,.4),inset 0 1px 0 rgba(255,255,255,.4)}
+#prof .pPanel.pWide .btns button:active{transform:scale(.97)}
+
+.scDemo{display:flex;align-items:center;gap:18px;margin:14px 0 6px;padding:14px 16px;border-radius:22px;background:rgba(255,255,255,.06);border:1px solid rgba(var(--h,46,142,255),.45)}
+.scDemo.scNone{border-color:rgba(255,255,255,.12)}
+.scPad{position:relative;flex:none;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;overflow:hidden;color:rgb(var(--h,46,142,255));background:radial-gradient(rgba(var(--h,46,142,255),.32),rgba(var(--h,46,142,255),.06) 70%);border:2px solid rgba(var(--h,46,142,255),.9);box-shadow:0 0 22px rgba(var(--h,46,142,255),.55)}
+.scPad svg{width:54px;height:54px}
+.scBeam{position:absolute;left:8%;right:8%;height:3px;top:20%;background:linear-gradient(90deg,transparent,#dff4ff,transparent);box-shadow:0 0 12px 3px rgba(var(--h,46,142,255),.9);opacity:0;animation:scBeam 3s ease-in-out infinite}
+.scFinger{position:absolute;font-size:44px;line-height:1;left:50%;top:50%;transform:translate(-30%,70%);filter:drop-shadow(0 4px 8px rgba(0,0,0,.6));animation:scFinger 3s ease-in-out infinite}
+@keyframes scFinger{0%{transform:translate(-30%,90%);opacity:0}15%{opacity:1}30%,75%{transform:translate(-30%,10%) scale(.92);opacity:1}90%,100%{transform:translate(-30%,90%);opacity:0}}
+@keyframes scBeam{0%,30%{opacity:0;transform:translateY(0)}35%{opacity:1;transform:translateY(0)}55%{transform:translateY(56px)}70%{opacity:1;transform:translateY(2px)}76%,100%{opacity:0}}
+.scCode{gap:6px;grid-template-columns:repeat(4,12px);display:grid;align-content:center;justify-content:center}
+.scCode i{width:12px;height:12px;border-radius:50%;border:2px solid currentColor;animation:scDot 2.4s infinite}.scCode i:nth-child(2){animation-delay:.3s}.scCode i:nth-child(3){animation-delay:.6s}.scCode i:nth-child(4){animation-delay:.9s}
+@keyframes scDot{0%,20%{background:transparent}30%,80%{background:currentColor}100%{background:transparent}}
+.scTx{font-size:15px;line-height:1.45;color:rgba(235,242,255,.9)}.scTx b{display:block;font-size:17px;margin-bottom:3px;color:#fff}.scTx small{display:block;margin-top:5px;font-size:13px;opacity:.65}
+@media (prefers-reduced-motion:reduce){.scFinger,.scBeam,.scCode i{animation:none}}
+/* ===== 3.2 ===== */
+.gone32{display:none!important}
+#bgReset.off32,#bgReset:disabled{opacity:.35;pointer-events:none;filter:grayscale(1)}
+#signPad{position:absolute;left:50%;bottom:26px;transform:translateX(-50%) translateY(30px);opacity:0;pointer-events:none;z-index:120;display:flex;align-items:center;gap:18px;padding:14px 18px;border-radius:24px;background:rgba(12,18,32,.9);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.14);box-shadow:0 20px 50px rgba(0,0,0,.55);transition:opacity .25s,transform .25s;color:#fff}
+#signPad.on{opacity:1;pointer-events:auto;transform:translateX(-50%)}
+#signPad>b{font-size:16px;flex:0 0 150px;max-width:150px;line-height:1.25}
+#signPad button{display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:18px;font-weight:700;border-radius:14px;height:46px;min-width:46px;padding:0 14px;line-height:1}
+#signPad button:active{transform:scale(.95)}
+#signPad .spG{display:grid;grid-template-columns:46px 46px 46px;grid-template-rows:40px 40px;gap:4px}
+#signPad .spG button{height:40px;min-width:0;padding:0;font-size:15px}
+#signPad .spG [data-m="0,-2"]{grid-column:2;grid-row:1}#signPad .spG [data-m="-2,0"]{grid-column:1;grid-row:2}#signPad .spG [data-m="2,0"]{grid-column:3;grid-row:2}#signPad .spG [data-m="0,2"]{grid-column:2;grid-row:2}
+#signPad .spS{display:flex;align-items:center;gap:8px}#signPad .spS span{font-size:14px;opacity:.75}
+#signPad .spB{display:flex;gap:8px}#signPad .pri{background:linear-gradient(180deg,#3b93ff,#1f6fe0);border-color:transparent}
+
+/* ===== 3.2 : mode « poste léger » (body.lite) ===== */
+body.lite *,body.lite *::before,body.lite *::after{box-shadow:none!important;text-shadow:none!important;animation-iteration-count:1!important}
+body.lite .gc,body.lite .tile,body.lite .sr,body.lite .card,body.lite .pPanel,body.lite #pers,body.lite .ov .cb{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.lite .gc:not(.cwW):not(#cardR){background-color:rgb(from var(--card) r g b / 1)!important}
+body.lite .tile{background-color:rgb(from var(--tile) r g b / 1)!important}
+body.lite .sr{background-color:rgb(from var(--glass) r g b / 1)!important}
+body.lite #amb{display:none!important}
+body.lite #ident img{filter:none!important}
+body.lite #splash .name{filter:none!important}
+body.lite .bGrid button img{filter:none!important}
+body.lite .pScan svg{filter:none!important}
+body.lite.dialCut #dialImg{filter:none!important}
+body.lite .dIco img{filter:none!important}
+body.lite .si2 .siIco{filter:none!important}
+body.lite .dIco svg{filter:none!important}
+body.lite #m3btn button{filter:none!important}
+body.lite #m3btn button.on{filter:none!important}
+body.lite #m3b3d.on{filter:none!important}
+body.lite #plPrev{filter:none!important}
+body.lite #pers .pRail button img{filter:none!important}
+body.lite .vr img.vIc{filter:none!important}
+body.lite .dIco img{filter:hue-rotate(var(--icH,0deg))!important}
+body.lite .si2 .siIco{filter:hue-rotate(var(--icH,0deg))!important}
+body.lite .vr img.vIc{filter:hue-rotate(var(--icH,0deg))!important}
+body.lite #pers .pRail button img{filter:hue-rotate(var(--icH,0deg))!important}
+body.lite #m3btn button>img{filter:hue-rotate(var(--icH,0deg))!important}
+body.lite .icTint{filter:hue-rotate(var(--icH,0deg))!important}
+body.lite #rev #rvBox #revCar{filter:none!important}
+body.lite.m3dOn #ident img{filter:brightness(1.05)!important}
+body.lite .o3r i svg{filter:none!important}
+body.lite.m3dOn.clair #ident img{filter:none!important}
+body.lite #pers .pAdd .pEm{filter:none!important}
+body.lite .scFinger{filter:none!important}
+/* lueur du logo d'accueil : calque pré-rendu, seule son opacité est animée */
+#hello .hLogo{position:relative;display:block;line-height:0}
+#hello .hLogo .hGl{position:absolute;left:0;top:0;filter:drop-shadow(0 0 26px rgba(40,140,255,.6));opacity:0;animation:hIn 1.8s cubic-bezier(.2,.8,.2,1) both,hGlO 4s ease-in-out 1.8s infinite}
+@keyframes hGlO{0%,100%{opacity:0}50%{opacity:1}}
+/* radar : lueur en calque, opacité animée */
+#rev #rvBox{animation:none!important}
+#rev #rvBox::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(closest-side,rgba(150,205,255,.20),rgba(150,205,255,0));opacity:0;animation:rvGlO 2.4s ease-in-out infinite}
+#rev[data-rs="n3"] #rvBox::after{display:none}
+@keyframes rvGlO{0%,100%{opacity:0}50%{opacity:1}}
 </style>
 </head>
 <body>
+<div id="intro" aria-hidden="true"><video id="introV" playsinline preload="none" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="background:#000"></video></div>
+<script>/* 3.2 : la vidéo part tout de suite, pendant que le reste de la page se charge */
+if(window.__lite)document.body.classList.add('lite');
+if(window.__freshBoot){(function(){var v=document.getElementById('introV');try{v.preload='auto';v.src='cockpit-intro.mp4';var p=v.play();if(p&&p.catch)p.catch(function(){v.muted=true;v.play().catch(function(){})})}catch(e){}})()}
+</script>
 <div id="stage" data-page="home">
 
 <!-- FOND UNIQUE ET FIXE -->
-<div id="bg"><img id="b_jour" src="jour.jpg" alt=""><img id="b_on" src="nuit_on.jpg" alt=""><img id="b_off" src="nuit_off.jpg" alt=""><div id="m3d"></div></div>
+<div id="bg"><img id="b_jour" data-src="jour.jpg" alt=""><img id="b_on" data-src="nuit_on.jpg" alt=""><img id="b_off" data-src="nuit_off.jpg" alt=""><div id="m3d"></div></div>
 <div id="scrim"></div>
 <canvas id="amb" width="1280" height="720"></canvas>
 
@@ -1226,7 +1382,8 @@ body.inBg *{transition:none!important}
 <div class="sh">Image et animations</div>
 <div class="sr"><div class="l">Phares sur l'image<small>Change la photo de fond, sur le poste seulement</small></div><div class="seg" data-seg="lights"><button data-val="0">Éteints</button><button data-val="1">Allumés</button></div></div>
 <div class="sr"><div class="l">Animations</div><div class="seg" data-seg="anim"><button data-val="full">Complètes</button><button data-val="reduced">Réduites</button></div></div>
-<div class="sr"><div class="l">Ambiances météo<small>Pluie, neige, brume ou étoiles qui bougent autour de la voiture</small></div><div class="seg" data-cs="amb"><button data-val="on">Oui</button><button data-val="off">Non</button></div></div>
+<div class="sr"><div class="l">Ambiances météo<small>Pluie, neige, brume ou étoiles qui bougent autour de la voiture</small></div><div class="seg" data-cs="amb" data-def32="lite"><button data-val="on">Oui</button><button data-val="off">Non</button></div></div>
+<div class="sr"><div class="l">Mode poste léger<small>Moins d'effets (ombres, transparences, animations) pour les postes à 2 Go de mémoire. Automatique : activé si le poste a peu de mémoire</small></div><div class="seg" data-cs="lite"><button data-val="auto">Auto</button><button data-val="on">Oui</button><button data-val="off">Non</button></div></div>
 <div class="sr"><div class="l">Animation de démarrage<small>Phares qui clignotent, puis retour à l'accueil</small></div><button class="mini" id="replaySplash">Rejouer</button></div>
 </div></div>
 
@@ -1467,8 +1624,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
 <div id="picker"><div class="pbox"><div class="ph" id="pTitle">Choisir un raccourci</div><div class="pg" id="pGrid"></div><button class="mini" id="pClose">Fermer</button></div></div>
 
-<div id="hello"><div class="hg"></div><img src="cockpit_logo.webp" alt="Cockpit"><div class="hw" id="hWord"></div><button id="hGo"><span>Commencer</span> →</button></div>
-<div id="intro" aria-hidden="true"><video id="introV" playsinline preload="none" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="background:#000"></video></div>
+<div id="hello"><div class="hg"></div><span class="hLogo"><img src="cockpit_logo.webp" alt="Cockpit"><img class="hGl" src="cockpit_logo.webp" alt=""></span><div class="hw" id="hWord"></div><button id="hGo"><span>Commencer</span> →</button></div>
 <div id="splash" style="display:none">
 <img src="nuit_off.jpg" alt="Golf 6">
 <img class="sOn" src="nuit_on.jpg" alt="">
@@ -1479,6 +1635,19 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 </div>
 
 <!-- Cockpit 3.0 phase 2 : migration protégée du stockage, AVANT toute lecture des réglages -->
+<script>/* 3.2 : un seul fond 2D chargé (l'actif) ; les autres sont vidés après le fondu */
+(function(){var tmr=0;
+  window.__bgSync=function(){var on=null;['b_jour','b_on','b_off'].forEach(function(id){var e=document.getElementById(id);if(!e)return;if(e.classList.contains('on')){on=e;var u=e.getAttribute('data-src');if(u&&e.getAttribute('src')!==u)e.setAttribute('src',u)}});
+    clearTimeout(tmr);tmr=setTimeout(function(){['b_jour','b_on','b_off'].forEach(function(id){var e=document.getElementById(id);if(e&&!e.classList.contains('on')&&e.getAttribute('src'))e.removeAttribute('src')})},900)};
+  /* Android signale un manque de mémoire : on libère le guide, la 3D arrêtée et les images cachées */
+  window.onLowMem=function(){
+    try{var g=document.getElementById('guideOv');if(!g||!g.classList.contains('on')){if(window.__guideFree)window.__guideFree()}}catch(e){}
+    try{if(window.M3DV&&M3DV.free)M3DV.free()}catch(e){}
+    try{window.__bgSync()}catch(e){}
+    try{document.querySelectorAll('#libG img').forEach(function(im){var b=im.getBoundingClientRect();if(!b.width)im.removeAttribute('src')})}catch(e){}
+  };
+})();
+</script>
 <script src="core/store.js"></script>
 <script src="m3d/look.js"></script>
 <script>try{window.__mig=window.Cockpit.migrate()}catch(e){window.__mig={status:'erreur',raison:String(e)}}</script>
@@ -1575,25 +1744,32 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     stage.style.left=ox+'px';stage.style.top=oy+'px';
     stage.style.width=w+'px';stage.style.height=h+'px';
     stage.style.transform='scale('+sc+')';
-    /* cadre de l'enseigne : centre (640,158) dans l'image de fond 1280×720 recadrée en cover sur la scène */
-    var k=Math.max(w/1280,h/720);stage.style.setProperty('--idX',(w/2)+'px');stage.style.setProperty('--idY',(h/2+(158-360)*k)+'px');stage.style.setProperty('--idS',k.toFixed(4));
+    /* cadre de l'enseigne : centre (640,181) dans l'image de fond 1280×720 recadrée en cover sur la scène (mesuré sur les 10 décors) */
+    var k=Math.max(w/1280,h/720);stage.style.setProperty('--idX',(w/2)+'px');stage.style.setProperty('--idY',(h/2+(181-360)*k)+'px');stage.style.setProperty('--idS',k.toFixed(4));window.__idK=k;if(window.__identFit)window.__identFit();
     stage.style.setProperty('--m3x',(w/2+(140-640)*k)+'px');stage.style.setProperty('--m3y',(h/2+(120-360)*k)+'px');stage.style.setProperty('--m3w',(1000*k)+'px');stage.style.setProperty('--m3h',(500*k)+'px');
   }
   window.addEventListener('resize',fit);fit();
 
   /* Heure et date : toujours l'heure système Android */
   function pad(n){return n<10?'0'+n:''+n}
+  var tkLast='',T1=null,D1=null,CLKE=null,DATE=null;
   function tick(){
     var d=new Date();
+    if(document.hidden)return;
+    /* 3.2 : on ne reformate qu'au changement de minute (ou de format/langue) */
+    var key=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()+'-'+d.getHours()+'-'+d.getMinutes()+CLK+(window.LANG||'');
+    if(key===tkLast&&tick.arguments.length===0&&T1)return;tkLast=key;
     var ok=d.getFullYear()>=2024;
     var t=ok?(CLK==='12'?((d.getHours()%12)||12)+':'+pad(d.getMinutes())+(d.getHours()<12?' am':' pm'):pad(d.getHours())+':'+pad(d.getMinutes())):'--:--';
     var ds=ok?d.toLocaleDateString(locale(),{weekday:'short',day:'numeric',month:'long'}):'';
     ds=ds.charAt(0).toUpperCase()+ds.slice(1);
-    $('#clock').textContent=t;$('#date').textContent=ds;
-    $$('.t1').forEach(function(e){e.textContent=t});
-    $$('.d1').forEach(function(e){e.textContent=ds});
+    if(!CLKE){CLKE=$('#clock');DATE=$('#date')}
+    T1=$$('.t1');D1=$$('.d1');   /* une fois par minute seulement */
+    if(CLKE.textContent!==t)CLKE.textContent=t;if(DATE.textContent!==ds)DATE.textContent=ds;
+    T1.forEach(function(e){if(e.textContent!==t)e.textContent=t});
+    D1.forEach(function(e){if(e.textContent!==ds)e.textContent=ds});
   }
-  tick();setInterval(tick,1000);
+  tick(1);setInterval(function(){tick()},1000);document.addEventListener('visibilitychange',function(){if(!document.hidden)tick(1)});
   document.addEventListener('visibilitychange',tick);
   window.addEventListener('focus',tick);
 
@@ -1643,6 +1819,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(name==='apps'&&!appsAsked){appsAsked=true;if(A){A.requestApps()}else{demoApps()}}
     applyTheme();
     put('page',name==='menu'?('menu:'+(sec||'screen')):name);
+    if(window.__ambKick)window.__ambKick();
   }
   $$('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(b.getAttribute('data-go'))})});
   $$('.pgBack').forEach(function(b){b.addEventListener('click',pageBack)});
@@ -1738,7 +1915,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     var lt=n?lN:lD;
     var lp=lt&&!document.body.classList.contains('bgNoLit');   /* photo phares allumés seulement si elle existe */
     var which=n?(lp?'b_on':'b_off'):(lp?'b_on':'b_jour');
-    ['b_jour','b_on','b_off'].forEach(function(i){$('#'+i).classList.toggle('on',i===which)});
+    ['b_jour','b_on','b_off'].forEach(function(i){$('#'+i).classList.toggle('on',i===which)});if(window.__bgSync)window.__bgSync();
     $('#lights').classList.toggle('on',lt);
     $('#lightsT').textContent=lt?'Éteindre les phares':'Allumer les phares';
     segSet('lights',lt?'1':'0');segSet('mode',mode);
@@ -1895,8 +2072,12 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   /* Données véhicule : uniquement ce que le poste transmet réellement.
      Rien n'est inventé ; sans donnée, la ligne reste « Indisponible ». */
   var dOpen={},belt=false,spdNow=0;
+  /* 3.2 : éléments [data-k] mis en cache (ils sont tous dans la page dès le départ) */
+  var KEL={};function kEls(k){var a=KEL[k];if(!a||(a.length&&!a[0].isConnected))a=KEL[k]=[].slice.call(document.querySelectorAll('[data-k="'+k+'"]'));return a}
+  window.__kEls=kEls;
   function setK(k,txt,open){
-    $$('[data-k="'+k+'"]').forEach(function(e){
+    if(window.__reapply)window.__reapply();
+    kEls(k).forEach(function(e){
       if(txt===null){e.textContent='Indisponible';e.classList.add('na');e.classList.remove('open')}
       else{e.textContent=txt;e.classList.remove('na');e.classList.toggle('open',!!open)}
     });
@@ -1969,7 +2150,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     }
     $('#wxHours').innerHTML=out;
   }
-  function refreshUnits(){tick();$('#nfv').textContent=hh(nf);$('#dfv').textContent=hh(df);if(wxJ){fillTemps(useT(wxJ.current.temperature_2m));fillWx(wxJ);fillHours(wxJ)}}
+  function refreshUnits(){tick(1);$('#nfv').textContent=hh(nf);$('#dfv').textContent=hh(df);if(wxJ){fillTemps(useT(wxJ.current.temperature_2m));fillWx(wxJ);fillHours(wxJ)}}
   function fillTemps(t){curT=t;updateIce();var v=tc(t);$('#temp').textContent=v.toFixed(1)+tU();if(window.carT==null)setK('ext',v.toFixed(1)+' '+tU());$('#wxT').textContent=Math.round(v)+'°'}
   function fillWx(j){
     var c=j.current;
@@ -1988,7 +2169,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
         fillTemps(t);
         WX.cat=wcat(c.weather_code);WX.night=!c.is_day;WX.loaded=true;
         $('#wxC').textContent=WL[WX.cat];
-        wxJ=window.__wxJ=j;fillWx(j);parseSun(j);applyTheme();
+        wxJ=window.__wxJ=j;fillWx(j);parseSun(j);applyTheme();if(window.__ambKick)window.__ambKick();if(window.__reapply)window.__reapply();
         fillHours(j);
         initParts();
         try{fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+lat+'&longitude='+lon+'&current=european_aqi').then(function(r){return r.json()}).then(function(a){WX.aqi=a&&a.current?a.current.european_aqi:null}).catch(function(){})}catch(e){}
@@ -2048,30 +2229,37 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     }
     cx.globalAlpha=1;
   }
-  setInterval(function(){
-    if(stage.getAttribute('data-page')!=='home'||document.body.classList.contains('hideR'))return;
+  /* 3.2 : ce canvas est masqué (display:none) : il n'est animé que s'il est réellement affiché */
+  if(cv.style.display!=='none'){setInterval(function(){
+    if(!window.__homeLive()||document.body.classList.contains('hideR'))return;
     if(stage.classList.contains('reduced')&&(tt*100|0)%3)tt+=.03;
     draw()},50);
-  draw();
+  draw()}
   window.addEventListener('online',loadWeather);
   window.setLocation=function(a,b){autoLat=a;autoLon=b;if(cityObj())return;lat=a;lon=b;loadWeather()};
   setInterval(loadWeather,600000);
 
   /* Démarrage : animation une seule fois par démarrage du poste, sinon on retrouve la dernière page */
-  var fresh=A?call(function(){return A.splashNeeded()},true):true;window.__fresh=fresh;
+  var fresh=!!window.__freshBoot;window.__fresh=fresh;
   applyAnim();applyVoice();
   /* 3.0 : la vidéo se joue seulement au vrai démarrage (processus neuf), jamais au simple retour à l'écran.
      Elle passe au-dessus de tout ; à la fin, fondu vers ce qui attend derrière (bienvenue, profils ou accueil). */
-  function intro(done){var box=$('#intro'),v=$('#introV');if(!box||!v){done&&done();return}
-    window.__introBusy=true;var fin=false;function end(){if(fin)return;fin=true;window.__introBusy=false;box.classList.add('out');setTimeout(function(){box.classList.remove('on','out');try{v.pause();v.removeAttribute('src');v.load()}catch(e){}},500);done&&done()}
-    box.classList.add('on');v.src='cockpit-intro.mp4';v.onended=end;v.onerror=end;setTimeout(end,8000);
-    var pr=v.play();if(pr&&pr.catch)pr.catch(function(){v.muted=true;var p2=v.play();if(p2&&p2.catch)p2.catch(end)})}
+  function intro(done){var box=$('#intro'),v=$('#introV');if(!box||!v){if(window.__introRelease)window.__introRelease();done&&done();return}
+    window.__introBusy=true;var fin=false;function end(){if(fin)return;fin=true;window.__introBusy=false;
+      document.documentElement.classList.remove('introRun');box.classList.add('out');   /* l'accueil apparaît pendant le fondu */
+      setTimeout(function(){box.classList.remove('on','out');try{v.pause();v.removeAttribute('src');v.load()}catch(e){}
+        setTimeout(function(){if(window.__introRelease)window.__introRelease()},500)},500);done&&done()}
+    box.classList.add('on');v.onended=end;v.onerror=end;setTimeout(end,8000);
+    if(v.ended){end();return}
+    if(!v.getAttribute('src')){v.src='cockpit-intro.mp4';var pr=v.play();if(pr&&pr.catch)pr.catch(function(){v.muted=true;var p2=v.play();if(p2&&p2.catch)p2.catch(end)})}
+    else if(v.paused){var p3=v.play();if(p3&&p3.catch)p3.catch(function(){v.muted=true;v.play().catch(end)})}}
   window.__intro=intro;
   /* 3.0 : la voix de bienvenue part seulement quand un profil est choisi (ou au démarrage s'il n'y a aucun profil), après l'intro */
   window.__greet=function(){var n=0;(function w(){if(window.__introBusy&&n++<40){setTimeout(w,400);return}setTimeout(function(){try{if(window.Android&&Android.greetNow)Android.greetNow()}catch(e){}},600)})()};
   if(get('setup','0')!=='1'){go('home');if(fresh)intro(helloShow);else helloShow()}
   else if(fresh){go('home');intro()}
   else{go(get('page','home'))}
+  if(!fresh&&window.__introRelease)window.__introRelease();
   applyTheme();
 
 
@@ -2086,6 +2274,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(sn)sn.textContent=n.toUpperCase();
     if(ss){ss.textContent=s;ss.style.display=s?'':'none'}
     document.title='Cockpit';
+    if(window.__identFit)setTimeout(window.__identFit,0);
   }
   var vN=$('#vName'),vS=$('#vSub');
   vN.value=get('vName',VDEF.name);vS.value=get('vSub',VDEF.sub);
@@ -2125,7 +2314,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
 
   /* ===== Étape 8 : À propos, vitesse GPS, musique, raccourcis, luminosité auto, styles ===== */
-  var APP_VERSION='3.1';
+  var APP_VERSION='3.2';
   function updateAbout(){$('#aboutTxt').textContent=T('Version')+' '+APP_VERSION}
 
   /* Vitesse GPS */
@@ -2457,8 +2646,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(A&&A.getBgFlags){try{fl=A.getBgFlags()||''}catch(e){}}
     Object.keys(ids).forEach(function(id){
       var el=document.getElementById(id);if(!el)return;
-      if(!BG0[id])BG0[id]=el.getAttribute('src');
-      el.src=(st>0&&img[ids[id]])||BG0[id];
+      if(!BG0[id])BG0[id]=el.getAttribute('data-src');
+      el.setAttribute('data-src',(st>0&&img[ids[id]])||BG0[id]);
     });
     var sp=$$('#splash img');
     if(sp.length>1){
@@ -2471,6 +2660,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     var lr=document.querySelector('[data-seg="lights"]');lr=lr&&lr.closest('.sr');if(lr)lr.style.display=noLit?'none':'';
     if(typeof applyTheme==='function')applyTheme();if(window.__o3paint)window.__o3paint();
     $('#bgReset').style.opacity=st>0?'1':'.4';
+    if(window.__bgSync)window.__bgSync();
   }
   function profBgApply(){var e=$('#prof'),u=get('profBg','');if(u==='photo'){try{u=A&&A.getBg?A.getBg('prof'):''}catch(x){u=''}}if(e)e.style.backgroundImage=u?'url('+u+')':''}
   window.profBgApply=profBgApply;window.profBgPhoto=function(){put('profBg','photo');profBgApply();toast('Fond des profils changé')};
@@ -2479,7 +2669,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   (function(){
     var g=$('#libG');if(!g)return;
     for(var i=0;i<19;i++)(function(i){
-      var b=document.createElement('button');b.type='button';b.innerHTML='<img loading="lazy" src="fond_lib'+i+'.webp" alt="">';
+      var b=document.createElement('button');b.type='button';b.innerHTML='<img loading="lazy" src="fond_lib'+i+'_t.webp" alt="">';
       b.addEventListener('click',function(){libAsk(i)});g.appendChild(b);
     })(i);
     function libAsk(i){
@@ -2587,7 +2777,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   function wKeep(){
     var e,q=wSt();
     if(q===1&&(e=$('#wPren')))wz.pren=e.value.trim();
-    if(q===99&&wz.pf&&wz.pf.name.trim()&&(wz.pf.lock!=='code'||/^\d{4}$/.test(wz.pf.code||''))){pfStore(wz.pf);if(wz.pf.name){put('profCur',wz.pf.id);wz.pren=wz.pf.name}put('wheel',wz.pf.wheel);try{sessionStorage.setItem('profOk','1')}catch(x){}}
+    if(q===99&&wz.pf&&wz.pf.name.trim()&&(wz.pf.lock!=='code'||/^\d{4}$/.test(wz.pf.code||''))){pfStore(wz.pf);if(wz.pf.name){put('profCur',wz.pf.id);wz.pren=wz.pf.name}put('wheel',wz.pf.wheel);try{localStorage.setItem('profOk','1')}catch(x){}}
     if(q===3&&(e=$('#wModel')))wz.model=e.value.trim();
     if(q===4&&(e=$('#wSub')))wz.sub=e.value.trim();
   }
@@ -2606,7 +2796,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(st===99){
       if(!wz.pf)wz.pf={id:'p'+Date.now().toString(36),name:wz.pren||'',wheel:'00',halo:PF_HALO[0],lock:'none',code:''};
       var w=wz.pf,wh='';for(var i=0;i<27;i++){var n=('0'+i).slice(-2);wh+='<img data-w="'+n+'" class="'+(w.wheel===n?'on':'')+'" src="wheels/w'+n+'.webp">'}
-      b.innerHTML='<div class="pEd" style="max-height:400px;overflow:auto;--h:'+w.halo+'"><img class="wPrev" src="wheels/w'+wn(w.wheel)+'.webp" alt=""><div class="note">'+T("Un profil par personne. Tu pourras en ajouter d'autres dans Réglages › Profils.")+'</div><div class="lab">'+T('Prénom ou nom')+'</div><input type="text" id="pfName" maxlength="14" value="'+esc(w.name)+'" autocomplete="off"><div class="lab">'+T('Volant')+'</div><div class="mw">'+wh+'</div><div class="lab">'+T('Couleur du halo')+'</div><div class="hsw">'+PF_HALO.map(function(c){return '<i data-c="'+c+'" class="'+(w.halo===c?'on':'')+'" style="background:rgb('+c+');color:rgb('+c+')"></i>'}).join('')+'</div><div class="lab">'+T('Verrouillage')+'</div><div class="seg">'+[['none','Aucun'],['code','Code'],['scan','Iron Scan']].map(function(x){return '<span data-l="'+x[0]+'" class="'+(w.lock===x[0]?'on':'')+'">'+T(x[1])+'</span>'}).join('')+'</div>'+(w.lock==='code'?'<div class="lab">'+T('Choisis un code à 4 chiffres')+'</div><input type="text" id="pfCode" inputmode="numeric" maxlength="4" value="'+esc(w.code||'')+'">':'')+'</div>';
+      b.innerHTML='<div class="pEd" style="max-height:470px;overflow:auto;--h:'+w.halo+'"><img class="wPrev" src="wheels/w'+wn(w.wheel)+'.webp" alt=""><div class="note">'+T("Un profil par personne. Tu pourras en ajouter d'autres dans Réglages › Profils.")+'</div><div class="lab">'+T('Prénom ou nom')+'</div><input type="text" id="pfName" maxlength="14" value="'+esc(w.name)+'" autocomplete="off"><div class="lab">'+T('Volant')+'</div><div class="mw">'+wh+'</div><div class="lab">'+T('Couleur du halo')+'</div><div class="hsw">'+PF_HALO.map(function(c){return '<i data-c="'+c+'" class="'+(w.halo===c?'on':'')+'" style="background:rgb('+c+');color:rgb('+c+')"></i>'}).join('')+'</div><div class="lab">'+T('Verrouillage')+'</div><div class="seg">'+[['none','Aucun'],['code','Code'],['scan','Iron Scan']].map(function(x){return '<span data-l="'+x[0]+'" class="'+(w.lock===x[0]?'on':'')+'"><svg viewBox="0 0 24 24">'+({none:'<path d="M7 11V7a5 5 0 0 1 9.6-2"/><rect x="4" y="11" width="16" height="10" rx="2.5"/>',code:'<circle cx="6" cy="6" r="1.4"/><circle cx="12" cy="6" r="1.4"/><circle cx="18" cy="6" r="1.4"/><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/><circle cx="12" cy="18" r="1.4"/>',scan:'<path d="M12 11v3a8 8 0 0 1-1.5 5"/><path d="M8.5 9.5a4 4 0 0 1 7 2.5v2a12 12 0 0 1-.6 3.6"/><path d="M5.6 7.5A7 7 0 0 1 19 12v1.5"/><path d="M5 12v2a8 8 0 0 0 .7 3.3"/>'})[x[0]]+'</svg>'+T(x[1])+'</span>'}).join('')+'</div>'+(window.__scDemo?window.__scDemo(w.lock):'')+(w.lock==='code'?'<div class="lab">'+T('Choisis un code à 4 chiffres')+'</div><input type="text" id="pfCode" inputmode="numeric" maxlength="4" value="'+esc(w.code||'')+'">':'')+'</div>';
       $('#pfName').addEventListener('input',function(){w.name=this.value});
       (function(){var m=b.querySelector('.mw');if(m)m.insertAdjacentHTML('afterend','<div class="note" style="text-align:center;color:#8ff0b0">✓ '+T('Volant choisi')+' : n° '+(parseInt(w.wheel,10)+1)+'</div>');var on=b.querySelector('.mw img.on');if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest'})})();
       $$('#wBody .mw img').forEach(function(i){i.addEventListener('click',function(){w.wheel=i.getAttribute('data-w');wRender()})});
@@ -3225,13 +3415,19 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   function guideOpen(){
     var pg=$('#gvPages'),tc=$('#gvToc');
     if(!pg.children.length){
-      for(var i=1;i<=GPAGES;i++){var im=document.createElement('img');im.loading='lazy';im.alt='';im.id='gp'+i;im.src='guide/'+(i<10?'0':'')+i+'.webp';pg.appendChild(im)}
+      for(var i=1;i<=GPAGES;i++){var im=document.createElement('img');im.alt='';im.id='gp'+i;im.dataset.src='guide/'+(i<10?'0':'')+i+'.webp';im.style.aspectRatio='1024/724';im.style.width='100%';pg.appendChild(im)}
+      /* 3.2 : seules la page affichée et ses deux voisines restent chargées en mémoire */
+      var gT=0;pg.addEventListener('scroll',function(){if(!gT)gT=setTimeout(function(){gT=0;gSync()},120)},{passive:true});
       GCH.forEach(function(c){var b=document.createElement('button');b.textContent=T(c[0]);b.addEventListener('click',function(){var e=$('#gp'+c[1]);if(e)pg.scrollTop=e.offsetTop;$$('#gvToc button').forEach(function(x){x.classList.toggle('on',x===b)})});tc.appendChild(b)});
     }
-    $('#guideOv').classList.add('on');
+    $('#guideOv').classList.add('on');setTimeout(gSync,30);
   }
+  function gSync(){var pg=$('#gvPages'),ims=pg.children,h=ims[0]?ims[0].offsetHeight||1:1,c=Math.round(pg.scrollTop/h);
+    for(var i=0;i<ims.length;i++){var im=ims[i];if(!im.dataset.src)continue;if(Math.abs(i-c)<=1){if(im.getAttribute('src')!==im.dataset.src)im.src=im.dataset.src}else if(im.getAttribute('src'))im.removeAttribute('src')}}
+  function gFree(){$$('#gvPages img').forEach(function(im){if(im.getAttribute('src'))im.removeAttribute('src')})}
+  window.__guideFree=gFree;
   $('#guideOpen').addEventListener('click',guideOpen);
-  $('#guideClose').addEventListener('click',function(){$('#guideOv').classList.remove('on')});
+  $('#guideClose').addEventListener('click',function(){$('#guideOv').classList.remove('on');gFree()});
   window.guideOpen=guideOpen;
   /* Clavier : la fenêtre remonte pour que le champ et les boutons restent visibles */
   document.addEventListener('focusin',function(e){
@@ -3257,7 +3453,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     document.body.classList.toggle('big',get('big','0')==='1');
     document.body.classList.toggle('hc',get('hc','0')==='1');
     document.body.classList.toggle('lay2',get('lay','c')==='g');
-    var CSD={fs:'m',lay:'c',amb:'on',dial:'off',dsz:'l'};$$('[data-cs]').forEach(function(sg){var k=sg.getAttribute('data-cs');sg.querySelectorAll('button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-val')===get(k,CSD[k]||''))})});
+    var CSD={fs:'m',lay:'c',amb:window.__lite?'off':'on',dial:'off',dsz:'l',lite:'auto'};
+    (function(){var lv=get('lite','auto');window.__lite=lv==='on'||(lv==='auto'&&!!window.__liteAuto);CSD.amb=window.__lite?'off':'on';document.body.classList.toggle('lite',window.__lite);document.documentElement.classList.toggle('lite',window.__lite);if(window.__ambKick)window.__ambKick()})();$$('[data-cs]').forEach(function(sg){var k=sg.getAttribute('data-cs');sg.querySelectorAll('button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-val')===get(k,CSD[k]||''))})});
     $('#swBig').classList.toggle('on',get('big','0')==='1');
     $('#swHc').classList.toggle('on',get('hc','0')==='1');
     $('#swSnd').classList.toggle('on',get('snd','0')==='1');
@@ -3289,7 +3486,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   function applyMan(){
     Object.keys(MAN).forEach(function(k){
       var o=manGet(k);
-      $$('[data-k="'+k+'"]').forEach(function(e){
+      (window.__kEls?window.__kEls(k):$$('[data-k="'+k+'"]')).forEach(function(e){
         var row=e.closest?e.closest('.vr'):null;
         if(row)row.style.display=(o.m==='hide'&&!demoOn)?'none':'';
         if(o.m==='val'&&o.v&&(e.classList.contains('na')||e.dataset.man==='1')){
@@ -3350,6 +3547,12 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
   /* Nouveautés */
   var NEWS=[
+    ['Plus fluide','L\'accueil ne travaille plus derrière la vidéo de démarrage, les animations s\'arrêtent quand elles ne se voient pas, et un mode « poste léger » s\'active tout seul sur les postes à 2 Go de mémoire (Réglages).'],
+    ['Démarrage','Seule la vidéo s\'affiche au démarrage : plus d\'aperçu de l\'accueil avant elle. En revenant de CarPlay, tu retrouves directement l\'accueil, sans vidéo ni choix du profil.'],
+    ['Modifier l\'écran d\'accueil','Un seul endroit pour ajouter, déplacer et régler tes widgets : compteurs, montres, horloges, voiture, météo et petits widgets.'],
+    ['Plaques plus vraies','Plaque nette, lettres et département aux proportions d\'une vraie plaque.'],
+    ['Nom dans le cadre','Le nom de ta voiture se centre dans le cadre du showroom, et tu peux l\'ajuster (Ma voiture › Identité).'],
+    ['Profils','La création du profil prend tout l\'écran, avec de nouveaux boutons, et montre comment marche l\'Iron Scan.'],
     ['Voiture 3D corrigée','Sur certains postes la voiture n\'apparaissait pas (rectangle noir ou showroom vide) : elle s\'affiche maintenant partout.'],
     ['Plaque et enseigne','L\'aperçu de la plaque s\'affiche, ses boutons sont plus clairs, et le nom de ta voiture est bien centré dans son cadre sur tous les écrans.'],
     ['Personnaliser plus simple','Les widgets se déplacent au doigt sans accroc dans l\'aperçu, et la barre du bas (taille, opacité, retirer) est plus lisible.'],
@@ -3467,13 +3670,18 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   var DEMO={fuel:'54 L',volt:'13.8 V',ext:'18°',eng:'88 °C'};
   function applyDemo(){
     if(!demoOn)return;
-    Object.keys(DEMO).forEach(function(k){$$('[data-k="'+k+'"]').forEach(function(e){e.textContent=DEMO[k];e.classList.remove('na');e.dataset.demo='1';var r=e.closest('.vr');if(r)r.style.display=''})});
+    Object.keys(DEMO).forEach(function(k){(window.__kEls?window.__kEls(k):$$('[data-k="'+k+'"]')).forEach(function(e){e.textContent=DEMO[k];e.classList.remove('na');e.dataset.demo='1';var r=e.closest('.vr');if(r)r.style.display=''})});
     var set=function(id,t){var e=$(id);if(e)e.textContent=t};
     set('#spV','87');set('#tD','42.7');set('#tT','0:48');set('#tA','53');
     set('#wxT','21°');set('#wxC',T('Ensoleillé'));set('#wxF',T('Ressenti')+' 20°');set('#wxW',T('Vent')+' 12 km/h');set('#wxH',T('Humidité')+' 48%');
     set('#mT','Midnight Drive');set('#mA','Cockpit FM');
   }
-  setInterval(function(){applyMan();applyDemo()},900);
+  /* 3.2 : plus de minuterie de 900 ms : on réapplique seulement quand une valeur change vraiment
+     (saisie manuelle, mode démo, données voiture / OBD, GPS, météo) */
+  var reT=0;window.__reapply=function(){if(reT)return;reT=setTimeout(function(){reT=0;applyMan();applyDemo()},40)};
+  window.__reapply();
+  (function(){var sv=window.setVehicle;if(sv)window.setVehicle=function(){var r=sv.apply(this,arguments);window.__reapply();return r};
+    var sg=window.setGps;if(sg)window.setGps=function(){var r=sg.apply(this,arguments);if(demoOn)window.__reapply();return r}})();
   bindSw('#swDemo','demo','0',function(){demoOn=get('demo','0')==='1';if(!demoOn)location.reload();else applyDemo()});
 
   /* Essai guidé en trois bulles */
@@ -3617,7 +3825,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
   /* Ambiances météo animées */
   (function(){
-    var cv=$('#amb'),cx=cv.getContext('2d'),W=1280,H=720,P=[],kind='',lastK='';
+    /* 3.2 : canvas interne 640×360 agrandi en CSS, 15 i/s maximum, boucle arrêtée quand il n'y a rien à dessiner */
+    var cv=$('#amb');cv.width=640;cv.height=360;var cx=cv.getContext('2d'),W=1280,H=720,P=[],kind='',lastK='',run=0;cx.setTransform(.5,0,0,.5,0,0);
     function init(k){
       P=[];
       var i;
@@ -3628,7 +3837,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     }
     function pick(){
       var t=get('ambTest','');if(t)return t;
-      if(get('amb','on')!=='on'||get('anim','full')==='reduced')return '';
+      if(get('amb',window.__lite?'off':'on')!=='on'||get('anim','full')==='reduced')return '';
       if(!WX.loaded)return '';
       if(WX.cat==='rain'||WX.cat==='storm')return 'rain';
       if(WX.cat==='snow')return 'snow';
@@ -3637,7 +3846,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
       return '';
     }
     function frame(){
-      var pg=stage.getAttribute('data-page'),blocked=pg!=='home'||document.body.classList.contains('parked')||document.body.classList.contains('cine')||document.hidden;
+      var pg=stage.getAttribute('data-page'),blocked=pg!=='home'||document.body.classList.contains('parked')||document.body.classList.contains('cine')||document.body.classList.contains('inBg')||document.hidden;
       var k=blocked?'':pick();
       if(k!==lastK){lastK=k;init(k);cv.classList.toggle('on',!!k)}
       if(k){
@@ -3647,9 +3856,12 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
         else if(k==='fog'){P.forEach(function(d){d.x+=d.v;if(d.x-d.r>W)d.x=-d.r;var g=cx.createRadialGradient(d.x,d.y,0,d.x,d.y,d.r);g.addColorStop(0,'rgba(220,230,245,.17)');g.addColorStop(1,'rgba(220,230,245,0)');cx.fillStyle=g;cx.fillRect(d.x-d.r,d.y-d.r,d.r*2,d.r*2)})}
         else if(k==='stars'){P.forEach(function(d){d.a+=d.v;cx.fillStyle='rgba(255,255,255,'+(.35+.55*Math.abs(Math.sin(d.a)))+')';cx.beginPath();cx.arc(d.x,d.y,d.r,0,6.3);cx.fill()})}
       }
-      setTimeout(function(){requestAnimationFrame(frame)},k==='stars'?90:40);
+      if(!k){run=0;return}   /* rien à dessiner : la boucle s'arrête, relancée au changement de météo ou de page */
+      setTimeout(function(){requestAnimationFrame(frame)},k==='stars'?90:67);
     }
-    frame();
+    window.__ambKick=function(){if(run)return;run=1;frame()};
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)window.__ambKick()});
+    window.__ambKick();
   })();
 
   /* Salut intelligent */
@@ -3714,13 +3926,16 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     DIALKEYS.forEach(function(k){var b=document.createElement('button');b.setAttribute('data-k',k);b.innerHTML='<img src="dial_'+k+'.webp" alt="">';b.addEventListener('click',function(){put('dialK',k);put('dial','on');if(window.__dialShow)__dialShow();dialApply()});g.appendChild(b)});
   })();
   $$('[data-cs="dial"] button').forEach(function(b){b.addEventListener('click',function(){put('dial',b.getAttribute('data-val'));dialApply()})});
-  var dLast=0;
+  var dLast=0,dvE=null,ndE=null,doE=null,spE=null,csE=null,dLv=-1,dLo='';
   setInterval(function(){
-    var v=parseFloat($('#spV').textContent);if(!isFinite(v))v=0;
-    $('#dV').textContent=String(Math.round(v));
-    var mx=get('dialMax','260');var f=Math.max(0,Math.min(1,v/(UNIT==='imperial'?160:260)));
-    $('#ndl').style.transform='translate(200px,200px) rotate('+(-124+248*f)+'deg)';
-    $('#dO').textContent=odoVal().toLocaleString(locale()).replace(/,/g,' ')+(UNIT==='imperial'?' mi':' km');
+    if(!window.__homeLive())return;
+    if(!dvE){dvE=$('#dV');ndE=$('#ndl');doE=$('#dO');spE=$('#spV');csE=$('#cardS')}
+    if(get('dial','off')!=='on'||(csE&&csE.classList.contains('wHide')))return;   /* cadran non affiché : rien à faire */
+    var v=parseFloat(spE.textContent);if(!isFinite(v))v=0;v=Math.round(v);
+    if(v!==dLv){dLv=v;dvE.textContent=String(v);
+      var f=Math.max(0,Math.min(1,v/(UNIT==='imperial'?160:260)));
+      ndE.style.transform='translate(200px,200px) rotate('+(-124+248*f)+'deg)'}
+    var o=odoVal();if(o!==dLast||!dLo){dLast=o;var t=o.toLocaleString(locale()).replace(/,/g,' ')+(UNIT==='imperial'?' mi':' km');if(t!==dLo){dLo=t;doE.textContent=t}}
   },350);
   function numPrompt(title,hint,cur,cb){
     infoOpen(title,'<div class="note" style="font-size:18px">'+T(hint)+'</div><input id="numIn" class="vIn" type="number" inputmode="numeric" value="'+cur+'" style="width:100%;margin-top:6px">',
@@ -3803,7 +4018,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   }
   var _sg5=window.setGps;
   window.setGps=function(kmh,b,alt){_sg5(kmh,b,alt);window.__brg=b;window.__spd=kmh;if(kmh>(parseFloat(get('vmax','0'))||0))put('vmax',String(Math.round(kmh)))};
-  setInterval(cwUpdate,500);
+  setInterval(function(){if(cws.length&&window.__homeLive())cwUpdate()},500);
   cws.forEach(cwBuild);
   Object.keys(STDW).forEach(wApply);
 
@@ -3917,7 +4132,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   $('#hbPark').addEventListener('click',function(e){e.stopPropagation();revOn=true;revAt=Date.now();$('#rev').classList.add('on')});
   window.setRadar=function(a){/* a = [gauche,centre-gauche,centre-droit,droite] de 0 (loin) à 3 (très près) */
     $$('#rev .arc').forEach(function(e,i){e.setAttribute('data-l',a&&a[i]!==undefined?a[i]:0)})};
-  setInterval(function(){var o=odo();if(o!==null){var t=Math.round(UNIT==='imperial'?o*.621:o).toLocaleString(locale()).replace(/,/g,' ')+(UNIT==='imperial'?' mi':' km');$$('[data-k="odoK"]').forEach(function(e){if(e.dataset.man!=='1'){e.textContent=t;e.classList.remove('na')}})}},2000);
+  var odoLast='';
+  setInterval(function(){if(document.hidden||document.body.classList.contains('inBg'))return;var o=odo();if(o!==null){var t=Math.round(UNIT==='imperial'?o*.621:o).toLocaleString(locale()).replace(/,/g,' ')+(UNIT==='imperial'?' mi':' km');if(t===odoLast)return;odoLast=t;window.__kEls('odoK').forEach(function(e){if(e.dataset.man!=='1'){e.textContent=t;e.classList.remove('na')}})}},2000);
 
   /* historique des trajets */
   function trips(){try{return JSON.parse(get('trips','[]'))||[]}catch(e){return[]}}
@@ -4029,7 +4245,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   [["Profil","Profile"],["Sélectionnez votre utilisateur","Select your user"],["Ajouter un profil","Add a profile"],["Invité","Guest"],["Entre ton code","Enter your code"],["Maintiens ton doigt","Hold your finger"],["Analyse en cours…","Scanning…"],["Code incorrect","Wrong code"],["Volant","Steering wheel"],["Couleur du halo","Halo color"],["Verrouillage","Lock"],["Aucun","None"],["Code","Code"],["Iron Scan","Iron Scan"],["Prénom ou nom","Name"],["Enregistrer","Save"],["Supprimer","Delete"],["Annuler","Cancel"],["Changer de profil","Switch profile"],["Mon profil","My profile"],["Profils","Profiles"],["Gérer les profils","Manage profiles"],["Code à 4 chiffres","4-digit code"],["Choisis un code à 4 chiffres","Pick a 4-digit code"],["Message d'accueil","Welcome message"],["Voir le message","Preview"],["Remettre par défaut","Reset"]].forEach(function(r){TR[r[0]]={en:r[1]}});
   [["Ton compteur","Your speedometer"],["Ta météo","Your weather"],["Ton horloge","Your clock"],["Ta montre","Your watch"],["Ta voiture","Your car"],["Feux éteints : allume les feux de croisement","Lights off: switch on the dipped beams"],["Les feux sont éteints au départ. Allume les feux de croisement, puis appuie sur « C'est fait ».","Lights start off. Switch on the dipped beams, then tap “Done”."],["Allume les feux de route","Switch on the high beams"],["Allume les feux de route, puis appuie sur « C'est fait ».","Switch on the high beams, then tap “Done”."],["Éteins les feux","Switch the lights off"],["Éteins-les, puis appuie sur « C'est fait ».","Switch them off, then tap “Done”."],["Feux de route","High beams"],["Allume les warnings","Switch on the hazard lights"],["Éteins les warnings","Switch off the hazard lights"],["Warnings","Hazard lights"],["Appuie sur le bouton des warnings, puis sur « C'est fait ».","Press the hazard button, then tap “Done”."],["Volant choisi","Wheel chosen"],["Plus petit","Smaller"],["Plus grand","Bigger"],["Aucun","None"],["Choisis ton compteur de vitesse.","Pick your speedometer."],["Choisis un widget météo. Il s'ajoute sur l'accueil.","Pick a weather widget. It is added to the home screen."],["Choisis une horloge : elle remplace l'heure en haut à gauche.","Pick a clock: it replaces the time at the top left."],["Choisis une montre. Elle s'ajoute sur l'accueil.","Pick a watch. It is added to the home screen."],["Choisis un widget voiture. Il s'ajoute sur l'accueil.","Pick a car widget. It is added to the home screen."],["Tu pourras tout déplacer et changer la taille avec le bouton de modification de l'accueil.","You can move everything and resize it with the home edit button."],["Voiture 3D","3D car"],["Voiture 3D sur l'accueil","3D car on the home screen"],["Ta Golf en 3D dans un showroom. Elle tourne, ses portes s'ouvrent avec les vraies et la vue plonge dans l'habitacle sur la page Véhicule.","Your car in 3D in a showroom. It turns, its doors open with the real ones and the view dives into the cabin on the Vehicle page."],["Couleur de la voiture 3D","3D car colour"],["Warnings sur la voiture 3D","Hazard lights on the 3D car"],["Les clignotants de la 3D clignotent. Ils suivent aussi les vrais si ton poste les détecte.","The 3D indicators blink. They also follow the real ones if your unit detects them."],["Crédits","Credits"],["Touche un élément dans l'aperçu pour le déplacer","Tap an item in the preview to move it"],["Widget voiture","Car widget"],["Montre","Watch"],["Horloge","Clock"],["Aperçu en direct","Live preview"],["Couleur des icônes","Icon colour"],["Change le bleu des icônes et des boutons","Changes the blue of icons and buttons"],["Opacité","Opacity"],["Assistant plus simple","Simpler wizard"],["Fermer","Close"],["Passer","Skip"],["Effacer","Clear"]].forEach(function(r){if(!TR[r[0]])TR[r[0]]={en:r[1]}});
   if(LANG!=='fr')trTree(document.body);
-  var PF_KEYS=['tiles','theme','fs','dialK','dial','smTitle','smLine1','smLine2','smart','snd','brand','prenom','mood','font','cws','wpos','dsz','lay','amb','big','hc','acc','mode','style','anim','cardOp','fclk','fall','radC','radCar','radS','m3d','m3dWarn','m3dAuto','icHue','wgL','wgR','wgS','wgT','wgM','wgLt','wg','sunOn','nf','df','lN','lD','ice','brk','brkH','sa','saV','beep','revOv','vOn','vVol','lang','unit','clk','sroomN','sroomJ','m3dCol','plStyle','plNum','plDep','radN','radU','m3dCar'];
+  var PF_KEYS=['tiles','theme','fs','dialK','dial','smTitle','smLine1','smLine2','smart','snd','brand','prenom','mood','font','cws','wpos','dsz','lay','amb','big','hc','acc','mode','style','anim','cardOp','fclk','fall','radC','radCar','radS','m3d','m3dWarn','m3dAuto','icHue','wgL','wgR','wgS','wgT','wgM','wgLt','wg','sunOn','nf','df','lN','lD','ice','brk','brkH','sa','saV','beep','revOv','vOn','vVol','lang','unit','clk','sroomN','sroomJ','m3dCol','plStyle','plNum','plDep','radN','radU','m3dCar','signX','signY','signS'];
   var PF_HALO=['46,142,255','60,220,120','190,90,255','255,74,74','255,154,46','255,210,60','55,224,224','255,255,255'];
   function pfList(){try{var a=JSON.parse(get('profiles','[]'));return a instanceof Array?a:[]}catch(e){return[]}}
   function pfSave(a){put('profiles',JSON.stringify(a))}
@@ -4054,7 +4270,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(pfMode==='manage')h=h.replace('<div class="sub">'+T('Sélectionnez votre utilisateur')+'</div>','<div class="sub">'+T('Touche un profil pour le modifier ou le supprimer')+'</div>');
     o.innerHTML=h+'</div>';o.classList.add('on');
     $$('#prof .pcard').forEach(function(c){c.addEventListener('click',function(){var id=c.getAttribute('data-id');if(id==='+')pfEditor({id:'p'+Date.now().toString(36),name:'',wheel:('0'+Math.floor(Math.random()*27)).slice(-2),halo:PF_HALO[0],lock:'none',code:''},true);else if(pfMode==='manage'){var pp=pfById(id);if(pp&&(pp.lock==='code'||pp.lock==='scan')){pfAfter=function(){pfEditor(pp,false)};if(pp.lock==='code')pfCode(pp);else pfScan(pp)}else pfEditor(pp,false)}else pfChoose(id)})});
-    var cl=$('#pClose');if(cl)cl.addEventListener('click',function(){o.classList.remove('on');try{sessionStorage.setItem('profOk','1')}catch(e){}});
+    var cl=$('#pClose');if(cl)cl.addEventListener('click',function(){o.classList.remove('on');try{localStorage.setItem('profOk','1')}catch(e){}});
     var gr=$('#pGear');if(gr)gr.addEventListener('click',function(){if(pfMode==='manage'){pfShow(pfBackMode)}else{pfBackMode=pfMode;pfShow('manage');pfGearFrom=true;pfShow('manage')}});
   }
   var pfBackMode='pick',pfAfter=null,pfGearFrom=false;
@@ -4092,9 +4308,9 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   var pfSnapKeys=function(){var o={__v:2};PF_KEYS.forEach(function(k){var v=localStorage.getItem(k);if(v!==null)o[k]=v});return o};
   function pfEnter(p){
     if(pfAfter){var f=pfAfter;pfAfter=null;return f()}
-    try{sessionStorage.setItem('profOk','1')}catch(e){}
+    try{localStorage.setItem('profOk','1')}catch(e){}
     var cur=get('profCur','');
-    try{if(cur===p.id)window.__greet();else sessionStorage.setItem('greetNext','1')}catch(e){}
+    try{if(cur===p.id)window.__greet();else localStorage.setItem('greetNext','1')}catch(e){}
     if(cur&&cur!==p.id&&cur!=='guest')put('pfSnap_'+cur,JSON.stringify(pfSnapKeys()));
     if(cur===p.id){put('wheel',p.wheel);$('#prof').classList.remove('on');return}
     put('profCur',p.id);put('wheel',p.wheel);put('profHalo',p.halo);
@@ -4108,10 +4324,11 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     function draw(){
       var wh='';for(var i=0;i<27;i++){var n=('0'+i).slice(-2);wh+='<img data-w="'+n+'" class="'+(w.wheel===n?'on':'')+'" src="wheels/w'+n+'.webp">'}
       var sw=PF_HALO.map(function(c){return '<i data-c="'+c+'" class="'+(w.halo===c?'on':'')+'" style="background:rgb('+c+');color:rgb('+c+')"></i>'}).join('');
-      o.innerHTML=pfBackBtn()+'<div class="pPanel pEd" style="--h:'+w.halo+'">'+pfImg(w,'pBig')+'<div class="lab">'+T('Prénom ou nom')+'</div><input type="text" id="pfName" maxlength="14" value="'+esc(w.name)+'" autocomplete="off"><div class="lab">'+T('Volant')+'</div><div class="mw">'+wh+'</div><div class="lab">'+T('Couleur du halo')+'</div><div class="hsw">'+sw+'</div><div class="lab">'+T('Verrouillage')+'</div><div class="seg">'+[['none','Aucun'],['code','Code'],['scan','Iron Scan']].map(function(x){return '<span data-l="'+x[0]+'" class="'+(w.lock===x[0]?'on':'')+'">'+T(x[1])+'</span>'}).join('')+'</div>'+(w.lock==='code'?'<div class="lab">'+T('Choisis un code à 4 chiffres')+'</div><input type="text" id="pfCode" inputmode="numeric" maxlength="4" value="'+esc(w.code||'')+'">':'')+'<div class="btns">'+(isNew?'':'<button class="d" id="pfDel">'+T('Supprimer')+'</button>')+'<button class="p" id="pfOk">'+T('Enregistrer')+'</button></div></div>';
+      o.innerHTML=pfBackBtn()+'<div class="pPanel pEd pWide" style="--h:'+w.halo+'"><div class="pC1">'+pfImg(w,'pBig')+'<div class="lab">'+T('Prénom ou nom')+'</div><input type="text" id="pfName" maxlength="14" value="'+esc(w.name)+'" autocomplete="off"><div class="lab">'+T('Volant')+'</div><div class="mwBox"><div class="mw">'+wh+'</div><div class="mwMore"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'+T('Encore des volants : fais glisser')+'</div></div></div><div class="pC2"><div class="lab">'+T('Couleur du halo')+'</div><div class="hsw">'+sw+'</div><div class="lab">'+T('Verrouillage')+'</div><div class="seg">'+[['none','Aucun'],['code','Code'],['scan','Iron Scan']].map(function(x){return '<span data-l="'+x[0]+'" class="'+(w.lock===x[0]?'on':'')+'"><svg viewBox="0 0 24 24">'+({none:'<path d="M7 11V7a5 5 0 0 1 9.6-2"/><rect x="4" y="11" width="16" height="10" rx="2.5"/>',code:'<circle cx="6" cy="6" r="1.4"/><circle cx="12" cy="6" r="1.4"/><circle cx="18" cy="6" r="1.4"/><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/><circle cx="12" cy="18" r="1.4"/>',scan:'<path d="M12 11v3a8 8 0 0 1-1.5 5"/><path d="M8.5 9.5a4 4 0 0 1 7 2.5v2a12 12 0 0 1-.6 3.6"/><path d="M5.6 7.5A7 7 0 0 1 19 12v1.5"/><path d="M5 12v2a8 8 0 0 0 .7 3.3"/>'})[x[0]]+'</svg>'+T(x[1])+'</span>'}).join('')+'</div>'+(window.__scDemo?window.__scDemo(w.lock):'')+(w.lock==='code'?'<div class="lab">'+T('Choisis un code à 4 chiffres')+'</div><input type="text" id="pfCode" inputmode="numeric" maxlength="4" value="'+esc(w.code||'')+'">':'')+'<div class="btns">'+(isNew?'':'<button class="d" id="pfDel"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/></svg>'+T('Supprimer')+'</button>')+'<button class="p" id="pfOk"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'+T('Enregistrer')+'</button></div></div></div>';
       $('#pBk').addEventListener('click',function(){pfAfter=null;pfShow(pfMode)});
       $('#pfName').addEventListener('input',function(){w.name=this.value});
       $$('#prof .mw img').forEach(function(i){i.addEventListener('click',function(){w.wheel=i.getAttribute('data-w');draw()})});
+      (function(){var m=$('#prof .mw'),h=$('#prof .mwMore');if(!m||!h)return;function u(){var fin=m.scrollTop+m.clientHeight>=m.scrollHeight-6;h.classList.toggle('fin',fin);m.classList.toggle('fin',fin)}m.addEventListener('scroll',u,{passive:true});var on=m.querySelector('img.on');if(on&&on.offsetTop>m.clientHeight-40)m.scrollTop=on.offsetTop-m.clientHeight/2+48;u();setTimeout(u,300)})();
       $$('#prof .hsw i').forEach(function(i){i.addEventListener('click',function(){w.halo=i.getAttribute('data-c');draw()})});
       $$('#prof .seg span').forEach(function(i){i.addEventListener('click',function(){w.lock=i.getAttribute('data-l');draw()})});
       var pc=$('#pfCode');if(pc)pc.addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,4);w.code=this.value});
@@ -4140,14 +4357,14 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   };
   /* au démarrage */
   (function(){
-    var a=pfList(),shown=false;try{shown=sessionStorage.getItem('profOk')==='1'}catch(e){}
-    try{if(sessionStorage.getItem('greetNext')==='1'){sessionStorage.removeItem('greetNext');window.__greet()}else if(get('setup','0')==='1'&&!a.length&&window.__fresh)window.__greet()}catch(e){}
+    var a=pfList(),shown=false;try{shown=localStorage.getItem('profOk')==='1'}catch(e){}
+    try{if(localStorage.getItem('greetNext')==='1'){localStorage.removeItem('greetNext');window.__greet()}else if(get('setup','0')==='1'&&!a.length&&window.__fresh)window.__greet()}catch(e){}
     if(get('setup','0')==='1'&&a.length&&!shown)pfShow('pick');
     var cc=$('#ccProf');if(cc)cc.addEventListener('click',function(){ccClose();if(!pfList().length){toast('Crée un profil dans Réglages › Profils');return}pfShow('pick')});
     var mg=$('#profManage');if(mg)mg.addEventListener('click',function(){pfShow('manage')});
   })();
   /* à chaque remise du contact (écran du poste rallumé après une coupure) : choix du profil */
-  window.onPowerOn=function(){try{sessionStorage.removeItem('profOk')}catch(e){}if(get('setup','0')==='1'&&pfList().length){try{go('home')}catch(e){}pfShow('pick')}else if(get('setup','0')==='1')window.__greet()};
+  window.onPowerOn=function(){try{localStorage.removeItem('profOk')}catch(e){}if(get('setup','0')==='1'&&pfList().length){try{go('home')}catch(e){}pfShow('pick')}else if(get('setup','0')==='1')window.__greet()};
   /* astuce centre de contrôle */
   (function(){
     var n=parseInt(get('hintN','0'),10)||0,h=$('#ccHint');if(!h)return;
@@ -4158,7 +4375,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   /* ===== Styles v1.9 : compteurs, montres, horloges, widgets voiture et météo ===== */
   (function(){
   var NS='http://www.w3.org/2000/svg';
-  [["Personnaliser","Customize"],["Compteurs","Speedometers"],["Montres","Watches"],["Horloges","Clocks"],["Voiture","Car"],["Météo","Weather"],["Retirer","Remove"],["Radar","Radar"],["Génériques","Generic"],["Marques","Brands"],["Anciens","Classic"],["Choisis un style, il s'applique tout de suite sur l'accueil.","Pick a style, it applies right away on the home screen."],["Pas de donnée sur ton poste","No data from your unit"],["Style du radar","Radar style"],["Couleur","Color"]].forEach(function(r){if(!TR[r[0]])TR[r[0]]={en:r[1]}});
+  [["Terminé","Done"],["Autres","More"],["Autres widgets","More widgets"],["Petits widgets","Small widgets"],["Widgets retirés","Removed widgets"],["Tout remettre","Reset all"],["Écran d'accueil d'origine","Original home screen"],["Touche encore pour confirmer","Tap again to confirm"],["Simple","Simple"],["Compteur simple","Simple speedometer"],["Ajouté : glisse-le où tu veux dans l'aperçu","Added: drag it anywhere in the preview"],["Modifier l'écran d'accueil","Edit the home screen"],["Choisis un widget à gauche","Pick a widget on the left"],["Glisse-le dans l'aperçu","Drag it in the preview"],["Règle sa taille en bas","Set its size below"],["Nom dans le cadre","Name in the frame"],["Ajuster","Adjust"],["Réglé à la main","Set by hand"],["Centré automatiquement","Centered automatically"],["Place le nom dans le cadre","Place the name in the frame"],["Taille","Size"],["Centrer","Center"],["Personnaliser","Customize"],["Compteurs","Speedometers"],["Montres","Watches"],["Horloges","Clocks"],["Voiture","Car"],["Météo","Weather"],["Retirer","Remove"],["Radar","Radar"],["Génériques","Generic"],["Marques","Brands"],["Anciens","Classic"],["Choisis un style, il s'applique tout de suite sur l'accueil.","Pick a style, it applies right away on the home screen."],["Pas de donnée sur ton poste","No data from your unit"],["Style du radar","Radar style"],["Couleur","Color"]].forEach(function(r){if(!TR[r[0]])TR[r[0]]={en:r[1]}});
   /* ---------- Compteurs ---------- */
   var SG=[ // nom, fond1, fond2, bague, graduations, chiffres, arc, aiguille, texte
    ['Noir classique','#1d222b','#07090c','#8b94a3','#ffffff','#ffffff','','#ff3b30','#ffffff'],
@@ -4441,7 +4658,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
   /* ---------- Fenêtre « Personnaliser » : aperçu direct sur l'accueil ---------- */
   var persTab='dial',persEl=null;
-  var TABS=[['dial','Compteurs'],['wt','Montres'],['dk','Horloges'],['cw','Voiture'],['wx','Météo'],['rad','Radar']];
+  var TABS=[['dial','Compteurs'],['wt','Montres'],['dk','Horloges'],['cw','Voiture'],['wx','Météo'],['plus','Autres'],['rad','Radar']];
   function styPlace(g,i){
     var id='cwp_'+g,c=null;cws.forEach(function(x){if(x.id===id)c=x});
     if(c){c.g=g;c.i=i;var e=wEl(id);if(e){e.innerHTML=styHTML(g,i);e.setAttribute('data-h','')}}
@@ -4461,16 +4678,27 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   function persDraw(){
     var o=persEl,row=o.querySelector('.pRow');row.innerHTML='';
     $$('.pTabs button',o).forEach(function(b){b.classList.toggle('on',b.getAttribute('data-t')===persTab)});
-    var rm=o.querySelector('#pRm');var tt=o.querySelector('#pTitle');TABS.forEach(function(t){if(t[0]===persTab)tt.textContent=T(t[1])});if(window.__wSetSel&&!window.__wSelId)window.__wSetSel('');
+    var rm=o.querySelector('#pRm');var tt=o.querySelector('#pTitle');TABS.forEach(function(t){if(t[0]===persTab)tt.textContent=persTab==='plus'?T('Autres widgets'):T(t[1])});if(window.__wSetSel&&!window.__wSelId)window.__wSetSel('');
     if(persTab==='dial'){
       var cur=get('dial','off')==='on'?get('dialK','a0'):'';
       function sec(t){var h=document.createElement('div');h.className='pSec';h.textContent=T(t);row.appendChild(h)}
       function it(k,src,label,logo){var b=document.createElement('button');b.className='pIt'+(cur===k?' on':'');b.innerHTML='<img src="'+src+'" alt="">'+(logo?'<img class="pLg" src="brands/'+logo+'.webp" alt="">':'')+'<small>'+label+'</small>';b.addEventListener('click',function(){put('dialK',k);put('dial','on');if(window.__dialShow)__dialShow();dialApply();persDraw()});row.appendChild(b)}
       var myB=(BN[get('brand','')]||'').toLowerCase();
       var bk=Object.keys(SPD).filter(function(k){return SPD[k].g==='b'}).sort(function(a,b){return (myB&&SPD[b].n.toLowerCase().indexOf(myB)===0)-(myB&&SPD[a].n.toLowerCase().indexOf(myB)===0)});
+      sec('Simple');(function(){var b=document.createElement('button');b.className='pIt pSimple'+(get('dial','off')!=='on'?' on':'');b.innerHTML='<span class="pBig">88<em>km/h</em></span><small>'+T('Compteur simple')+'</small>';b.addEventListener('click',function(){put('dial','off');dialApply();if(window.__dialShow)__dialShow();persDraw()});row.appendChild(b)})();
       sec('Marques');bk.forEach(function(k){it(k,SPD[k].f,SPD[k].n)});
       sec('Génériques');Object.keys(SPD).forEach(function(k){if(SPD[k].g==='g')it(k,SPD[k].f,SPD[k].n)});
       sec('Anciens');DIALKEYS.forEach(function(k){it(k,'dial_'+k+'.webp',k.toUpperCase())});
+    }else if(persTab==='plus'){
+      var IC={clock:'🕒',compass:'🧭',note:'📝',chrono:'⏱️',vmax:'🏁'},h='<div class="pSec">'+T('Petits widgets')+'</div>';
+      Object.keys(CWT).forEach(function(k){if(k!=='sty')h+='<button class="pIt pAdd" data-add="'+k+'"><span class="pEm">'+(IC[k]||'＋')+'</span><small>'+T(CWT[k][0])+'</small><i class="pPlus">+</i></button>'});
+      var hid=Object.keys(STDW).filter(function(id){return wpos[id]&&wpos[id].h});
+      if(hid.length){h+='<div class="pSec">'+T('Widgets retirés')+'</div>';hid.forEach(function(id){h+='<button class="pIt pAdd" data-back="'+id+'"><span class="pEm">↩</span><small>'+T(STDW[id][0])+'</small><i class="pPlus">+</i></button>'})}
+      h+='<div class="pSec">'+T('Tout remettre')+'</div><button class="pIt pAdd pReset" id="pReset"><span class="pEm">⟲</span><small>'+T('Écran d\'accueil d\'origine')+'</small></button>';
+      row.innerHTML=h;
+      $$('[data-add]',row).forEach(function(b){b.addEventListener('click',function(){var t=b.getAttribute('data-add'),c={id:'cw'+Date.now(),t:t,x:560+(cws.length%4)*20,y:250+(cws.length%4)*20};cws.push(c);cwBuild(c);cwUpdate();wSave();if(window.__wSetSel)window.__wSetSel(c.id);toast('Ajouté : glisse-le où tu veux dans l\'aperçu');persDraw()})});
+      $$('[data-back]',row).forEach(function(b){b.addEventListener('click',function(){var id=b.getAttribute('data-back'),o=wEnsure(id);delete o.h;wApply(id);wSave();if(window.__wSetSel)window.__wSetSel(id);persDraw()})});
+      var rs=row.querySelector('#pReset');rs.addEventListener('click',function(){if(!rs.classList.contains('sure')){rs.classList.add('sure');rs.querySelector('small').textContent=T('Touche encore pour confirmer');return}$('#edReset').click();if(window.__wSetSel)window.__wSetSel('');persDraw()});
     }else if(persTab==='rad'){
       var RC=['46,142,255','60,220,120','255,74,74','255,154,46','255,210,60','190,90,255','255,255,255','55,224,224'];
       var CN=['Citadine','Compacte','Berline','Break','SUV','Premium','Coupé','Cabriolet','Sportive','Utilitaire','4x4','Camping-car'];
@@ -4496,8 +4724,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   function persOpen(tab){
     if(!persEl){
       persEl=document.createElement('div');persEl.id='pers';
-      var TI={dial:'b10',wt:'c41',dk:'b01',cw:'c12',wx:'c42',rad:'b14'};
-      persEl.innerHTML='<div class="pRail pTabs">'+TABS.map(function(t){return '<button data-t="'+t[0]+'"><img src="ic/'+TI[t[0]]+'.webp" alt=""><span>'+T(t[1])+'</span></button>'}).join('')+'<button data-more="1" class="pMore"><img src="ic/a30.webp" alt=""><span>'+T('Autres réglages')+'</span></button></div><div class="pMain"><div class="pTop"><b id="pTitle"></b><button id="pOk" class="pClose" aria-label="'+T('Fermer')+'">✕</button></div><div class="pRow"></div><div class="pBt"><span id="pSel"></span><label class="pOp">'+T('Opacité')+'<input type="range" id="pOpR" min="20" max="100" step="5" value="100" disabled></label><button id="pMn" class="pX">−</button><button id="pPl" class="pX">+</button><button id="pRm" class="pX">'+T('Retirer')+'</button></div></div>';
+      var TI={dial:'b10',wt:'c41',dk:'b01',cw:'c12',wx:'c42',plus:'a30',rad:'b14'};
+      persEl.innerHTML='<div class="pRail pTabs">'+TABS.map(function(t){return '<button data-t="'+t[0]+'"><img src="ic/'+TI[t[0]]+'.webp" alt=""><span>'+T(t[1])+'</span></button>'}).join('')+'<button data-more="1" class="pMore"><img src="ic/a01.webp" alt=""><span>'+T('Autres réglages')+'</span></button></div><div class="pMain"><div class="pTop"><b id="pTitle"></b><button id="pOk" class="pDone">'+T('Terminé')+'</button></div><div class="pRow"></div><div class="pBt"><span id="pSel"></span><label class="pOp">'+T('Opacité')+'<input type="range" id="pOpR" min="20" max="100" step="5" value="100" disabled></label><button id="pMn" class="pX">−</button><button id="pPl" class="pX">+</button><button id="pRm" class="pX">'+T('Retirer')+'</button></div></div>';
       stage.appendChild(persEl);
       persEl.querySelector('.pMore').addEventListener('click',function(e){e.stopPropagation();if(window.__wSetSel)window.__wSetSel('');persEl.classList.remove('on');document.body.classList.remove('persOn');radDemo(true);window.__persList=true;go('menu:perso')});
       $$('.pTabs button:not(.pMore)',persEl).forEach(function(b){b.addEventListener('click',function(){persTab=b.getAttribute('data-t');persDraw();if(persTab==='rad')radDemo()})});
@@ -4549,7 +4777,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
         else if(a==='bg'){var i=parseInt(o.i,10);if(!(i>=0&&i<19))return {ok:false};if(o.w==='prof'){put('profBg','fond_lib'+i+'.webp');profBgApply();toast('Fond des profils changé')}else if(A&&A.useLibBg)A.useLibBg('fond_lib'+i+'.webp',o.w==='lock'?'lock':'home')}
         else if(a==='w'){var id=o.id;if(!wEl(id))return {ok:false};var w=wEnsure(id);if(o.x!=null){w.x=Math.max(-100,Math.min(1200,Math.round(o.x)));w.y=Math.max(0,Math.min(680,Math.round(o.y)))}if(o.ds)w.s=Math.max(.4,Math.min(1.8,Math.round(((w.s||1)+o.ds)*10)/10));if(o.op!=null)w.op=Math.max(.2,Math.min(1,o.op));if(o.h!=null)w.h=o.h?1:0;wApply(id);wSave()}
         else if(a==='profile'){var p={id:o.id||('p'+Date.now().toString(36)),name:String(o.name||'').slice(0,14),wheel:/^\d\d$/.test(o.wheel)?o.wheel:'00',halo:PF_HALO.indexOf(o.halo)>=0?o.halo:PF_HALO[0],lock:o.lock==='code'&&/^\d{4}$/.test(o.code||'')?'code':o.lock==='scan'?'scan':'none',code:/^\d{4}$/.test(o.code||'')?o.code:''};
-          pfStore(p);put('profCur',p.id);put('wheel',p.wheel);put('profHalo',p.halo);try{sessionStorage.setItem('profOk','1')}catch(e){}
+          pfStore(p);put('profCur',p.id);put('wheel',p.wheel);put('profHalo',p.halo);try{localStorage.setItem('profOk','1')}catch(e){}
           if(p.name&&vP){vP.value=p.name;vP.dispatchEvent(new Event('input'))}if(window.__wizPren)__wizPren(p.name);return {ok:true,id:p.id}}
         else if(a==='home'){if(window.goHome)goHome()}
         else if(a==='done'){put('phoneDone','1');toast('Configuration du téléphone terminée')}
@@ -4697,7 +4925,7 @@ function p(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 var loading=false,COLS=['#c9cdd3','#f2f3f5','#1b1d22','#5d636c','#1f4fa8','#b3121b','#0f5d3a'];
 function load(src,cb){var e=document.createElement('script');e.src=src;e.onload=function(){cb()};e.onerror=function(){cb()};document.body.appendChild(e)}
 function apply(){var hasC=!!(window.CockpitLook&&CockpitLook.car&&CockpitLook.car());var on=g('m3d','0')==='1'&&hasC;if(window.__homeCard)setTimeout(window.__homeCard,0);document.body.classList.toggle('m3dOn',on);if(window.__o3paint)setTimeout(window.__o3paint,0);var want=g('m3d','0')==='1';var sw=document.getElementById('swM3d');if(sw)sw.classList.toggle('on',want);var b3=document.getElementById('m3b3d');if(b3)b3.classList.toggle('on',want);if(!on){window.__m3dExp=false;['m3bExp','m3bIn'].forEach(function(i){var e=document.getElementById(i);if(e)e.classList.remove('on')})}
-  if(on){if(window.M3DV)M3DV.start();else if(!loading){loading=true;var L=['m3d/m3p.js'];(function nx(){if(!L.length){loading=false;if(window.M3DV&&g('m3d','0')==='1')M3DV.start();return}load(L.shift(),nx)})()}}
+  if(on){if(window.M3DV)M3DV.start();else if(!loading&&window.__introGate&&window.__introGate(apply)){}else if(!loading){loading=true;var L=['m3d/m3p.js'];(function nx(){if(!L.length){loading=false;if(window.M3DV&&g('m3d','0')==='1')M3DV.start();return}load(L.shift(),nx)})()}}
   else if(window.M3DV)M3DV.stop()}
 window.m3dApply=apply;
 var sww=document.getElementById('swM3dW');function dw(){if(sww)sww.classList.toggle('on',g('m3dWarn','0')==='1')}if(sww)sww.addEventListener('click',function(){p('m3dWarn',g('m3dWarn','0')==='1'?'0':'1');dw()});dw();
@@ -4760,7 +4988,7 @@ var b3=document.getElementById('m3b3d');if(b3)b3.addEventListener('click',functi
     var opts=LK.DEPS.map(function(x){return '<option value="'+x.d+'"'+(x.d===LK.plateDep()?' selected':'')+'>'+x.d+' · '+x.r+'</option>'}).join('');
     window.__infoOpen(TT('Plaque d\'immatriculation'),
       '<div class="plSeg" id="plSt"><button data-s="bleue">'+TT('Bleue')+'</button><button data-s="noire">'+TT('Noire')+'</button><button data-s="masquee">'+TT('Masquée')+'</button></div>'+
-      '<canvas id="plPrev" width="520" height="174"></canvas>'+
+      '<canvas id="plPrev" width="1040" height="348"></canvas>'+
       '<div class="plRow"><input class="vIn" id="plNum" type="text" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="AB-123-CD" value="'+String(g('plNum','')||'').replace(/[^A-Z0-9-]/g,'')+'"><span class="plOk" id="plOk"></span></div>'+
       '<div class="plRow"><select class="vIn" id="plDep"><option value="">'+TT('Aucun département')+'</option>'+opts+'</select></div>');
     function seg(){[].forEach.call(document.querySelectorAll('#plSt button'),function(b){b.classList.toggle('on',b.getAttribute('data-s')===LK.plateStyle())})}
@@ -4805,12 +5033,12 @@ var ba=document.getElementById('m3bAuto');function da(){if(ba)ba.classList.toggl
 
 apply();
 /* voiture 3D préchargée en fond : le bouton 3D l'affiche tout de suite */
-setTimeout(function(){if(!window.M3DV&&!loading){loading=true;load('m3d/m3p.js',function(){loading=false;if(window.M3DV&&g('m3d','0')==='1')M3DV.start()})}},1200);
+if(g('m3d','0')==='1')(window.__afterIntro||function(f){f()})(function(){setTimeout(function(){if(!window.M3DV&&!loading&&g('m3d','0')==='1'){loading=true;load('m3d/m3p.js',function(){loading=false;if(window.M3DV&&g('m3d','0')==='1')M3DV.start()})}},1500)});
 })();</script>
 <script>(function(){var st=document.getElementById('stage'),hw=document.createElement('div');hw.id='hw';
 var ids=['bg','scrim','amb','p-home','top','lights','pill','tiles','homebar','smart','parkBig','edBtn','rev','brk'];
 var first=document.getElementById('bg');st.insertBefore(hw,first);ids.forEach(function(id){var e=document.getElementById(id);if(e)hw.appendChild(e)});Array.prototype.forEach.call(st.querySelectorAll(':scope>.gc.cw'),function(e){hw.appendChild(e)});
-var l=document.createElement('div');l.id='persLbl';l.innerHTML='Aperçu en direct<small>Ton écran d\'accueil se met à jour à chaque choix</small>';st.appendChild(l);
+var l=document.createElement('div');l.id='persLbl';l.innerHTML='<span class="plT">'+(window.T?T('Modifier l\'écran d\'accueil'):'Modifier l\'écran d\'accueil')+'</span><span class="plS"><i>1</i>'+(window.T?T('Choisis un widget à gauche'):'Choisis un widget à gauche')+'<i>2</i>'+(window.T?T('Glisse-le dans l\'aperçu'):'Glisse-le dans l\'aperçu')+'<i>3</i>'+(window.T?T('Règle sa taille en bas'):'Règle sa taille en bas')+'</span>';st.appendChild(l);
 window.__hw=hw})();</script>
 <script>(function(){var M={fuel:'v_fuel',volt:'v_bat',ext:'v_ext',eng:'v_eng',range:'v_range',odoK:'v_odo',belt:'v_belt'};
 document.querySelectorAll('.vr').forEach(function(r){var v=r.querySelector('[data-k]');if(!v)return;var k=v.getAttribute('data-k'),f=M[k];var sv=r.querySelector(':scope>svg');if(!f||!sv)return;var im=document.createElement('img');im.className='vIc';im.src='ic/'+f+'.webp';im.alt='';sv.parentNode.replaceChild(im,sv)})})();</script>
@@ -4818,5 +5046,67 @@ document.querySelectorAll('.vr').forEach(function(r){var v=r.querySelector('[dat
 function g(){try{return localStorage.getItem('icHue')||'0'}catch(e){return '0'}}
 function ap(){document.documentElement.style.setProperty('--icH',g()+'deg');var b=document.getElementById('icSw');if(!b)return;b.innerHTML='';H.forEach(function(h){var i=document.createElement('i');i.style.background=h[1];i.style.color=h[1];if(h[0]===g())i.className='on';i.addEventListener('click',function(){try{localStorage.setItem('icHue',h[0])}catch(e){}ap()});b.appendChild(i)})}
 ap()})();</script>
+<script>/* 3.2 : montrer ce qu'est l'Iron Scan (doigt posé sur l'empreinte) */
+window.__scDemo=function(lock){var T=window.T||function(t){return t};
+  if(lock==='scan')return '<div class="scDemo"><div class="scPad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M12 11c0 3-1 6-3 8M8.5 6.5A6 6 0 0 1 18 11c0 2-.3 4-1 6M6 9.5A6 6 0 0 0 6 13c0 1.5-.4 3-1.2 4.2M12 7.5A3.5 3.5 0 0 1 15.5 11c0 3.2-.8 6-2.3 8.5M8.6 11a3.4 3.4 0 0 1 .4-1.6M12 11c0 1-.1 2-.4 3"/></svg><i class="scBeam"></i><span class="scFinger">👆</span></div><div class="scTx"><b>'+T('Iron Scan')+'</b>'+T('Au démarrage, pose ton doigt sur l\'empreinte et garde-le 2 secondes : le scan s\'anime et ton profil s\'ouvre.')+'<small>'+T('C\'est un effet visuel : il ne lit pas vraiment ton empreinte.')+'</small></div></div>';
+  if(lock==='code')return '<div class="scDemo"><div class="scPad scCode"><i></i><i></i><i></i><i></i></div><div class="scTx"><b>'+T('Code')+'</b>'+T('Au démarrage, tape tes 4 chiffres pour ouvrir ton profil.')+'</div></div>';
+  return '<div class="scDemo scNone"><div class="scTx">'+T('Sans verrouillage, ton profil s\'ouvre d\'une simple touche.')+'</div></div>'};
+</script>
+<script>/* ===== Cockpit 3.2 ===== */
+(function(){
+  function g(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
+  function p(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function TT(t){return window.T?window.T(t):t}
+  var st=document.getElementById('stage');
+  /* ---- 1. Nom de la voiture dans le cadre : ajusté automatiquement à la largeur du cadre, puis réglage de l'utilisateur ---- */
+  window.__identFit=function(){var i=document.getElementById('ident');if(!i||!st)return;
+    var im=i.querySelector('img'),sp=i.querySelector('.sep'),tx=i.querySelector('b');tx=tx&&tx.parentNode;
+    var w=(im?im.offsetWidth:0)+(sp?sp.offsetWidth:0)+(tx?tx.scrollWidth:0)+28,f=w>0?Math.min(1,214/w):1;
+    var k=window.__idK||1,x=+g('signX','0')||0,y=+g('signY','0')||0,u=+g('signS','1')||1;
+    st.style.setProperty('--idF',f.toFixed(3));st.style.setProperty('--idOX',(x*k)+'px');st.style.setProperty('--idOY',(y*k)+'px');st.style.setProperty('--idU',u.toFixed(2))};
+  setTimeout(window.__identFit,300);setTimeout(window.__identFit,1500);
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){window.__identFit()});
+  /* pavé de réglage, posé sur l'accueil pour voir le cadre pendant qu'on règle */
+  function pad(){
+    if(!document.body.classList.contains('m3dOn')){if(window.toast)toast('Active d\'abord la voiture 3D (Options 3D) pour voir le cadre');return}
+    if(window.goHome)goHome();var o=document.getElementById('signPad');
+    if(!o){o=document.createElement('div');o.id='signPad';
+      o.innerHTML='<b>'+TT('Place le nom dans le cadre')+'</b><div class="spG"><button data-m="0,-2" aria-label="Haut">▲</button><button data-m="-2,0" aria-label="Gauche">◀</button><button data-m="2,0" aria-label="Droite">▶</button><button data-m="0,2" aria-label="Bas">▼</button></div>'+
+        '<div class="spS"><button data-s="-0.05">−</button><span>'+TT('Taille')+'</span><button data-s="0.05">+</button></div><div class="spB"><button id="spAuto">'+TT('Centrer')+'</button><button id="spOk" class="pri">'+TT('Terminé')+'</button></div>';
+      st.appendChild(o);
+      o.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
+        if(b.dataset.m){var m=b.dataset.m.split(',');p('signX',String(Math.max(-80,Math.min(80,(+g('signX','0')||0)+(+m[0])))));p('signY',String(Math.max(-60,Math.min(60,(+g('signY','0')||0)+(+m[1])))))}
+        else if(b.dataset.s){p('signS',String(Math.max(.6,Math.min(1.5,Math.round(((+g('signS','1')||1)+(+b.dataset.s))*100)/100))))}
+        else if(b.id==='spAuto'){p('signX','0');p('signY','0');p('signS','1')}
+        else if(b.id==='spOk'){o.classList.remove('on');return}
+        window.__identFit();sum()})}
+    o.classList.add('on')}
+  function sum(){var e=document.getElementById('signSum');if(!e)return;var x=+g('signX','0'),y=+g('signY','0'),u=+g('signS','1');e.textContent=(x||y||u!==1)?TT('Réglé à la main'):TT('Centré automatiquement')}
+  (function(){var vs=document.getElementById('vSub'),r=vs&&vs.closest('.sr');if(!r)return;var n=document.createElement('div');n.className='sr';
+    n.innerHTML='<div class="l">'+TT('Nom dans le cadre')+'<small id="signSum"></small></div><button class="mini" id="signBtn" type="button">'+TT('Ajuster')+'</button>';
+    r.parentNode.insertBefore(n,r.nextSibling);document.getElementById('signBtn').addEventListener('click',pad);sum()})();
+
+  /* ---- 2. Réglages : tout ce qui concerne les widgets passe par « Modifier l'écran d'accueil » ---- */
+  function hideRows(){
+    var L=['Ajouter un widget','Disposition de l\'accueil','Compteurs de vitesse','Compteur de vitesse','Taille du compteur','Montres','Horloges','Widgets voiture','Météo','Météo animée'];
+    var LT=L.map(TT);
+    [].forEach.call(document.querySelectorAll('#secWrap .sr'),function(r){var l=r.querySelector('.l');if(!l)return;var t=(l.childNodes[0]&&l.childNodes[0].textContent||'').trim();
+      if(L.indexOf(t)>=0||LT.indexOf(t)>=0)r.classList.add('gone32')});
+    [].forEach.call(document.querySelectorAll('#secWrap .sh'),function(h){var n=h.nextElementSibling,any=false;while(n&&!n.classList.contains('sh')){if(n.offsetParent!==null||!n.classList.contains('gone32')){if(!n.classList.contains('gone32'))any=true}n=n.nextElementSibling}
+      h.classList.toggle('gone32',!any)})}
+  hideRows();setTimeout(hideRows,800);document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.si2'))setTimeout(hideRows,50)},true);
+
+  /* ---- 3. Toutes les entrées « modifier / ajouter » ouvrent le même éditeur ---- */
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#edBtn,#edOpen2,[data-pgo="edit"],[data-pgo="add"]');if(!b||!window.persOpen)return;
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();persOpen(b.getAttribute('data-pgo')==='add'?'plus':'dial')},true);
+
+  /* ---- 4. « Retirer ma photo » grisé quand il n'y a pas de photo ---- */
+  function bgState(){var b=document.getElementById('bgReset');if(!b)return;var has=false;
+    try{has=!!(window.Android&&Android.getBgStamp&&Number(Android.getBgStamp())>0)}catch(e){}
+    b.disabled=!has;b.classList.toggle('off32',!has)}
+  window.__bgState=bgState;bgState();
+  var bd=window.bgDone;window.bgDone=function(ok){var r=bd&&bd.apply(this,arguments);setTimeout(bgState,300);return r};document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.si2,#bgReset,#libG'))setTimeout(bgState,400)},true);
+})();
+</script>
 </body>
 </html>

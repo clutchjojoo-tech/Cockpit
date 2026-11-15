@@ -300,7 +300,7 @@ function pageVisible(){var st=document.getElementById('stage'),pg=st&&st.getAttr
 function tick(){
   var bg=document.body.classList.contains('inBg');
   ST.videosActive=(VA.paused?0:1)+(VD.paused?0:1);
-  if(bg||!running){rotationManager.stop();return}
+  if(bg||document.hidden||!running){rotationManager.stop();return}
   if(dive||climbing)return;
   var m=vehicleStateManager.mask(),w=vehicleStateManager.warn();
   document.body.classList.toggle('m3dTop',(mode==='door'&&view==='T')||/top(_d)?(_j)?\.mp4$/.test(VA.getAttribute('src')||''));   /* panneau caché jusqu'à la fin de la descente */
@@ -372,6 +372,7 @@ window.M3DV={
     litSrc=vehicleStateManager.lights();if(VA.getAttribute('src')!==rotSrc(litSrc)){litL=LIGHT;VA.src=rotSrc(litSrc);videoManager.seek(VIEW.R.f)}
     if(VA.readyState<2){doorAnimationManager.show('c00');var sw=function(){VA.removeEventListener('playing',sw);VA.removeEventListener('seeked',sw);if(running&&mode==='rot'&&!dive)doorAnimationManager.hide()};VA.addEventListener('playing',sw);VA.addEventListener('seeked',sw);VA.play().catch(function(){})}   /* 3.0 : aussi quand la voiture est posée (rotation coupée) : sinon l'image d'attente restait affichée */
     renderer.kick();knob.ensure()},
+  free:function(){if(!running){try{memoryManager.clear()}catch(e){}}},   /* 3.2 : mémoire faible (onTrimMemory) */
   stop:function(){running=false;rotationManager.stop();if(dive){dive=0;VD.style.display='none';V.style.opacity=1;document.body.classList.remove('m3dIn');releaseDive()}},
   setColor:function(){lookManager.apply()},
   look:function(){lookManager.apply()},

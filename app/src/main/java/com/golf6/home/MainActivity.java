@@ -104,11 +104,12 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         prefs = getSharedPreferences("accueil", MODE_PRIVATE);
-        initVoix();
+        // 3.2 : voix, OBD et GPS démarrent à la fin de la vidéo d'intro (introDone), au plus tard 10 s après.
+        handler.postDelayed(demarrageServices, 10000);
 
         web = new WebView(this);
         web.setBackgroundColor(Color.BLACK);
-        web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        // 3.2 : plus de calque matériel forcé (hardwareAccelerated=true suffit, et ce calque coûte un tampon plein écran)
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -149,14 +150,42 @@ public class MainActivity extends Activity {
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
+        // obdDemarrer() : lancé par servicesDemarrer() (fin de l'intro)
+    }
+
+    // ---------- 3.2 : services lourds lancés après l'intro ----------
+    private boolean servicesLances = false;
+    private Boolean gpsVoulu = null;
+    private final Runnable demarrageServices = new Runnable() {
+        @Override
+        public void run() {
+            servicesDemarrer();
+        }
+    };
+
+    private void servicesDemarrer() {
+        if (servicesLances) return;
+        servicesLances = true;
+        handler.removeCallbacks(demarrageServices);
+        initVoix();
         obdDemarrer();   // 3.0 : reconnexion automatique à la prise OBD choisie
+        if (gpsVoulu != null) gpsActif(gpsVoulu);
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        // 3.2 : Android manque de mémoire : la page libère le guide, la 3D arrêtée et les images cachées
+        if (level >= TRIM_MEMORY_RUNNING_LOW) {
+            try { web.evaluateJavascript("window.onLowMem&&onLowMem()", null); } catch (Exception e) { }
+        }
     }
 
     @Override
     public void onRequestPermissionsResult(int code, String[] perms, int[] results) {
         super.onRequestPermissionsResult(code, perms, results);
         sendLocation();
-        if (code == 2 || code == 3) obdDemarrer();
+        if ((code == 2 || code == 3) && servicesLances) obdDemarrer();
     }
 
     @Override
@@ -174,6 +203,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        try { web.evaluateJavascript("window.onBg&&onBg(false)", null); } catch (Exception e) { }   // 3.2 : toujours rappelé au retour
         ecouteEcran();
         pleinEcran();
         sendLocation();
@@ -211,9 +241,11 @@ public class MainActivity extends Activity {
                     }
                     if (Intent.ACTION_SCREEN_OFF.equals(a)) {
                         ecranEteintA = System.currentTimeMillis();
+                        try { prefs.edit().putLong("ecran_off", ecranEteintA).apply(); } catch (Exception e) { }
                     } else if (Intent.ACTION_SCREEN_ON.equals(a) && ecranEteintA > 0
                             && System.currentTimeMillis() - ecranEteintA > 20000) {
                         ecranEteintA = 0;
+                        try { prefs.edit().remove("ecran_off").apply(); } catch (Exception e) { }
                         fondJs("window.onPowerOn&&window.onPowerOn()");   // la page salue après le choix du profil
                     }
                 }
@@ -2549,6 +2581,7 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    if (!servicesLances) { gpsVoulu = on; return; }   // 3.2 : attend la fin de l'intro
                     gpsActif(on);
                 }
             });
@@ -3749,12 +3782,62 @@ public class MainActivity extends Activity {
             }
         }
 
+        // 3.2 : la page signale la fin de la vidéo d'intro : on lance GPS, OBD et voix
+        @JavascriptInterface
+        public void introDone() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    servicesDemarrer();
+                }
+            });
+        }
+
+        // 3.2 : mémoire du poste, pour le mode « poste léger » automatique
+        @JavascriptInterface
+        public String memInfo() {
+            try {
+                android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+                am.getMemoryInfo(mi);
+                return "{\"lowRam\":" + am.isLowRamDevice() + ",\"totalMB\":" + (mi.totalMem / (1024L * 1024L)) + "}";
+            } catch (Exception e) {
+                return "{}";
+            }
+        }
+
         // Vrai la première fois seulement (animation de démarrage), faux ensuite.
         @JavascriptInterface
         public boolean splashNeeded() {
             if (demarrageJoue) return false;
             demarrageJoue = true;
+            // 3.2 : la vidéo est réservée au vrai démarrage : premier lancement, mise à jour, ou poste redémarré.
+            // Si Android a fermé Cockpit en arrière-plan (ex. pendant CarPlay), on revient directement à l'accueil.
+            try {
+                long boot = System.currentTimeMillis() - android.os.SystemClock.elapsedRealtime();
+                long bootAvant = prefs.getLong("intro_boot", 0L);
+                long ver = 0L;
+                try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Exception e) { }
+                long verAvant = prefs.getLong("intro_ver", -1L);
+                boolean nouveau = Math.abs(boot - bootAvant) > 120000L || ver != verAvant;
+                if (!nouveau) return false;
+                prefs.edit().putLong("intro_boot", boot).putLong("intro_ver", ver).apply();
+            } catch (Exception e) { }
             return true;
+        }
+
+        // 3.2 : vrai si l'écran s'est éteint (contact coupé) pendant que Cockpit était fermé par Android :
+        // la page redemande alors le profil, comme après une remise du contact. Lu une fois.
+        @JavascriptInterface
+        public boolean ecranRallume() {
+            try {
+                long off = prefs.getLong("ecran_off", 0L);
+                if (off <= 0) return false;
+                android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+                if (pm != null && !pm.isInteractive()) { ecranEteintA = off; return false; }  // encore éteint : le rallumage s'en chargera
+                prefs.edit().remove("ecran_off").apply();
+                return true;
+            } catch (Exception e) { return false; }
         }
 
         // Résolution réelle de l'écran vue par Android (lecture seule).
