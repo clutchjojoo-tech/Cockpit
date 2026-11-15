@@ -1644,7 +1644,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     try{var g=document.getElementById('guideOv');if(!g||!g.classList.contains('on')){if(window.__guideFree)window.__guideFree()}}catch(e){}
     try{if(window.M3DV&&M3DV.free)M3DV.free()}catch(e){}
     try{window.__bgSync()}catch(e){}
-    try{document.querySelectorAll('#libG img').forEach(function(im){var b=im.getBoundingClientRect();if(!b.width)im.removeAttribute('src')})}catch(e){}
+    /* 3.3 : les miniatures de la galerie restent chargées (elles sont petites) : les vider les laissait cassées */
   };
 })();
 </script>
@@ -2314,7 +2314,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
 
   /* ===== Étape 8 : À propos, vitesse GPS, musique, raccourcis, luminosité auto, styles ===== */
-  var APP_VERSION='3.2';
+  var APP_VERSION='3.3';
   function updateAbout(){$('#aboutTxt').textContent=T('Version')+' '+APP_VERSION}
 
   /* Vitesse GPS */
@@ -3195,7 +3195,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(stage.getAttribute('data-page')!=='home')pageBack();
   };
   /* Touche Accueil du poste : ferme tout et revient à l'accueil de Cockpit */
-  window.onBg=function(b){try{document.body.classList.toggle('inBg',!!b)}catch(e){}};
+  window.onBg=function(b){try{document.body.classList.toggle('inBg',!!b)}catch(e){}if(!b){try{window.__m3dReup&&setTimeout(window.__m3dReup,250)}catch(e){}}};
   window.goHome=function(){
     try{['#rev','#cc','#torch'].forEach(function(q){var e=$(q);if(e)e.classList.remove('on')});
       var pe=$('#pers');if(pe&&pe.classList.contains('on')){var ok=pe.querySelector('#pOk');if(ok)ok.click()}
@@ -3547,6 +3547,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
   /* Nouveautés */
   var NEWS=[
+    ['Prise OBD plus simple','Nouveau bouton « Chercher une prise » : Cockpit trouve ta prise OBD Bluetooth à proximité et s\'y connecte sans l\'associer ni taper de code (Réglages › Ma voiture › Prise OBD Bluetooth).'],
     ['Plus fluide','L\'accueil ne travaille plus derrière la vidéo de démarrage, les animations s\'arrêtent quand elles ne se voient pas, et un mode « poste léger » s\'active tout seul sur les postes à 2 Go de mémoire (Réglages).'],
     ['Démarrage','Seule la vidéo s\'affiche au démarrage : plus d\'aperçu de l\'accueil avant elle. En revenant de CarPlay, tu retrouves directement l\'accueil, sans vidéo ni choix du profil.'],
     ['Modifier l\'écran d\'accueil','Un seul endroit pour ajouter, déplacer et régler tes widgets : compteurs, montres, horloges, voiture, météo et petits widgets.'],
@@ -4638,14 +4639,20 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
       ['0C','0D','05','5C','0F','04','2F','5E','RV','46'].forEach(function(k){var ok=s.supp.indexOf(k)>=0;h+='<div><span class="'+(ok?'ok':'ko')+'">'+(ok?'✓':'–')+'</span> '+esc(T(OBDL[k]))+'</div>'});h+='</div>';
       h+='<div class="note">'+T('Codes défaut')+' : '+(s.dtc&&s.dtc.length?'<b>'+s.dtc.map(esc).join(', ')+'</b>':T('aucun'))+'</div>'}
     if(!s.addr){var L=call(function(){return JSON.parse(A.obdDevices())},[]);
-      h+='<div class="note">'+T("Associe d'abord la prise dans le Bluetooth d'Android (code souvent 1234 ou 0000), puis choisis-la ici.")+'</div>';
+      h+='<div class="note">'+T("Prise déjà associée dans le Bluetooth d'Android ? Choisis-la ici.")+'</div>';
       if(!L.length)h+='<div class="note">'+T('Aucun appareil Bluetooth associé.')+'</div>';
-      L.forEach(function(d){h+='<button class="mini obdD" data-a="'+esc(d.addr)+'" style="margin:0 8px 8px 0">'+esc(d.nom)+'</button>'})}
+      L.forEach(function(d){h+='<button class="mini obdD" data-a="'+esc(d.addr)+'" style="margin:0 8px 8px 0">'+esc(d.nom)+'</button>'});
+      h+='<div class="note" style="margin-top:6px"><b>'+T('Pas besoin de l\'associer :')+'</b> '+T("cherche la prise à proximité, choisis-la, Cockpit s'y connecte sans code.")+'</div>';
+      (OBD.found||[]).forEach(function(d){h+='<button class="mini obdD" data-a="'+esc(d.addr)+'" style="margin:0 8px 8px 0">'+esc(d.nom)+'</button>'});
+      h+='<div class="note small" id="obdScanSt" style="opacity:.8">'+(OBD.scan==='run'?T('Recherche en cours…'):OBD.scan==='ok'?((OBD.found||[]).length?'':T('Rien trouvé : branche la prise, mets le contact et relance la recherche.')):OBD.scan==='off'?T('Active le Bluetooth du poste.'):OBD.scan==='err'?T('Recherche impossible, réessaie.'):'')+'</div>'}
     h+='<div class="note small" style="opacity:.75">'+T('Lecture seule : Cockpit ne modifie rien dans la voiture. Les portes et le radar restent lus par CarCAN.')+'</div></div>';
     var btn=[];if(s.addr)btn.push(['Oublier la prise',function(){call(function(){A.obdForget()});OBD.st={etat:'off',supp:[],dtc:[]};obdRow();obdPanel()}]);
-    else btn.push(['Ouvrir le Bluetooth',function(){if(A&&A.openBtSettings)call(function(){A.openBtSettings()});else if(A&&A.btSettings)call(function(){A.btSettings()})}]);
+    else btn.push(['Chercher une prise',function(){OBD.found=[];OBD.scan='run';call(function(){A.obdScan()});obdPanel(true)}]);
+    if(!s.addr)btn.push(['Ouvrir le Bluetooth',function(){if(A&&A.openBtSettings)call(function(){A.openBtSettings()});else if(A&&A.btSettings)call(function(){A.btSettings()})}]);
     infoOpen('Prise OBD Bluetooth',h,btn);
     $$('#obdP .obdD').forEach(function(b){b.addEventListener('click',function(){call(function(){A.obdUse(b.getAttribute('data-a'))});setTimeout(function(){obdRefresh();obdRow();obdPanel(true)},300)})})}
+  window.onObdFound=function(d){if(!d||!d.addr)return;OBD.found=OBD.found||[];if(!OBD.found.some(function(x){return x.addr===d.addr}))OBD.found.push(d);if($('#obdP'))obdPanel(true)};
+  window.onObdScanEnd=function(r){OBD.scan=r||'ok';if($('#obdP'))obdPanel(true)};
   window.__obdPanel=obdPanel;
   (function(){var sec=document.getElementById('sec-voiture');if(!sec)return;var hs=[].filter.call(sec.querySelectorAll('.sh'),function(h){return h.textContent==='Données de la voiture'})[0];
     var r=document.createElement('div');r.className='sr';r.innerHTML='<div class="l">'+T('Prise OBD Bluetooth')+'<small id="obdSum"></small></div><button class="mini" id="obdOpen">'+T('Connecter')+'</button>';

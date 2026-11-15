@@ -186,6 +186,7 @@ public class MainActivity extends Activity {
         super.onRequestPermissionsResult(code, perms, results);
         sendLocation();
         if ((code == 2 || code == 3) && servicesLances) obdDemarrer();
+        if (code == 4) obdScanner();
     }
 
     @Override
@@ -857,6 +858,57 @@ public class MainActivity extends Activity {
         }, "obd").start();
     }
 
+    // ---------- 3.3 : recherche d'une prise OBD à proximité (sans l'associer dans Android) ----------
+    private BroadcastReceiver obdScanRec;
+
+    private void obdScanner() {
+        BluetoothAdapter a = BluetoothAdapter.getDefaultAdapter();
+        if (a == null) { obdJs("window.onObdScanEnd&&window.onObdScanEnd('nobt')"); return; }
+        if (Build.VERSION.SDK_INT >= 31 && (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)) {
+            try { requestPermissions(new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}, 4); } catch (Exception e) { }
+            return;
+        }
+        if (!a.isEnabled()) { obdJs("window.onObdScanEnd&&window.onObdScanEnd('off')"); return; }
+        obdScanStop();
+        obdScanRec = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context c, Intent i) {
+                String ac = i.getAction();
+                if (BluetoothDevice.ACTION_FOUND.equals(ac)) {
+                    BluetoothDevice d = i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if (d == null) return;
+                    String n = null;
+                    try { n = d.getName(); } catch (Exception e) { }
+                    try {
+                        JSONObject o = new JSONObject();
+                        o.put("nom", n != null ? n : d.getAddress());
+                        o.put("addr", d.getAddress());
+                        obdJs("window.onObdFound&&window.onObdFound(" + o + ")");
+                    } catch (Exception e) { }
+                } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(ac)) {
+                    obdJs("window.onObdScanEnd&&window.onObdScanEnd('ok')");
+                }
+            }
+        };
+        IntentFilter f = new IntentFilter();
+        f.addAction(BluetoothDevice.ACTION_FOUND);
+        f.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        try { registerReceiver(obdScanRec, f); } catch (Exception e) { obdScanRec = null; }
+        try {
+            a.cancelDiscovery();
+            if (!a.startDiscovery()) obdJs("window.onObdScanEnd&&window.onObdScanEnd('err')");
+        } catch (Exception e) {
+            obdJs("window.onObdScanEnd&&window.onObdScanEnd('err')");
+        }
+    }
+
+    private void obdScanStop() {
+        try { BluetoothAdapter a = BluetoothAdapter.getDefaultAdapter(); if (a != null) a.cancelDiscovery(); } catch (Exception e) { }
+        try { if (obdScanRec != null) unregisterReceiver(obdScanRec); } catch (Exception e) { }
+        obdScanRec = null;
+    }
+
     private void obdArreter() {
         obdRun = false;
         obdFermer();
@@ -931,12 +983,19 @@ public class MainActivity extends Activity {
                 obdSetEtat("connexion");
                 try { a.cancelDiscovery(); } catch (Exception e) { }
                 android.bluetooth.BluetoothSocket s;
+                // 3.3 : d'abord sans association ni code (la plupart des ELM327), puis les autres façons
                 try {
-                    s = d.createRfcommSocketToServiceRecord(OBD_SPP);
-                    s.connect();
-                } catch (Exception e1) {
                     s = d.createInsecureRfcommSocketToServiceRecord(OBD_SPP);
                     s.connect();
+                } catch (Exception e1) {
+                    try {
+                        s = d.createRfcommSocketToServiceRecord(OBD_SPP);
+                        s.connect();
+                    } catch (Exception e2) {
+                        s = (android.bluetooth.BluetoothSocket) d.getClass()
+                                .getMethod("createRfcommSocket", new Class[]{int.class}).invoke(d, 1);
+                        s.connect();
+                    }
                 }
                 obdSock = s;
                 obdIn = s.getInputStream();
@@ -3187,8 +3246,25 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void obdScan() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() { obdScanner(); }
+            });
+        }
+
+        @JavascriptInterface
+        public void obdScanStop() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() { MainActivity.this.obdScanStop(); }
+            });
+        }
+
+        @JavascriptInterface
         public void obdUse(String addr) {
             if (addr == null || !addr.matches("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")) return;
+            MainActivity.this.obdScanStop();
             obdArreter();
             prefs.edit().putString("obd_addr", addr.toUpperCase(Locale.ROOT)).apply();
             obdDemarrer();

@@ -137,7 +137,7 @@ var lookManager=(function(){
   var cur=null,decCur=null,decImgs={},led=[.12,.43,1],ledFrom=led,ledTo=led,ledT0=0,decT0=0,dec=1,gain=1,paint=[0,0,0],plOn=0,plKey='',plCv=null;
   function hex(h){return [parseInt(h.substr(1,2),16)/255,parseInt(h.substr(3,2),16)/255,parseInt(h.substr(5,2),16)/255]}
   function decor(src,cb){var e=decImgs[src];if(e){if(e.complete&&e.naturalWidth)cb(e);else e.addEventListener('load',function(){cb(e)});return}
-    e=new Image();e.decoding='async';e.onload=function(){cb(e)};e.src=src;decImgs[src]=e;
+    e=new Image();e.decoding='async';e.onload=function(){cb(e)};e.onerror=function(){delete decImgs[src];setTimeout(function(){decor(src,cb)},1500)};e.src=src;decImgs[src]=e;
     var ks=Object.keys(decImgs);if(ks.length>3)delete decImgs[ks[0]]}
   function apply(force){
     if(window.M3DV&&M3DV.car)M3DV.car(carId());
@@ -157,7 +157,9 @@ var lookManager=(function(){
       else if(cv&&gpu){plCv=cv;gpu.up(5,gpu.T.P,cv,gpu.gl.RGBA);plOn=1;plKey=k}
       else{plOn=0;setTimeout(function(){apply()},400)}}   // fichiers de plaque pas encore chargés
     renderer.dirty()}
-  return {apply:apply,
+  /* 3.3 : le décor n'est envoyé qu'une fois à la carte graphique ; si le poste la vide (mémoire faible, retour d'une autre appli), on le renvoie : sinon carré noir derrière la voiture */
+  function reup(){try{if(!gpu||!decCur||!decCur.complete||!decCur.naturalWidth)return;gpu.up(3,gpu.T.D0,decCur);gpu.up(4,gpu.T.D1,decCur);dec=1;renderer.dirty()}catch(e){}}
+  return {reup:reup,apply:apply,
     state:function(now){var lt=ledT0?Math.min(1,(now-ledT0)/CFG.LOOK_MS):1,e=lt*lt*(3-2*lt);led=[0,1,2].map(function(i){return ledFrom[i]+(ledTo[i]-ledFrom[i])*e});
       if(dec<1&&decT0)dec=Math.min(1,(now-decT0)/CFG.LOOK_MS);
       return {led:led,dec:dec,gain:gain,paint:paint,pl:plOn,busy:lt<1||dec<1}}}})();
@@ -368,7 +370,7 @@ new MutationObserver(function(){var pg=document.getElementById('stage').getAttri
 
 /* ---------- interface publique (inchangée, + look) ---------- */
 window.M3DV={
-  start:function(){if(running||!hasCar())return;running=true;lookManager.apply(true);memoryManager.pin(['c00','dw','dl','dlw'].concat(cameraManager.neighbours(0)));
+  start:function(){if(running||!hasCar())return;running=true;lookManager.apply(true);try{lookManager.reup()}catch(e){}memoryManager.pin(['c00','dw','dl','dlw'].concat(cameraManager.neighbours(0)));
     litSrc=vehicleStateManager.lights();if(VA.getAttribute('src')!==rotSrc(litSrc)){litL=LIGHT;VA.src=rotSrc(litSrc);videoManager.seek(VIEW.R.f)}
     if(VA.readyState<2){doorAnimationManager.show('c00');var sw=function(){VA.removeEventListener('playing',sw);VA.removeEventListener('seeked',sw);if(running&&mode==='rot'&&!dive)doorAnimationManager.hide()};VA.addEventListener('playing',sw);VA.addEventListener('seeked',sw);VA.play().catch(function(){})}   /* 3.0 : aussi quand la voiture est posée (rotation coupée) : sinon l'image d'attente restait affichée */
     renderer.kick();knob.ensure()},
@@ -385,7 +387,10 @@ window.M3DV={
   inside:function(){var on=dive!==1;window.__m3dInside=on;diveTo(on);return on},
   lite:function(on){lsPut('m3dLite',on?'1':'0');return 'redémarre Cockpit pour appliquer'},
   cfg:CFG};
-document.addEventListener('visibilitychange',function(){if(document.hidden)rotationManager.stop();else renderer.dirty()});
+document.addEventListener('visibilitychange',function(){if(document.hidden)rotationManager.stop();else{try{lookManager.reup()}catch(e){}renderer.dirty()}});
+/* 3.3 : carte graphique perdue puis rendue par Android : on recharge la page (le décor et la voiture repartent proprement) */
+try{if(CV){CV.addEventListener('webglcontextlost',function(e){e.preventDefault();ST.ctxLost=Date.now()},false);CV.addEventListener('webglcontextrestored',function(){try{if(!sessionStorage.getItem('m3dCtx')){sessionStorage.setItem('m3dCtx','1');setTimeout(function(){sessionStorage.removeItem('m3dCtx')},20000);location.reload()}}catch(e){}},false)}}catch(e){}
+window.__m3dReup=function(){try{lookManager.reup()}catch(e){}};
 window.__m3dDbg=function(){return Object.assign({mode:mode,mask:mask,dive:dive,running:running,gpu:!!gpu},renderer.state())};
 window.__m3dOk=1;
 })();
