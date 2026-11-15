@@ -68,8 +68,10 @@ var gpu=(function(){
   /* 3.0.1 : le mode léger a pu être activé à tort (accès aux fichiers bloqué, corrigé) : on l'efface une fois */
   if(lsGet('m3dLiteV','')!=='2'){lsPut('m3dLite','0');lsPut('m3dLiteV','2')}
   var lt=parseInt(lsGet('m3dLite','0'),10)||0;if(lt===1||lt>Date.now()-7*864e5){ST.liteReason=ST.liteReason||'mémorisé';return null}if(lt)lsPut('m3dLite','0');
-  var gl=null;try{gl=CV.getContext('webgl',{alpha:false,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:true})||CV.getContext('experimental-webgl')}catch(e){}
+  var gl=null;try{gl=CV.getContext('webgl',{alpha:true,antialias:false,premultipliedAlpha:true,preserveDrawingBuffer:true})||CV.getContext('experimental-webgl')}catch(e){}
   if(!gl)return null;
+  /* 3.5 : puces PowerVR (postes Unisoc) : la transparence WebGL donne un rectangle noir dans la WebView -> mode canvas 2D */
+  try{var dbg0=gl.getExtension('WEBGL_debug_renderer_info'),rn=dbg0?gl.getParameter(dbg0.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);ST.renderer=rn;if(/powervr|imagination|ge8\d{3}/i.test(rn||'')&&lsGet('m3dGL','0')!=='1'){ST.liteReason='PowerVR';return null}}catch(e){}
   var VS='attribute vec2 p;varying vec2 uv;void main(){uv=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}';
   var FS=['precision mediump float;varying vec2 uv;',
    'uniform sampler2D uV,uI1,uI2,uD0,uD1,uP;uniform float uO1,uO2,uDec,uGain,uPl;uniform vec3 uLed,uPaint;',
@@ -77,16 +79,17 @@ var gpu=(function(){
    'const float T=1./3.;',
    'vec3 plate(vec3 c,mat3 H,float L){if(L<=0.)return c;vec3 q=H*vec3(uv.x*720.,uv.y*360.,1.);vec2 t=q.xy/q.z;',
    ' if(t.x<0.||t.x>1.||t.y<0.||t.y>1.)return c;vec4 p=texture2D(uP,t);return mix(c,p.rgb*L,p.a);}',
-   'vec3 car(sampler2D s,vec3 dec,int k){',
+   'vec4 car(sampler2D s,vec3 dec,int k){',
    ' vec3 col=texture2D(s,vec2(uv.x,uv.y*T)).rgb;float a=texture2D(s,vec2(uv.x,T+uv.y*T)).r;',
    ' float m=texture2D(s,vec2(uv.x*.5,2.*T+uv.y*T)).r;float d=texture2D(s,vec2(.5+uv.x*.5,2.*T+uv.y*T)).r;',
    ' col=max(col+d*uPaint,0.);',
    ' if(uPl>.5){if(k==0){col=plate(col,uH[0],uL[0]);col=plate(col,uH[1],uL[1]);}else if(k==1){col=plate(col,uH[2],uL[2]);col=plate(col,uH[3],uL[3]);}else{col=plate(col,uH[4],uL[4]);col=plate(col,uH[5],uL[5]);}}',
-   ' return dec*(1.-a)+col+m*uLed*uGain;}',
-   'void main(){vec2 du=vec2((140.+uv.x*1000.)/1280.,(120.+uv.y*500.)/720.);vec3 dec=mix(texture2D(uD0,du).rgb,texture2D(uD1,du).rgb,uDec);',
-   ' vec3 o;if(uO2>=1.)o=car(uI2,dec,2);else if(uO1>=1.){o=car(uI1,dec,1);if(uO2>0.)o=mix(o,car(uI2,dec,2),uO2);}',
+   ' return vec4(col+m*uLed*uGain,a);}',
+   /* 3.4 : la voiture est envoyée avec sa transparence ; le décor est celui de la page (plus de carré noir si le décor n'arrive pas à la carte graphique) */
+   'void main(){vec3 dec=vec3(0.);',
+   ' vec4 o;if(uO2>=1.)o=car(uI2,dec,2);else if(uO1>=1.){o=car(uI1,dec,1);if(uO2>0.)o=mix(o,car(uI2,dec,2),uO2);}',
    ' else{o=car(uV,dec,0);if(uO1>0.)o=mix(o,car(uI1,dec,1),uO1);if(uO2>0.)o=mix(o,car(uI2,dec,2),uO2);}',
-   ' gl_FragColor=vec4(o,1.);}'].join('\n');
+   ' gl_FragColor=o;}'].join('\n');
   function sh(t,s){var o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o}
   var pr;try{pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,VS));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);
     if(!gl.getProgramParameter(pr,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(pr));}catch(e){ST.glError=String(e);return null}
@@ -111,10 +114,58 @@ var gpu=(function(){
       gl.uniform3fv(U.uLed,s.led);gl.uniform3fv(U.uPaint,s.paint);gl.uniformMatrix3fv(U.uH,false,H);gl.uniform1fv(U.uL,L);gl.drawArrays(gl.TRIANGLE_STRIP,0,4)}};
 })();
 ST.lite=!gpu;
-if(!gpu){/* mode léger : la voiture seule (couche couleur), sur le fond sombre ; pas de décor ni de LED teintées */
+if(!gpu){/* mode léger : sans WebGL. 3.5 : la voiture est découpée avec sa couche de transparence dans un canvas 2D
+     (avant : couche couleur seule = voiture sur un rectangle noir). Le décor de la page reste visible derrière. */
   box.classList.add('m3lite');CV.style.display='none';
-  VA.style.cssText='position:absolute;left:0;top:0;width:100%;height:300%;opacity:1;pointer-events:none;object-fit:fill';
-  [L1,L2].forEach(function(l,i){l.style.cssText='position:absolute;left:0;top:0;width:100%;height:300%;object-fit:fill;pointer-events:none;opacity:0;transition:opacity '+CFG.FADE_MS+'ms;z-index:'+(1+i)})}
+  var LC=document.createElement('canvas');LC.id='m3lc';LC.width=720;LC.height=360;LC.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1';
+  CV.parentNode.insertBefore(LC,CV);
+  var lx=LC.getContext('2d'),MK=document.createElement('canvas');MK.width=360;MK.height=180;var mx=MK.getContext('2d',{willReadFrequently:true});
+  var TC=document.createElement('canvas');TC.width=720;TC.height=360;var tx=TC.getContext('2d');
+  var cache={},lastVT=-1,lastSig='',lookSig='',PC=document.createElement('canvas');PC.width=720;PC.height=360;var px=PC.getContext('2d');
+  function rgb(c){return 'rgb('+c.map(function(v){return Math.round(Math.max(0,Math.min(1,v))*255)}).join(',')+')'}
+  /* LED (moitié gauche de la 3e bande, ajoutée) et couleur de carrosserie (moitié droite, ajoutée ou retirée), comme le WebGL */
+  function band3(src,w,r,right,col){px.globalCompositeOperation='copy';px.drawImage(src,right?w/2:0,2*r,w/2,r,0,0,720,360);
+    px.globalCompositeOperation='multiply';px.fillStyle=rgb(col);px.fillRect(0,0,720,360);px.globalCompositeOperation='source-over'}
+  /* 3.5 : si le poste peine (découpe trop lente), on coupe les LED et la couleur pour garder une rotation fluide */
+  var lkSlow=0,lkOff=lsGet('m3dLkOff','0')==='1';
+  function look(src,w,r,ox){if(lkOff)return;var t0=performance.now();look2(src,w,r,ox);var dt=performance.now()-t0;if(dt>18){if(++lkSlow>=40){lkOff=true;lsPut('m3dLkOff','1');ST.liteReason=(ST.liteReason||'')+' · LED coupées (lent)'}}else if(lkSlow>0)lkSlow--}
+  function look2(src,w,r,ox){var L=null;try{L=lookManager.state(performance.now())}catch(e){}if(!L)return;
+    var g=L.gain||1,led=L.led.map(function(v){return v*g}),p=L.paint||[0,0,0],pos=p.map(function(v){return Math.max(0,v)}),neg=p.map(function(v){return Math.max(0,-v)});
+    var any=function(a){return a[0]>.004||a[1]>.004||a[2]>.004};
+    if(any(pos)){band3(src,w,r,true,pos);ox.globalCompositeOperation='lighter';ox.drawImage(PC,0,0)}
+    if(any(neg)){band3(src,w,r,true,neg);px.globalCompositeOperation='difference';px.fillStyle='#fff';px.fillRect(0,0,720,360);px.globalCompositeOperation='source-over';
+      ox.globalCompositeOperation='multiply';ox.drawImage(PC,0,0)}
+    if(any(led)){band3(src,w,r,false,led);ox.globalCompositeOperation='lighter';ox.drawImage(PC,0,0)}
+    ox.globalCompositeOperation='source-over'}
+  function lookKey(){try{var L=lookManager.state(performance.now());return L.led.map(function(v){return v.toFixed(2)}).join()+'|'+(L.gain||1)+'|'+L.paint.map(function(v){return v.toFixed(2)}).join()}catch(e){return ''}}
+  /* découpe une source (vidéo ou image empilée en 3 bandes) dans un canvas 720×360 transparent */
+  function cut(src,w,h,out,ox){var r=h/3;
+    mx.globalCompositeOperation='copy';mx.drawImage(src,0,r,w,r,0,0,360,180);
+    var d=mx.getImageData(0,0,360,180),a=d.data;for(var i=0;i<a.length;i+=4){a[i+3]=a[i];}
+    mx.putImageData(d,0,0);
+    ox.globalCompositeOperation='copy';ox.drawImage(src,0,0,w,r,0,0,720,360);ox.globalCompositeOperation='source-over';
+    look(src,w,r,ox);
+    ox.globalCompositeOperation='destination-in';ox.drawImage(MK,0,0,720,360);ox.globalCompositeOperation='source-over';return out}
+  function still(img){var k=img.currentSrc||img.src;if(cache[k])return cache[k];if(!img.complete||!img.naturalWidth)return null;
+    var c=document.createElement('canvas');c.width=720;c.height=360;try{cut(img,img.naturalWidth,img.naturalHeight,c,c.getContext('2d'))}catch(e){ST.liteErr=String(e);return null}
+    var ks=Object.keys(cache);if(ks.length>=CFG.CACHE_MAX)delete cache[ks[0]];return cache[k]=c}
+  function op(e){var o=parseFloat(getComputedStyle(e).opacity);return isNaN(o)?0:o}
+  function liteDraw(){requestAnimationFrame(liteDraw);
+    if(document.hidden)return;
+    var lk=lookKey();if(lk!==lookSig){lookSig=lk;cache={};lastVT=-1;lastSig=''}
+    var o1=op(L1),o2=op(L2),vt=VA.currentTime,sig=o1.toFixed(2)+'|'+o2.toFixed(2)+'|'+L1.src.length+L1.src.slice(-24)+'|'+L2.src.slice(-24);
+    var vNew=VA.readyState>=2&&vt!==lastVT&&o1<1&&o2<1;sig+='|'+lk;
+    if(!vNew&&sig===lastSig)return;lastSig=sig;
+    try{
+      if(vNew){lastVT=vt;if(VA.videoWidth)cut(VA,VA.videoWidth,VA.videoHeight,TC,tx)}
+      lx.globalCompositeOperation='copy';lx.drawImage(TC,0,0);lx.globalCompositeOperation='source-over';
+      [[L1,o1],[L2,o2]].sort(function(a,b){return (parseInt(a[0].style.zIndex,10)||0)-(parseInt(b[0].style.zIndex,10)||0)}).forEach(function(p){
+        if(p[1]<=0.01)return;var c=still(p[0]);if(!c)return;lx.globalAlpha=p[1];lx.drawImage(c,0,0);lx.globalAlpha=1});
+    }catch(e){ST.liteErr=String(e)}}
+  requestAnimationFrame(liteDraw);
+  /* les sources restent dans la page (décodage) mais invisibles : seul le canvas découpé s'affiche */
+  VA.style.cssText='position:absolute;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+  [L1,L2].forEach(function(l,i){l.style.cssText='position:absolute;left:0;top:0;width:2px;height:2px;pointer-events:none;clip-path:inset(50%);opacity:0;transition:opacity '+CFG.FADE_MS+'ms;z-index:'+(1+i)})}
 
 /* ---------- homographie : coins de la plaque à l'écran -> coordonnées dans la texture ---------- */
 function sq2quad(q){var x0=q[0],y0=q[1],x1=q[2],y1=q[3],x2=q[4],y2=q[5],x3=q[6],y3=q[7];
