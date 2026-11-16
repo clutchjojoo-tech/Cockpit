@@ -1,0 +1,21 @@
+{
+ "id": "golf6",
+ "nom": "Volkswagen Golf 6",
+ "format": "glb",
+ "version": 2,
+ "doors": true,
+ "rear": true,
+ "hood": true,
+ "trunk": false,
+ "parts": [
+  "d1",
+  "d2",
+  "d3a",
+  "d3b",
+  "d5"
+ ],
+ "triangles": 210772,
+ "trianglesOrigine": 238234,
+ "dive": true,
+ "top": true
+}

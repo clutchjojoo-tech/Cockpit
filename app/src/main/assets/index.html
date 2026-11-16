@@ -44,8 +44,9 @@
     Object.keys(map).forEach(function(id){var m=map[id];if(m.x||m.r!=null)return;m.r=m.t==='i'?sI.apply(window,m.a):rA(m.a[0])});
     var q=Q;Q=[];q.forEach(function(fn){try{fn()}catch(e){}});
     try{if(A&&A.introDone)A.introDone()}catch(e){}}
-  if(f)setTimeout(function(){window.__introRelease()},12000);
-  else setTimeout(function(){var pr=document.getElementById('prof');if(!pr||!pr.classList.contains('on'))window.__pickDone()},2500);   /* sécurité : tout repart au bout de 12 s quoi qu'il arrive */
+  /* 3.6 : vidéo de 9 s : la sécurité attend la fin réelle de l'animation (25 s au plus) au lieu de tout relancer à 12 s derrière elle */
+  if(f){var sfT=Date.now();setTimeout(function sf(){if(done)return;if(window.__introBusy&&Date.now()-sfT<25000){setTimeout(sf,1000);return}window.__introRelease()},12000)}
+  else setTimeout(function(){var pr=document.getElementById('prof');if(!pr||!pr.classList.contains('on'))window.__pickDone()},2500);   /* sécurité : tout repart quoi qu'il arrive (12 s, ou fin de la vidéo, 25 s au plus) */
 })();
 </script>
 <style>
@@ -1016,7 +1017,7 @@ body.m3dOn.lay2 #ident{left:639px!important}
 #o3.on #o3b .chev{transform:rotate(180deg)}
 #o3p{position:absolute;right:0;top:64px;width:340px;padding:6px 0;border-radius:24px;background:linear-gradient(180deg,rgba(20,30,50,.92),rgba(10,16,30,.94));border:1.5px solid rgba(70,150,255,.75);box-shadow:0 0 22px rgba(40,130,255,.35),0 24px 60px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);opacity:0;transform:translateY(-10px) scale(.97);transform-origin:top right;pointer-events:none;transition:opacity .25s,transform .3s cubic-bezier(.2,.9,.25,1.15)}
 #o3.on #o3p{opacity:1;transform:none;pointer-events:auto}
-.o3r{display:flex;align-items:center;gap:14px;height:64px;padding:0 16px;color:#fff;font-size:calc(17px*var(--fz,1));font-weight:500;pointer-events:auto}
+.o3r{display:flex;align-items:center;gap:14px;height:64px;padding:0 16px;color:#fff;font-size:calc(17px*var(--fz,1));font-weight:500;pointer-events:auto}.o3r .o3n{margin-left:auto;padding-left:10px;font-weight:500;font-size:14px;opacity:.65;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
 .o3r+.o3r{border-top:1px solid rgba(110,170,255,.18)}
 .o3r i{width:34px;display:flex;justify-content:center}.o3r i svg{width:30px;height:30px;stroke:#58b4ff;stroke-width:1.7;filter:drop-shadow(0 0 5px rgba(60,160,255,.6))}
 .o3r span{flex:1;white-space:nowrap}
@@ -1245,7 +1246,7 @@ if(window.__freshBoot){(function(){var v=document.getElementById('introV');try{v
 
 <!-- ACCUEIL -->
 <section id="p-home" class="page active">
-<div id="m3btn"><div id="o3"><button id="o3b" type="button"><i><svg viewBox="0 0 24 24"><path d="M5 16.5l1.3-4.6A2.5 2.5 0 0 1 8.7 10h6.6a2.5 2.5 0 0 1 2.4 1.9l1.3 4.6"/><path d="M3.5 16.5h17v3.2a.8.8 0 0 1-.8.8h-1.9a.8.8 0 0 1-.8-.8v-.9H7v.9a.8.8 0 0 1-.8.8H4.3a.8.8 0 0 1-.8-.8z"/><circle cx="7.3" cy="16.4" r=".6"/><circle cx="16.7" cy="16.4" r=".6"/></svg></i><span>Options 3D</span><svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><div id="o3p"><div class="o3r" id="o3on"><i><svg viewBox="0 0 24 24"><path d="M5 16.5l1.3-4.6A2.5 2.5 0 0 1 8.7 10h6.6a2.5 2.5 0 0 1 2.4 1.9l1.3 4.6"/><path d="M3.5 16.5h17v3.2a.8.8 0 0 1-.8.8h-1.9a.8.8 0 0 1-.8-.8v-.9H7v.9a.8.8 0 0 1-.8.8H4.3a.8.8 0 0 1-.8-.8z"/><circle cx="7.3" cy="16.4" r=".6"/><circle cx="16.7" cy="16.4" r=".6"/></svg></i><span>Voiture 3D</span><b class="o3s"></b></div><div class="o3r" id="o3rot"><i><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.5M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.5M20 20v-4h-4"/></svg></i><span>Rotation voiture</span><b class="o3s"></b></div><div class="o3r" id="o3li"><i><svg viewBox="0 0 24 24"><path d="M13 5.5c4.5 0 8 2.9 8 6.5s-3.5 6.5-8 6.5c-.9 0-1.5-.7-1.5-1.6V7.1c0-.9.6-1.6 1.5-1.6z"/><path d="M8 7.5H3M8 10.5H3M8 13.5H3M8 16.5H3"/></svg></i><span>Phares</span><b class="o3s"></b></div><div class="o3r" id="o3dr"><i><svg viewBox="0 0 24 24"><path d="M5 20V10.5L11 4h7.5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1z"/><path d="M5.5 10.5H19.5M15 13.5h2"/></svg></i><span>Ouverture des portes</span><b class="o3s"></b></div></div></div></div>
+<div id="m3btn"><div id="o3"><button id="o3b" type="button"><i><svg viewBox="0 0 24 24"><path d="M5 16.5l1.3-4.6A2.5 2.5 0 0 1 8.7 10h6.6a2.5 2.5 0 0 1 2.4 1.9l1.3 4.6"/><path d="M3.5 16.5h17v3.2a.8.8 0 0 1-.8.8h-1.9a.8.8 0 0 1-.8-.8v-.9H7v.9a.8.8 0 0 1-.8.8H4.3a.8.8 0 0 1-.8-.8z"/><circle cx="7.3" cy="16.4" r=".6"/><circle cx="16.7" cy="16.4" r=".6"/></svg></i><span>Options 3D</span><svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><div id="o3p"><div class="o3r" id="o3on"><i><svg viewBox="0 0 24 24"><path d="M5 16.5l1.3-4.6A2.5 2.5 0 0 1 8.7 10h6.6a2.5 2.5 0 0 1 2.4 1.9l1.3 4.6"/><path d="M3.5 16.5h17v3.2a.8.8 0 0 1-.8.8h-1.9a.8.8 0 0 1-.8-.8v-.9H7v.9a.8.8 0 0 1-.8.8H4.3a.8.8 0 0 1-.8-.8z"/><circle cx="7.3" cy="16.4" r=".6"/><circle cx="16.7" cy="16.4" r=".6"/></svg></i><span>Voiture 3D</span><b class="o3s"></b></div><div class="o3r" id="o3car"><i><svg viewBox="0 0 24 24"><path d="M4 7h11M4 7l3-3M4 7l3 3"/><path d="M20 17H9M20 17l-3-3M20 17l-3 3"/></svg></i><span>Choix de la voiture</span><b class="o3n" id="o3carN"></b></div><div class="o3r" id="o3rot"><i><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.5M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.5M20 20v-4h-4"/></svg></i><span>Rotation voiture</span><b class="o3s"></b></div><div class="o3r" id="o3li"><i><svg viewBox="0 0 24 24"><path d="M13 5.5c4.5 0 8 2.9 8 6.5s-3.5 6.5-8 6.5c-.9 0-1.5-.7-1.5-1.6V7.1c0-.9.6-1.6 1.5-1.6z"/><path d="M8 7.5H3M8 10.5H3M8 13.5H3M8 16.5H3"/></svg></i><span>Phares</span><b class="o3s"></b></div><div class="o3r" id="o3dr"><i><svg viewBox="0 0 24 24"><path d="M5 20V10.5L11 4h7.5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1z"/><path d="M5.5 10.5H19.5M15 13.5h2"/></svg></i><span>Ouverture des portes</span><b class="o3s"></b></div></div></div></div>
 <div id="maint"></div>
 <div id="ice"><svg viewBox="0 0 24 24"><path d="M12 2v20M4.5 6.5l15 11M19.5 6.5l-15 11M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5"/></svg><span id="iceT">Verglas possible</span></div>
 <div class="gc" id="cardL">
@@ -2368,7 +2369,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
 
   /* ===== Étape 8 : À propos, vitesse GPS, musique, raccourcis, luminosité auto, styles ===== */
-  var APP_VERSION='3.5';
+  var APP_VERSION='3.6';
   function updateAbout(){$('#aboutTxt').textContent=T('Version')+' '+APP_VERSION}
 
   /* Vitesse GPS */
@@ -3644,75 +3645,11 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
   /* Nouveautés */
   var NEWS=[
-    ['Trajet en direct','Nouveau widget sur l\'accueil : ton tracé en relief, coloré selon la vitesse. Touche « Agrandir » pour l\'écran complet (distance, durée, moyenne, altitude, dénivelé, historique).'],
-    ['Plaque sous l\'heure','Ta plaque d\'immatriculation s\'affiche en widget sous l\'heure. Elle se règle aussi à la première utilisation.'],
-    ['Widget voiture à ton goût','Choisis jusqu\'à 4 infos pour le widget voiture de l\'accueil (régime, vitesse, charge…). La carte s\'adapte.'],
-    ['Voiture 3D sans rectangle noir','Sur les postes dont la carte graphique ne gère pas la transparence, la voiture est maintenant découpée autrement : elle se pose directement sur le décor.'],
-    ['Démarrage dans l\'ordre','L\'animation se joue seule, puis le choix du profil. L\'accueil ne démarre qu\'une fois le profil choisi.'],
-    ['Mode parking','Le radar de recul s\'appelle maintenant Mode parking. Distances corrigées (STOP au contact) et bouton « Régler le zéro ici ».'],
-    ['Météo sans internet','Sans connexion, le widget météo affiche la température de la voiture.'],
-    ['Plus d\'infos sur la page Véhicule','Régime moteur, vitesse, température d\'admission et charge moteur (prise OBD), avec de nouvelles icônes. Tu choisis les lignes à afficher et la carte s\'adapte (Réglages › Ma voiture › Infos de la page Véhicule).'],
-    ['Voiture 3D sans carré noir','La voiture est maintenant affichée directement sur le décor de l\'accueil : plus de carré noir derrière elle.'],
-    ['Animation de démarrage','L\'animation d\'allumage va maintenant jusqu\'au bout, même sur un poste lent.'],
-    ['Prise OBD plus simple','Nouveau bouton « Chercher une prise » : Cockpit trouve ta prise OBD Bluetooth à proximité et s\'y connecte sans l\'associer ni taper de code (Réglages › Ma voiture › Prise OBD Bluetooth).'],
-    ['Plus fluide','L\'accueil ne travaille plus derrière la vidéo de démarrage, les animations s\'arrêtent quand elles ne se voient pas, et un mode « poste léger » s\'active tout seul sur les postes à 2 Go de mémoire (Réglages).'],
-    ['Démarrage','Seule la vidéo s\'affiche au démarrage : plus d\'aperçu de l\'accueil avant elle. En revenant de CarPlay, tu retrouves directement l\'accueil, sans vidéo ni choix du profil.'],
-    ['Modifier l\'écran d\'accueil','Un seul endroit pour ajouter, déplacer et régler tes widgets : compteurs, montres, horloges, voiture, météo et petits widgets.'],
-    ['Plaques plus vraies','Plaque nette, lettres et département aux proportions d\'une vraie plaque.'],
-    ['Nom dans le cadre','Le nom de ta voiture se centre dans le cadre du showroom, et tu peux l\'ajuster (Ma voiture › Identité).'],
-    ['Profils','La création du profil prend tout l\'écran, avec de nouveaux boutons, et montre comment marche l\'Iron Scan.'],
-    ['Voiture 3D corrigée','Sur certains postes la voiture n\'apparaissait pas (rectangle noir ou showroom vide) : elle s\'affiche maintenant partout.'],
-    ['Plaque et enseigne','L\'aperçu de la plaque s\'affiche, ses boutons sont plus clairs, et le nom de ta voiture est bien centré dans son cadre sur tous les écrans.'],
-    ['Personnaliser plus simple','Les widgets se déplacent au doigt sans accroc dans l\'aperçu, et la barre du bas (taille, opacité, retirer) est plus lisible.'],
-    ['Voix de bienvenue','Elle te salue une fois ton profil choisi, après l\'animation de démarrage.'],
-    ['Nouvelle intro','Animation de démarrage retouchée, sans image grise avant.'],
-    ['Nouvelle voiture 3D','Une Golf 6 refaite en entier : plus nette, plus fluide, avec ses vraies portes, ses phares et sa vue éclatée.'],
-    ['10 showrooms','Actuel, rouge, rose, orange ou vert, de jour comme de nuit. Les LED du plateau prennent la couleur du décor (Réglages, Ma voiture).'],
-    ['Couleur de carrosserie','Choisis la teinte de ta voiture parmi les couleurs d\'origine du constructeur, pour chaque profil.'],
-    ['Prise OBD Bluetooth','Branche une prise OBD Bluetooth : régime, températures, batterie, essence et codes défaut s\'affichent (Réglages, Ma voiture).'],
-    ['Photos de ta voiture','En mode 2D, tes 3 photos (jour, nuit phares éteints, nuit phares allumés) reviennent dans l\'assistant et dans Réglages, Style.'],
-    ['Plaque d\'immatriculation','Bleue, noire ou masquée, avec ton numéro AB-123-CD et ton département (Réglages, Ma voiture).'],
-    ['Historique de trajets en 3D','Revois le tracé de chaque trajet en relief, coloré selon la vitesse. Tout reste sur le poste, sans internet.'],
-    ['Réglages réorganisés','7 espaces clairs : Mon accueil, Style, Jour et nuit, Ma voiture, Conduite et sécurité, Profils, Système.'],
-    ['Radar premium','En marche arrière, seuls les segments en face de l\'obstacle s\'allument, du vert au rouge, avec la distance en m ou en cm. Les styles néon restent au choix.'],
-    ['Vue aérienne des portes','Dès qu\'une porte s\'ouvre, la caméra monte à la verticale au-dessus de ta voiture, puis redescend quand tout est fermé.'],
-    ['Sauvegarde complète','Réglages, photos et trajets sont sauvegardés ensemble et se restaurent sans rien perdre.'],
-    ['Mode allégé automatique','Si le poste peine, la voiture 3D passe toute seule en mode léger.'],
-    ['Nouveau démarrage','Une nouvelle vidéo d\'ouverture.'],
-    ['Petites retouches','Kilométrage sur une ligne, message d\'accueil plus discret en haut à droite, guide mis à jour.'],
-    ['Plus fluide','Plus de flou derrière les cartes, voiture plus légère à afficher, tout se met en pause quand tu quittes l\'accueil : Cockpit tourne mieux, même sur les petits postes.'],
-    ['Plateau tournant','La voiture est posée pile au centre de la plateforme, et c\'est la plateforme entière qui tourne avec elle.'],
-    ['Valeurs saisies','Plus d\'étoile, et l\'unité s\'ajoute toute seule : tu tapes juste le nombre.'],
-    ['Widgets depuis le téléphone','Un gros bouton « Déplacer les widgets » sur l\'accueil de l\'appli téléphone.'],
-    ['Cockpit sur ton téléphone','Scanne un code et personnalise tout depuis ton téléphone : profil, compteurs, montres, horloges, météo, fonds (même une photo du téléphone), disposition des widgets et voiture 3D. Tout change en direct sur le poste.'],
-    ['Premier démarrage plus simple','Le poste propose d\'abord le téléphone : il ne garde que les réglages de la voiture (langue, marque, CarPlay, détection des infos).'],
-    ['Voiture 3D fluide','La Golf tourne en vidéo, sans à-coups, sur sa plateforme. Fais-la pivoter au doigt, ou coupe la rotation automatique avec le petit bouton.'],
-    ['Phares, portes et explosion','Les phares s\'allument vraiment sur la voiture, les portes s\'ouvrent en douceur et la vue éclatée est animée.'],
-    ['Onglet Véhicule','La voiture se tourne côté conducteur, la porte s\'ouvre et la caméra s\'installe au volant.'],
-    ['Opacité des widgets','Un curseur dans Personnaliser pour rendre chaque widget plus ou moins transparent.'],
-    ['Radar','Le radar reprend l\'image du style choisi avec ta voiture dessus, et affiche la vraie distance en cm sur les postes avec CarCAN.'],
-    ['Voix','Nouvelles voix pour Bonjour, Bon après-midi, Bonsoir, porte ouverte et risque de verglas.'],
-    ['Plus rapide','La voiture 3D et la page Applications s\'affichent tout de suite.'],
-    ['Jour et nuit','Deux showrooms : clair avec LED ambrée, sombre avec néons bleus. Le bouton soleil / lune en haut à droite change de mode.'],
-    ['Options 3D','Un menu déroulant pour la voiture 3D : rotation, phares et ouverture des portes. Sans rotation, la voiture se pose de profil.'],
-    ['Barre du haut','Radar P et profil en petits boutons ronds, à côté du Bluetooth. Ton logo et ta motorisation s\'affichent dans le cadre du mur.'],
-    ['Météo vivante','La température de la voiture remplace celle d\'internet, et le fond change selon la température et l\'heure (matin, journée, soir, nuit).'],
-    ['Touches du poste','La touche Accueil ramène à l\'accueil de Cockpit, la touche Retour ferme ce qui est ouvert, et Cockpit affiche son propre volume.'],
-    ['Personnalisation','S\'ouvre directement sur l\'aperçu ; les widgets se déplacent pile sous le doigt.'],
-    ['Bouton radar','Un bouton P sur l\'accueil ouvre le radar de stationnement à tout moment. Touche l\'écran pour le fermer.'],
-    ['Postes avec CarCAN','Portes, coffre, warnings, marche arrière et température extérieure se règlent tout seuls. Test dans Réglages, Pour les curieux.'],
-    ['Personnalisation','Une section complète dans Réglages : 36 compteurs, 19 montres à l\'heure réelle, 15 horloges, 24 widgets voiture, 9 météos et 8 styles de radar, avec aperçu direct. Le choix du style est aussi dans l\'assistant de départ.'],
-    ['Profils','Un profil par personne avec son volant, sa couleur et un code ou un Iron Scan facultatif (Réglages, Profils).'],
-    ['Message d\'accueil','Un nouveau message en verre avec ton volant. Tu écris ta phrase avec des mots magiques (Réglages).'],
-    ['Assistant plus simple','Les portes se testent à la suite et plus rien à saisir à la main.'],
-    ['Galerie de fonds d\'écran','8 nouveaux fonds à utiliser en accueil ou en écran de verrouillage (Réglages, Apparence).'],
-    ['Mise à jour automatique','Cockpit te prévient quand une version est prête : touche Mettre à jour, il télécharge et installe.'],
-    ['Plus de réinstallation','Les prochaines versions s\'installent par-dessus, sans perdre tes réglages.'],
-    ['Écran d\'accueil modifiable','Petit logo en haut à droite : déplace, agrandis, masque ou ajoute des widgets.'],
-    ['Nouvelle météo','Un fond qui change avec la température, ta ville et 5 jours.'],
-    ['Compteurs','16 cadrans au choix, avec ton kilométrage. Tu peux les réduire.'],
-    ['Et aussi','Trajets renommables, polices, thèmes, ambiances, test du poste et réglages simplifiés.']
-  ];
+    ['Vraie voiture 3D','La voiture n\'est plus une vidéo : c\'est le vrai modèle 3D, calculé en direct. Rotation fluide, portes qui s\'ouvrent vraiment, phares, warnings, vue du dessus et habitacle.'],
+    ['Couleurs en direct','La couleur de carrosserie et celle des LED de la plateforme changent instantanément, sur n\'importe quelle voiture.'],
+    ['Plus de voitures','La liste des voitures 3D se met à jour toute seule depuis internet : de nouveaux modèles arrivent sans mise à jour de Cockpit. Téléchargement beaucoup plus léger.'],
+    ['Options adaptées','Si ta voiture 3D n\'a pas de portes qui s\'ouvrent, l\'option « Ouverture des portes » disparaît.'],
+    ['Qualité automatique','Si le poste peine, Cockpit baisse un peu la qualité tout seul pour garder une rotation fluide.']];
   function newsOpen(){
     infoOpen('Quoi de neuf dans Cockpit '+APP_VERSION,'<ul class="nwL">'+NEWS.map(function(n){return '<li><b>'+esc(T(n[0]))+'</b> · '+esc(T(n[1]))+'</li>'}).join('')+'</ul>');
   }
@@ -4011,8 +3948,9 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   var DIALS={"a0": {"y": 0.801, "n": "#ff3b30", "d": "#fff", "a": true}, "a1": {"y": 0.801, "n": "#4cc3ff", "d": "#fff", "a": true}, "a2": {"y": 0.801, "n": "#ff4040", "d": "#fff", "a": true}, "a3": {"y": 0.801, "n": "#c07bff", "d": "#fff", "a": true}, "a4": {"y": 0.801, "n": "#ff7a3b", "d": "#fff", "a": true}, "a5": {"y": 0.801, "n": "#ffb347", "d": "#fff", "a": true}, "a6": {"y": 0.801, "n": "#7fe7ff", "d": "#fff", "a": true}, "a7": {"y": 0.801, "n": "#ff3b30", "d": "#fff", "a": true}, "b0": {"y": 0.842, "n": "#fff", "d": "#fff", "a": false}, "b1": {"y": 0.803, "n": "#fff", "d": "#fff", "a": false}, "b2": {"y": 0.844, "n": "#fff", "d": "#fff", "a": false}, "b3": {"y": 0.83, "n": "#fff", "d": "#efdcff", "a": false}, "b4": {"y": 0.833, "n": "#fff", "d": "#8dff6a", "a": false}, "b5": {"y": 0.833, "n": "#fff", "d": "#fff", "a": false}, "b6": {"y": 0.844, "n": "#fff", "d": "#fff", "a": false}, "b7": {"y": 0.864, "n": "#fff", "d": "#fff", "a": false}};
   var DIALKEYS=Object.keys(DIALS);
   function odoVal(){var o=odo();return o===null?0:Math.round(o)}
+  window.__dialApply=function(){dialApply()};
   function dialApply(){
-    var on=get('dial','off')==='on',k=get('dialK','a0');if(!DIALS[k]&&!(window.__SPD&&window.__SPD[k]))k='a0';
+    var on=get('dial','off')==='on'&&!(window.__licLocked&&__licLocked()),k=get('dialK','a0');if(!DIALS[k]&&!(window.__SPD&&window.__SPD[k]))k='a0';
     document.body.classList.toggle('dialOn',on);
     $('#dialGrid').classList.toggle('on',on);
     $$('[data-cs="dial"] button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-val')===get('dial','off'))});
@@ -4093,7 +4031,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   function wAllIds(){return Object.keys(STDW).concat(cws.map(function(c){return c.id}))}
   function cwBuild(c){
     var e=wEl(c.id);if(!e){e=document.createElement('div');e.className='gc cw'+(c.t==='compass'?' cwC':'');e.id=c.id;(window.__hw||stage).appendChild(e);
-      if(c.t==='sty'){e.className='gc cw cwS'+((c.g==='wt'||c.g==='dk'||c.g==='cw'||(c.g==='wx'&&c.i<9))?' cwW':'');e.innerHTML=window.__styHTML?window.__styHTML(c.g,c.i):''}
+      if(c.t==='sty'){e.className='gc cw cwS'+((c.g==='wt'||c.g==='dk'||c.g==='cw'||(c.g==='wx'&&c.i<9))?' cwW':'');e.setAttribute('data-g',c.g);e.innerHTML=window.__styHTML?window.__styHTML(c.g,c.i):''}
       else if(c.t==='clock')e.innerHTML='<div class="cwT">--:--</div><small></small>';
       else if(c.t==='compass')e.innerHTML='<svg class="cp" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"/><g class="cpn"><path d="M50 10L58 50L50 44L42 50z" fill="#ff4d4d"/><path d="M50 90L58 50L50 56L42 50z" fill="#fff"/></g><text x="50" y="9" font-size="10" fill="#fff" text-anchor="middle">N</text></svg><small>--</small>';
       else if(c.t==='note')e.innerHTML='<div class="cwT" style="font-size:20px;font-weight:500;line-height:1.25;max-height:84px;overflow:hidden"></div><small>Touche pour écrire</small>';
@@ -4277,6 +4215,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   function trList(){if(!A||!A.traceList)return[];try{return JSON.parse(A.traceList())||[]}catch(e){return[]}}
   function trParse(txt){var P=[];String(txt||'').split('\n').forEach(function(l){var a=l.split(',');if(a.length>=5){var p=[+a[0],+a[1],+a[2],+a[3],+a[4]];if(isFinite(p[0])&&isFinite(p[1]))P.push(p)}});return P}
   function trace3D(id,name){
+    if(window.__licLocked&&__licLocked()){if(window.__licPay)__licPay();return}
     var P=trParse(A&&A.traceGet?A.traceGet(String(id)):'');
     if(P.length<2){toast(T('Pas de tracé pour ce trajet'));return}
     var lc='#4aa3ff';try{var LK=window.CockpitLook,s=LK&&LK.showroom(document.body.classList.contains('clair'));if(s)lc=s.led}catch(e){}
@@ -5057,7 +4996,7 @@ function p(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 var loading=false,COLS=['#c9cdd3','#f2f3f5','#1b1d22','#5d636c','#1f4fa8','#b3121b','#0f5d3a'];
 function load(src,cb){var e=document.createElement('script');e.src=src;e.onload=function(){cb()};e.onerror=function(){cb()};document.body.appendChild(e)}
 function apply(){var hasC=!!(window.CockpitLook&&CockpitLook.car&&CockpitLook.car());var on=g('m3d','0')==='1'&&hasC;if(window.__homeCard)setTimeout(window.__homeCard,0);document.body.classList.toggle('m3dOn',on);if(window.__o3paint)setTimeout(window.__o3paint,0);var want=g('m3d','0')==='1';var sw=document.getElementById('swM3d');if(sw)sw.classList.toggle('on',want);var b3=document.getElementById('m3b3d');if(b3)b3.classList.toggle('on',want);if(!on){window.__m3dExp=false;['m3bExp','m3bIn'].forEach(function(i){var e=document.getElementById(i);if(e)e.classList.remove('on')})}
-  if(on){if(window.M3DV)M3DV.start();else if(!loading&&window.__introGate&&window.__introGate(apply)){}else if(!loading){loading=true;var L=['m3d/m3p.js'];(function nx(){if(!L.length){loading=false;if(window.M3DV&&g('m3d','0')==='1')M3DV.start();return}load(L.shift(),nx)})()}}
+  if(on){if(window.M3DV)M3DV.start();else if(!loading&&window.__introGate&&window.__introGate(apply)){}else if(!loading){loading=true;var L=['m3d/three.min.js','m3d/m3live.js'];(function nx(){if(!L.length){loading=false;if(window.M3DV&&g('m3d','0')==='1')M3DV.start();return}load(L.shift(),nx)})()}}
   else if(window.M3DV)M3DV.stop()}
 window.m3dApply=apply;
 var sww=document.getElementById('swM3dW');function dw(){if(sww)sww.classList.toggle('on',g('m3dWarn','0')==='1')}if(sww)sww.addEventListener('click',function(){p('m3dWarn',g('m3dWarn','0')==='1'?'0':'1');dw()});dw();
@@ -5085,10 +5024,11 @@ var b3=document.getElementById('m3b3d');if(b3)b3.addEventListener('click',functi
   function carHTML(){var c=LK.car(),h='';
     LK.CARLIST.forEach(function(x){var st=carSt(x.id),dl=CDL[x.id],btn,cls='mini';
       if(dl!=null)btn=TT('Téléchargement')+' '+dl+' %';else if(!st.installed){btn=TT('Télécharger')+' · '+x.mo+' Mo';cls+=' dlB'}else if(c===x.id&&g('m3d','0')==='1')btn='✓ '+TT('Choisie');else btn=TT('Choisir');
-      h+='<div class="carR'+(c===x.id?' on':'')+'"><div><b>'+x.nom+'</b><small>'+TT(x.info)+(st.installed?' · '+TT('sur le poste'):'')+'</small></div><div class="carB">'+
-        (st.installed&&c!==x.id?'<button class="mini carDel" data-c="'+x.id+'">'+TT('Supprimer')+'</button>':'')+'<button class="'+cls+' carGo" data-c="'+x.id+'"'+(dl!=null?' disabled':'')+'>'+btn+'</button></div></div>'});
+      h+='<div class="carR'+(c===x.id?' on':'')+'"><div><b>'+x.nom+'</b><small>'+TT(x.info)+(st.inclus?' · '+TT('incluse'):st.installed?' · '+TT('sur le poste'):'')+'</small></div><div class="carB">'+
+        (st.installed&&!st.inclus&&c!==x.id?'<button class="mini carDel" data-c="'+x.id+'">'+TT('Supprimer')+'</button>':'')+'<button class="'+cls+' carGo" data-c="'+x.id+'"'+(dl!=null?' disabled':'')+'>'+btn+'</button></div></div>'});
     return h}
   function carsRedraw(){CUI=CUI.filter(function(e){return document.body.contains(e)});CUI.forEach(function(e){e.innerHTML=carHTML()});drawCar();homeCard()}
+  window.__carsRedraw=function(){carsRedraw();drawCols()};
   function carAct(e){var b=e.target.closest('button');if(!b)return;var c=b.getAttribute('data-c');if(!c)return;
     if(b.classList.contains('carDel')){if(A2&&A2.carDelete)try{A2.carDelete(c)}catch(x){}if(LK.carRefresh)LK.carRefresh();if(!LK.car()&&window.m3dApply)window.m3dApply();look();carsRedraw();return}
     if(CDL[c]!=null)return;
@@ -5098,7 +5038,7 @@ var b3=document.getElementById('m3b3d');if(b3)b3.addEventListener('click',functi
   var NET="Connecte d'abord le poste à internet (Wi-Fi ou partage de connexion du téléphone), puis touche Télécharger.";
   window.__carPanel=function(){if(!window.__infoOpen)return;window.__infoOpen(TT('Voiture 3D'),'<div class="note">'+TT(NET)+'</div><div id="carP"></div>');window.__carUI(document.getElementById('carP'))};
   function drawCar(){var n=document.getElementById('m3carN');if(!n)return;var c=LK.car();
-    n.textContent=c?(LK.CARLIST.filter(function(x){return x.id===c})[0].nom):TT('Aucune voiture téléchargée')}
+    var it=c&&LK.CARLIST.filter(function(x){return x.id===c})[0];n.textContent=c?(it?it.nom:c):TT('Aucune voiture téléchargée')}
   window.onCarDl=function(id,pct,state){if(state==='dl')CDL[id]=pct;else{delete CDL[id];if(LK.carRefresh)LK.carRefresh();
       if(state==='ok'){if(typeof window.toast==='function')window.toast(TT('Voiture téléchargée'));pick(id);return}
       if(window.__infoOpen)window.__infoOpen(TT('Téléchargement impossible'),'<div class="note">'+TT("Vérifie que le poste a internet (Wi-Fi ou partage de connexion), puis réessaie.")+'</div>')}
@@ -5157,11 +5097,15 @@ var bp=document.getElementById('hbProf');if(bp)bp.addEventListener('click',funct
   function row(id){return document.getElementById(id)}
   function paint(){var on=g('m3d','0')==='1',l=document.getElementById('lights');
     row('o3on').classList.toggle('on',on);row('o3rot').classList.toggle('on',g('m3dAuto','1')!=='0');row('o3rot').classList.toggle('off',!on);
-    row('o3li').classList.toggle('on',!!(l&&l.classList.contains('on')));row('o3dr').classList.toggle('on',!!window.__m3dExp);row('o3dr').classList.toggle('off',!on)}
+    row('o3li').classList.toggle('on',!!(l&&l.classList.contains('on')));row('o3dr').classList.toggle('on',!!window.__m3dExp);row('o3dr').classList.toggle('off',!on);
+    var op=window.M3DV&&M3DV.opens?M3DV.opens():null;row('o3dr').style.display=op&&!op.length?'none':'';
+    try{var LK=window.CockpitLook,id=LK&&LK.car(),it=id&&LK.CARLIST.filter(function(x){return x.id===id})[0],n=row('o3carN');if(n)n.textContent=it?(it.court||it.nom):''}catch(e){}
+  }
   window.__o3paint=paint;
   b.addEventListener('click',function(e){e.stopPropagation();o.classList.toggle('on');paint()});
   document.addEventListener('pointerdown',function(e){if(o.classList.contains('on')&&!(e.target.closest&&e.target.closest('#o3')))o.classList.remove('on')},true);
   row('o3on').addEventListener('click',function(){p('m3d',g('m3d','0')==='1'?'0':'1');apply();paint()});
+  row('o3car').addEventListener('click',function(e){e.stopPropagation();o.classList.remove('on');if(window.__carPanel)window.__carPanel()});
   row('o3rot').addEventListener('click',function(){p('m3dAuto',g('m3dAuto','1')==='0'?'1':'0');paint()});
   row('o3li').addEventListener('click',function(){var l=document.getElementById('lights');if(l)l.click();setTimeout(paint,30)});
   row('o3dr').addEventListener('click',function(){if(window.M3DV)M3DV.explode();paint()});
@@ -5173,7 +5117,7 @@ var ba=document.getElementById('m3bAuto');function da(){if(ba)ba.classList.toggl
 
 apply();
 /* voiture 3D préchargée en fond : le bouton 3D l'affiche tout de suite */
-if(g('m3d','0')==='1')(window.__afterIntro||function(f){f()})(function(){setTimeout(function(){if(!window.M3DV&&!loading&&g('m3d','0')==='1'){loading=true;load('m3d/m3p.js',function(){loading=false;if(window.M3DV&&g('m3d','0')==='1')M3DV.start()})}},1500)});
+if(g('m3d','0')==='1')(window.__afterIntro||function(f){f()})(function(){setTimeout(function(){if(!window.M3DV&&!loading&&g('m3d','0')==='1'){loading=true;load('m3d/three.min.js',function(){load('m3d/m3live.js',function(){loading=false;if(window.M3DV&&g('m3d','0')==='1')M3DV.start()})})}},1500)});
 })();</script>
 <script>(function(){var st=document.getElementById('stage'),hw=document.createElement('div');hw.id='hw';
 var ids=['bg','scrim','amb','p-home','top','lights','pill','tiles','homebar','smart','parkBig','edBtn','rev','brk'];
@@ -5380,5 +5324,104 @@ on();paint(true);
 setInterval(function(){if(document.hidden)return;var vis=big.classList.contains('on')||(w.classList.contains('on')&&(!window.__homeLive||window.__homeLive()));if(vis)paint(false)},4000);
 window.__trDemo=function(t){A=A||{};var f=A.traceGet;A={traceGet:function(){return t}};raw='';paint(true)};
 })();</script>
+<script src="core/qrcode.min.js"></script>
+<script>/* Cockpit 3.6 : licence à prix libre (1,99 € minimum, une fois, pour toujours).
+   7 jours d'essai, puis voiture 3D, compteurs (cadrans), montres, météo et trajet 3D se bloquent.
+   CarPlay, applis, OBD, mode parking, vitesse simple et réglages restent libres (sécurité en roulant). */
+(function(){
+var A=window.Android,T=function(x){return window.__T?window.__T(x):x};
+/* 3.6 : prix libre MIS DE CÔTÉ (Cockpit reste gratuit). Pour l'activer plus tard : LIC_ON=true. */
+var LIC_ON=false;
+function etat(){if(!LIC_ON&&!window.__licDemo)return {etat:'paye',jours:0,poste:'',url:'',off:1};try{if(A&&A.licence)return JSON.parse(A.licence())}catch(e){}return window.__licDemo||{etat:'paye',jours:0,poste:'',url:''}}
+var L=etat(),wasOff=null;
+window.__licLocked=function(){return L.etat==='fin'};
+window.__licState=function(){return L};
+function fmtP(p){p=String(p||'');return p.slice(0,4)+'-'+p.slice(4,8)+'-'+p.slice(8)}
+var LOCK='<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+var st=document.createElement('style');st.textContent=
+ '.licLk{position:absolute;inset:0;z-index:30;border-radius:inherit;background:rgba(5,8,15,.74);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;font-size:17px;font-weight:600;pointer-events:auto;cursor:pointer;text-align:center;padding:10px;box-sizing:border-box}'+
+ '.licLk svg,#licCar svg{width:30px;height:30px;fill:none;stroke:#7fb6ff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.licLk small{font-weight:400;font-size:14px;color:#9fb3d6}'+
+ '#licCar{position:absolute;left:440px;top:250px;width:400px;padding:26px 24px;border-radius:24px;background:rgba(10,16,30,.82);border:1px solid rgba(110,170,255,.35);color:#fff;text-align:center;display:none;flex-direction:column;align-items:center;gap:10px;z-index:4;cursor:pointer}'+
+ '#licCar b{font-size:22px}#licCar span{color:#9fb3d6;font-size:16px;line-height:1.4}#licCar i{font-style:normal;background:#2f7dff;border-radius:20px;padding:10px 22px;font-weight:600;margin-top:4px}'+
+ '#licPill{position:absolute;left:50%;top:22px;transform:translateX(-50%);z-index:40;display:none;align-items:center;gap:10px;padding:8px 8px 8px 16px;border-radius:22px;background:rgba(10,16,30,.85);border:1px solid rgba(255,176,32,.5);color:#ffd27a;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap}'+
+ '#licPill i{font-style:normal;background:#ffb020;color:#1a1200;border-radius:16px;padding:5px 12px}'+
+ 'body.clair #licCar,body.clair #licPill{background:rgba(255,255,255,.92);color:#122}body.clair #licCar span{color:#456}'+
+ '.licBox{display:flex;gap:22px;align-items:center;text-align:left}.licBox canvas{width:230px;height:230px;border-radius:14px;background:#fff;flex-shrink:0}'+
+ '.licBox>div{flex:1;min-width:0}.licBox p{margin:0 0 10px;line-height:1.45;overflow-wrap:anywhere}.licIn{display:flex;gap:8px;margin-top:8px}.licIn input{flex:1;min-width:0;font:600 22px ui-monospace,Menlo,monospace;letter-spacing:3px;text-transform:uppercase}'+
+ '.licMsg{min-height:22px;font-size:15px;margin-top:6px}';
+document.head.appendChild(st);
+/* rappel discret : derniers jours d'essai, puis « Débloquer » */
+var pill=document.createElement('div');pill.id='licPill';(document.getElementById('p-home')||document.body).appendChild(pill);
+pill.addEventListener('click',function(e){e.stopPropagation();pay()});
+/* à la place de la voiture 3D */
+var carC=document.createElement('div');carC.id='licCar';carC.innerHTML=LOCK+'<b>'+T('Voiture 3D')+'</b><span>'+T('Ton essai gratuit est terminé. Débloque Cockpit à prix libre, dès 1,99 €, une seule fois.')+'</span><i>'+T('Débloquer Cockpit')+'</i>';
+(document.getElementById('p-home')||document.body).appendChild(carC);carC.addEventListener('click',function(e){e.stopPropagation();pay()});
+function g(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
+
+/* widgets bloqués : un voile « Débloquer » par-dessus */
+var SEL='#cardR,#trW,.cwS[data-g="wt"],.cwS[data-g="wx"]';
+function lockEl(e,on){var k=null;for(var c=e.firstElementChild;c;c=c.nextElementSibling)if(c.classList.contains('licLk'))k=c;
+  if(on&&!k){k=document.createElement('div');k.className='licLk';k.innerHTML=LOCK+T('Débloquer')+'<small>'+T('prix libre dès 1,99 €')+'</small>';
+    k.addEventListener('click',function(ev){ev.stopPropagation();ev.preventDefault();pay()},true);
+    k.addEventListener('pointerdown',function(ev){if(!document.body.classList.contains('edit'))ev.stopPropagation()},true);e.appendChild(k)}
+  else if(!on&&k)k.parentNode.removeChild(k)}
+function scan(){var off=L.etat==='fin';document.body.classList.toggle('licOff',off);
+  [].forEach.call(document.querySelectorAll(SEL),function(e){lockEl(e,off)});
+  var home=(document.getElementById('stage')||{}).getAttribute&&document.getElementById('stage').getAttribute('data-page')==='home';
+  carC.style.display=off&&home&&g('m3d','0')==='1'?'flex':'none';
+  if(off&&window.M3DV){try{M3DV.stop()}catch(e){}}
+  if((wasOff===null&&off)||(wasOff!==null&&wasOff!==off)){if(window.__dialApply)try{__dialApply()}catch(e){}if(wasOff!==null&&!off&&window.m3dApply)try{m3dApply()}catch(e){}}
+  wasOff=off;
+  if(L.etat==='essai'&&L.jours<=3){pill.innerHTML=T('Essai gratuit')+' · '+L.jours+' '+T(L.jours>1?'jours':'jour')+'<i>'+T('Débloquer')+'</i>';pill.style.display=home?'flex':'none'}
+  else if(off){pill.innerHTML=LOCK.replace('<svg','<svg style="width:18px;height:18px;fill:none;stroke:#ffd27a;stroke-width:2"')+T('Essai terminé')+'<i>'+T('Débloquer')+'</i>';pill.style.display=home?'flex':'none'}
+  else pill.style.display='none';
+  row()}
+/* compteurs, montres, météo : leurs galeries mènent au déblocage */
+document.addEventListener('click',function(e){if(L.etat!=='fin')return;var b=e.target.closest&&e.target.closest('[data-pgo="dial"],[data-pgo="wt"],[data-pgo="wx"]');if(!b)return;e.stopPropagation();e.preventDefault();pay()},true);
+
+/* écran « Débloquer Cockpit » : QR code, code à taper, achat déjà fait */
+var poll=0;
+function qr(cv,txt){try{var q=qrcode(0,'M');q.addData(txt);q.make();var n=q.getModuleCount(),m=4,sz=cv.width,c=cv.getContext('2d'),s=sz/(n+m*2);
+  c.fillStyle='#fff';c.fillRect(0,0,sz,sz);c.fillStyle='#000';for(var r=0;r<n;r++)for(var k=0;k<n;k++)if(q.isDark(r,k))c.fillRect(Math.floor((k+m)*s),Math.floor((r+m)*s),Math.ceil(s),Math.ceil(s))}catch(e){}}
+function pay(){if(!window.__infoOpen)return;L=etat();if(L.etat==='paye'){toast2(T('Cockpit est déjà débloqué ✓'));return}
+  var h='<div class="licBox"><canvas id="licQr" width="460" height="460"></canvas><div>'+
+    '<p><b style="font-size:20px">'+T('Prix libre, à partir de 1,99 €')+'</b><br>'+T('Une seule fois, pour toujours. Tu donnes ce que tu veux en plus.')+'</p>'+
+    '<p>'+T('Scanne avec ton téléphone : Apple Pay, Google Pay ou carte bancaire.')+'</p>'+
+    '<p style="color:#9fb3d6;font-size:15px">'+T('Si le poste a internet, Cockpit se débloque tout seul. Sinon, tape le code affiché après le paiement :')+'</p>'+
+    '<div class="licIn"><input class="vIn" id="licCode" maxlength="9" placeholder="XXXX-XXXX" autocomplete="off" autocapitalize="characters"><button class="mini" id="licOk">'+T('Valider')+'</button></div>'+
+    '<div class="licMsg" id="licMsg"></div><small style="color:#6f86ad">'+T('Poste n°')+' '+fmtP(L.poste)+'</small></div></div>';
+  window.__infoOpen(T('Débloquer Cockpit'),h,[[T("J'ai déjà payé"),already]]);
+  qr(document.getElementById('licQr'),L.url);
+  var inp=document.getElementById('licCode');
+  inp.addEventListener('input',function(){var r=inp.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);inp.value=r.length>4?r.slice(0,4)+'-'+r.slice(4):r});
+  document.getElementById('licOk').addEventListener('click',function(){var ok=false;try{ok=A&&A.licenceCode&&A.licenceCode(inp.value)}catch(e){}
+    if(ok)done();else msg(T('Code incorrect. Vérifie les 8 caractères.'),'#ffb020')});
+  clearInterval(poll);if(A&&A.licenceCheck){try{A.licenceCheck()}catch(e){}poll=setInterval(function(){var ov=document.getElementById('infoOv');if(!ov||!ov.classList.contains('on')||!document.getElementById('licQr')){clearInterval(poll);return}try{A.licenceCheck()}catch(e){}},5000)}}
+function already(){var b=document.getElementById('infoB');if(!b)return;
+  b.innerHTML='<div class="note">'+T("Tape l'adresse e-mail utilisée pour le paiement. Un achat débloque 2 postes.")+'</div><div class="licIn"><input class="vIn" id="licMail" type="email" autocomplete="off" placeholder="mon@email.fr"><button class="mini" id="licMailOk">'+T('Retrouver')+'</button></div><div class="licMsg" id="licMsg"></div>';
+  document.getElementById('licMailOk').addEventListener('click',function(){var v=(document.getElementById('licMail').value||'').trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){msg(T('Adresse e-mail incomplète.'),'#ffb020');return}
+    waitMail=true;msg(T('Recherche…'),'#9fb3d6');try{A&&A.licenceEmail&&A.licenceEmail(v)}catch(e){}})}
+var waitMail=false;
+function msg(t,c){var m=document.getElementById('licMsg');if(m){m.textContent=t;m.style.color=c||''}}
+function toast2(t){if(typeof window.toast==='function')window.toast(t)}
+function done(){clearInterval(poll);L=etat();var ov=document.getElementById('infoOv');if(ov)ov.classList.remove('on');scan();toast2(T('Merci ! Cockpit est débloqué'))}
+window.onLicence=function(r){r=r||{};if(r.paye){done();return}
+  if(waitMail){waitMail=false;msg(r.horsLigne?T("Pas d'internet sur le poste. Connecte-le puis réessaie."):(r.raison?T(r.raison):T('Aucun achat trouvé.')),'#ffb020')}
+  var l2=etat();if(l2.etat!==L.etat||l2.jours!==L.jours){L=l2;scan()}};
+window.__licPay=pay;
+
+/* Réglages › Système : état de la licence */
+function row(){var t=document.getElementById('licTxt'),b=document.getElementById('licBtn');if(!t)return;
+  t.textContent=L.etat==='paye'?T('Débloqué, merci !')+' ✓':L.etat==='essai'?T('Essai gratuit')+' : '+L.jours+' '+T(L.jours>1?'jours restants':'jour restant'):T('Essai terminé')+' · '+T('poste')+' '+fmtP(L.poste);
+  b.style.display=L.etat==='paye'?'none':''}
+(function(){var ab=document.querySelector('#sec-system .about');if(!ab||document.getElementById('licRow')||L.off)return;var r=document.createElement('div');r.className='sr';r.id='licRow';
+  r.innerHTML='<div class="l">'+T('Licence Cockpit')+'<small id="licTxt"></small></div><button class="mini" id="licBtn" type="button">'+T('Débloquer')+'</button>';ab.parentNode.insertBefore(r,ab.nextSibling);
+  document.getElementById('licBtn').addEventListener('click',pay)})();
+
+scan();setInterval(function(){var l2=etat();if(l2.etat!==L.etat||l2.jours!==L.jours)L=l2;scan()},3000);
+/* au démarrage puis toutes les 6 h : le site confirme un paiement fait ailleurs et garde la date d'essai */
+if(!L.off&&L.etat!=='paye'&&A&&A.licenceCheck){setTimeout(function(){try{A.licenceCheck()}catch(e){}},15000);setInterval(function(){if(L.etat!=='paye')try{A.licenceCheck()}catch(e){}},6*3600e3)}
+})();</script>
+
 </body>
 </html>

@@ -104,8 +104,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         prefs = getSharedPreferences("accueil", MODE_PRIVATE);
-        // 3.2 : voix, OBD et GPS démarrent à la fin de la vidéo d'intro (introDone), au plus tard 10 s après.
-        handler.postDelayed(demarrageServices, 10000);
+        // 3.2 : voix, OBD et GPS démarrent à la fin de la vidéo d'intro (introDone). 3.6 : au plus tard 30 s après.
+        handler.postDelayed(demarrageServices, 30000);   // 3.6 : vidéo d'intro de 9 s : rien ne démarre derrière elle (secours à 30 s)
 
         web = new WebView(this);
         web.setBackgroundColor(Color.BLACK);
@@ -656,6 +656,119 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
+    // ---------- Cockpit 3.6 : licence à prix libre (essai de 7 jours) ----------
+    // Le poste a un numéro tiré de l'identifiant Android. Le code de déblocage (8 caractères) est calculé
+    // par le site (fonction /api/licence) et vérifié ici, sans internet.
+    private static final String LIC_SITE = "https://cockpitcarplay.netlify.app";
+    private static final long LIC_ESSAI_MS = 7L * 24 * 3600 * 1000;
+    private static final String LIC_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final byte[] LIC_A = {-94,16,110,21,84,-21,14,95,108,-78,90,-114,-31,126,-62,-17,-78,90,119,111,10,-68,-82,119,119,-53,2,-82,-14,-57,-30,-112};
+    private static final byte[] LIC_B = {-93,111,-98,37,124,-87,-99,2,-49,33,-101,85,-71,62,38,119,0,-20,-27,-97,-90,-87,-86,88,14,56,12,-100,79,-96,113,110};
+    private String licPoste = null;
+
+    private String licPoste() {
+        if (licPoste != null) return licPoste;
+        String p = prefs.getString("licPoste", "");
+        if (p.length() != 10) {
+            try {
+                String aid = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+                if (aid == null || aid.length() == 0) aid = java.util.UUID.randomUUID().toString();
+                byte[] h = java.security.MessageDigest.getInstance("SHA-256").digest(("cockpit-poste:" + aid).getBytes("UTF-8"));
+                StringBuilder b = new StringBuilder();
+                for (int i = 0; i < 10; i++) b.append(LIC_ABC.charAt(h[i] & 31));
+                p = b.toString();
+            } catch (Exception e) {
+                p = "XXXXXXXXXX";
+            }
+            prefs.edit().putString("licPoste", p).apply();
+        }
+        return licPoste = p;
+    }
+
+    private String licCodePour(String poste) {
+        try {
+            byte[] k = new byte[LIC_A.length];
+            for (int i = 0; i < k.length; i++) k[i] = (byte) (LIC_A[i] ^ LIC_B[i]);
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            mac.init(new javax.crypto.spec.SecretKeySpec(k, "HmacSHA256"));
+            byte[] h = mac.doFinal(("cockpit-licence:" + poste).getBytes("UTF-8"));
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < 8; i++) b.append(LIC_ABC.charAt(h[i] & 31));
+            return b.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private boolean licPaye() {
+        String c = prefs.getString("licCode", "");
+        return c.length() == 8 && c.equals(licCodePour(licPoste()));
+    }
+
+    private boolean licEssayer(String code) {
+        if (code == null) return false;
+        String c = code.toUpperCase().replaceAll("[^A-Z0-9]", "").replace('O', '0').replace('I', '1');
+        if (c.length() != 8 || !c.equals(licCodePour(licPoste()))) return false;
+        prefs.edit().putString("licCode", c).apply();
+        return true;
+    }
+
+    private long licDebut() {
+        long d = prefs.getLong("licDebut", 0);
+        long n = System.currentTimeMillis();
+        if (d <= 0 || d > n + 86400000L) {
+            d = n;
+            prefs.edit().putLong("licDebut", d).apply();
+        }
+        return d;
+    }
+
+    private String licGet(String chemin) throws Exception {
+        HttpURLConnection con = (HttpURLConnection) new URL(LIC_SITE + chemin).openConnection();
+        con.setConnectTimeout(10000);
+        con.setReadTimeout(15000);
+        InputStream in = con.getResponseCode() < 400 ? con.getInputStream() : con.getErrorStream();
+        java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+        byte[] b = new byte[8192];
+        int n;
+        while (in != null && (n = in.read(b)) > 0 && bo.size() < 65536) bo.write(b, 0, n);
+        if (in != null) in.close();
+        return bo.toString("UTF-8");
+    }
+
+    private volatile boolean licEnCours = false;
+
+    /** Demande au site si ce poste a payé (et récupère la date d'essai gardée là-bas). Résultat : window.onLicence(json). */
+    private void licVerifier(final String email) {
+        if (licEnCours) return;
+        licEnCours = true;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                JSONObject res = new JSONObject();
+                try {
+                    String p = licPoste();
+                    try {
+                        JSONObject e = new JSONObject(licGet("/api/essai?p=" + p));
+                        long d = e.optLong("debut", 0);
+                        if (d > 0 && d < licDebut()) prefs.edit().putLong("licDebut", d).apply();
+                    } catch (Exception ignore) {
+                    }
+                    String q = "/api/licence?p=" + p + (email != null && email.length() > 0 ? "&email=" + java.net.URLEncoder.encode(email, "UTF-8") : "");
+                    JSONObject o = new JSONObject(licGet(q));
+                    boolean ok = o.optBoolean("paye") && licEssayer(o.optString("code"));
+                    res.put("paye", ok);
+                    if (!ok && o.has("raison")) res.put("raison", o.optString("raison"));
+                } catch (Throwable t) {
+                    try { res.put("paye", false); res.put("horsLigne", true); } catch (Exception ignore) { }
+                } finally {
+                    licEnCours = false;
+                }
+                fondJs("window.onLicence&&window.onLicence(" + res.toString() + ")");
+            }
+        }, "licence").start();
+    }
+
     // ---------- Cockpit 3.0 : voitures 3D à télécharger (packs) ----------
     // Un pack = un zip publié une fois dans la Release « voitures » du dépôt GitHub. Il est décompressé
     // dans files/cars/<id>/ ; la page le lit comme s'il était dans m3d/<dossier>/ (voir shouldInterceptRequest).
@@ -664,8 +777,71 @@ public class MainActivity extends Activity {
     private final java.util.Map<String, Integer> carDl = new java.util.HashMap<>();
 
     private String[] carPack(String id) {
+        if (id == null) return null;
         for (String[] c : CARS_PACKS) if (c[0].equals(id)) return c;
+        // 3.6 : voitures du catalogue en ligne : fichier cockpit-<id>.zip dans la même Release
+        if (id.matches("[a-z0-9]{2,24}")) return new String[]{id, "cars/" + id, "cockpit-" + id + ".zip"};
         return null;
+    }
+
+    // 3.6 : une voiture est prête quand son modèle 3D (car.glb) est là. Les anciens packs vidéo ne servent plus : on les retire.
+    private boolean carInclus(String id) {
+        try {
+            getAssets().open("m3d/cars/" + id + "/car.glb").close();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean carPret(File d) {
+        if (new File(d, "car.glb").isFile() && new File(d, "car.json").isFile()) return true;
+        if (new File(d, "rot.mp4").isFile()) supprimerDossier(d);
+        return false;
+    }
+
+    // 3.6 : catalogue en ligne (catalogue.json dans la Release « voitures »), gardé sur le poste
+    private File carCatFile() {
+        File d = new File(getFilesDir(), "cars");
+        d.mkdirs();
+        return new File(d, "catalogue.json");
+    }
+
+    private volatile boolean carCatEnCours = false;
+
+    private void carCatTelecharger() {
+        if (carCatEnCours) return;
+        carCatEnCours = true;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    HttpURLConnection con = (HttpURLConnection) new URL(CARS_URL + "catalogue.json").openConnection();
+                    con.setInstanceFollowRedirects(true);
+                    con.setConnectTimeout(15000);
+                    con.setReadTimeout(20000);
+                    if (con.getResponseCode() != 200) return;
+                    InputStream in = con.getInputStream();
+                    java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                    byte[] b = new byte[16384];
+                    int n;
+                    while ((n = in.read(b)) > 0 && bo.size() < 512 * 1024) bo.write(b, 0, n);
+                    in.close();
+                    String txt = bo.toString("UTF-8");
+                    new JSONObject(txt);   // doit être un JSON valide
+                    File f = carCatFile(), tmp = new File(f.getPath() + ".tmp");
+                    OutputStream o = new FileOutputStream(tmp);
+                    o.write(txt.getBytes("UTF-8"));
+                    o.close();
+                    if (!tmp.renameTo(f)) tmp.delete();
+                    fondJs("window.onCarCat&&window.onCarCat()");
+                } catch (Throwable t) {
+                    // pas d'internet : on garde le catalogue déjà sur le poste
+                } finally {
+                    carCatEnCours = false;
+                }
+            }
+        }, "catalogue").start();
     }
 
     private File carDir(String id) {
@@ -731,10 +907,17 @@ public class MainActivity extends Activity {
                         o.close();
                     }
                     zi.close();
-                    if (!new File(tmp, "car.json").exists() || !new File(tmp, "rot.mp4").exists()) throw new Exception("pack incomplet");
+                    // 3.6 : le zip du kit range la voiture dans un dossier (<id>/car.glb) : on le remonte
+                    File src = tmp;
+                    if (!new File(tmp, "car.glb").isFile()) {
+                        File[] sous = tmp.listFiles();
+                        if (sous != null) for (File x : sous) if (x.isDirectory() && new File(x, "car.glb").isFile()) { src = x; break; }
+                    }
+                    if (!new File(src, "car.json").isFile() || !new File(src, "car.glb").isFile()) throw new Exception("pack incomplet");
                     File dir = carDir(id);
                     supprimerDossier(dir);
-                    if (!tmp.renameTo(dir)) throw new Exception("rename");
+                    if (!src.renameTo(dir)) throw new Exception("rename");
+                    supprimerDossier(tmp);
                     fondJs("window.onCarDl&&window.onCarDl('" + id + "',100,'ok')");
                 } catch (Throwable t) {
                     supprimerDossier(tmp);
@@ -3200,9 +3383,15 @@ public class MainActivity extends Activity {
                 String[] c = carPack(id);
                 o.put("pack", c != null);
                 File d = carDir(id);
-                boolean ok = c != null && new File(d, "car.json").exists() && new File(d, "rot.mp4").exists();
+                boolean ok = c != null && carPret(d);
                 o.put("installed", ok);
                 if (ok) o.put("path", "file://" + d.getAbsolutePath() + "/");   // 3.0 : chemin direct des fichiers de la voiture
+                // 3.6 : la Golf 6 est livrée dans l'appli (sans téléchargement) ; une version téléchargée plus récente passe devant
+                if (!ok && "golf6".equals(id) && carInclus("golf6")) {
+                    o.put("installed", true);
+                    o.put("inclus", true);
+                    o.put("path", "file:///android_asset/m3d/cars/golf6/");
+                }
                 o.put("bytes", ok ? dirSize(d) : 0);
                 Integer p;
                 synchronized (carDl) { p = carDl.get(id); }
@@ -3217,6 +3406,60 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void carDownload(String id) {
             if (id != null && carPack(id) != null) carTelecharger(id);
+        }
+
+        // ---------- Cockpit 3.6 : licence ----------
+        @JavascriptInterface
+        public String licence() {
+            try {
+                JSONObject o = new JSONObject();
+                String p = licPoste();
+                boolean paye = licPaye();
+                long reste = licDebut() + LIC_ESSAI_MS - System.currentTimeMillis();
+                o.put("etat", paye ? "paye" : reste > 0 ? "essai" : "fin");
+                o.put("jours", paye ? 0 : (int) Math.max(0, Math.ceil(reste / 86400000.0)));
+                o.put("poste", p);
+                o.put("url", LIC_SITE + "/api/payer?p=" + p);
+                return o.toString();
+            } catch (Exception e) {
+                return "{\"etat\":\"essai\",\"jours\":7}";
+            }
+        }
+
+        @JavascriptInterface
+        public boolean licenceCode(String code) {
+            return licEssayer(code);
+        }
+
+        @JavascriptInterface
+        public void licenceCheck() {
+            licVerifier(null);
+        }
+
+        @JavascriptInterface
+        public void licenceEmail(String email) {
+            licVerifier(email);
+        }
+
+        @JavascriptInterface
+        public String carCatalogue() {
+            try {
+                File f = carCatFile();
+                if (!f.isFile()) return "";
+                java.io.FileInputStream in = new java.io.FileInputStream(f);
+                byte[] b = new byte[(int) Math.min(f.length(), 512 * 1024)];
+                int n = 0, r;
+                while (n < b.length && (r = in.read(b, n, b.length - n)) > 0) n += r;
+                in.close();
+                return new String(b, 0, n, "UTF-8");
+            } catch (Exception x) {
+                return "";
+            }
+        }
+
+        @JavascriptInterface
+        public void carCatalogueRefresh() {
+            carCatTelecharger();
         }
 
         @JavascriptInterface

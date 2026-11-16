@@ -50,13 +50,29 @@ var PEINTURES_207=[
 var BASE_PAINT='#c9cdd3';   // teinte des images calculées (Argent Reflex)
 /* voiture choisie (par profil) : golf6 ou p207 */
 /* 3.0 : les voitures 3D se téléchargent (packs). Une voiture n'est utilisée que si son pack est sur le poste. */
-var CARLIST=[{id:'golf6',nom:'Volkswagen Golf 6',court:'Golf 6',info:'5 portes',mo:38}];   /* 207 retirée de la liste (modèle à revoir) : le moteur la gère toujours, il suffit de la remettre ici */
+var CARLIST=[{id:'golf6',nom:'Volkswagen Golf 6',court:'Golf 6',info:'5 portes',mo:10}];   /* 207 retirée de la liste (modèle à revoir) : le moteur la gère toujours, il suffit de la remettre ici */
 function carInstalled(c){var A=window.Android;if(!A||!A.carStatus)return !!(window.__carDev&&window.__carDev[c]);try{return !!JSON.parse(A.carStatus(c)).installed}catch(e){return false}}
 var _carC={t:0,v:{}};function carOk(c){var n=Date.now();if(n-_carC.t>3000){_carC={t:n,v:{}}}if(!(c in _carC.v))_carC.v[c]=carInstalled(c);return _carC.v[c]}
 /* voiture affichée : celle choisie si elle est là, sinon la première téléchargée, sinon aucune (accueil en 2D) */
 function car(){var c=get('m3dCar','golf6');if(carOk(c))return c;for(var i=0;i<CARLIST.length;i++)if(carOk(CARLIST[i].id))return CARLIST[i].id;return null}
-function paints(c){return (c||car())==='p207'?PEINTURES_207:PEINTURES}
+/* 3.6 : teintes courantes pour les voitures du catalogue (sauf si le catalogue donne les teintes d'origine) */
+var PEINTURES_STD=[
+  {code:'ARG',nom:'Argent',hex:'#c9cdd3'},{code:'BLA',nom:'Blanc',hex:'#f1f1ee'},{code:'NOI',nom:'Noir',hex:'#111214'},
+  {code:'GRC',nom:'Gris clair',hex:'#8e9298'},{code:'GRF',nom:'Gris foncé',hex:'#4c4f54'},{code:'ROU',nom:'Rouge',hex:'#b5121b'},
+  {code:'BOR',nom:'Bordeaux',hex:'#6e1420'},{code:'BLF',nom:'Bleu foncé',hex:'#1f3554'},{code:'BLE',nom:'Bleu',hex:'#2b5d8f'},
+  {code:'VER',nom:'Vert',hex:'#2e5a3c'},{code:'ORA',nom:'Orange',hex:'#cf5f1d'},{code:'JAU',nom:'Jaune',hex:'#e2b022'}];
+function paints(c){c=c||car();if(c==='p207')return PEINTURES_207;if(c==='golf6')return PEINTURES;
+  for(var i=0;i<CARLIST.length;i++)if(CARLIST[i].id===c&&CARLIST[i].peintures&&CARLIST[i].peintures.length)return CARLIST[i].peintures;return PEINTURES_STD}
+/* 3.6 : catalogue en ligne (voitures ajoutées sans mise à jour de l'appli). L'appli le télécharge, la liste se complète. */
+function catLoad(){var A=window.Android;if(!A||!A.carCatalogue)return;var j=null;try{j=JSON.parse(A.carCatalogue()||'null')}catch(e){}
+  var L=j&&(j.voitures||j);if(!L||!L.length)return;
+  L.forEach(function(v){if(!v||!/^[a-z0-9]{2,24}$/.test(v.id||''))return;var e={id:v.id,nom:String(v.nom||v.id),court:String(v.court||v.nom||v.id),info:String(v.info||''),mo:+v.mo||10,peintures:Array.isArray(v.peintures)?v.peintures.filter(function(p){return p&&/^#[0-9a-f]{6}$/i.test(p.hex)}):null};
+    var k=-1;for(var i=0;i<CARLIST.length;i++)if(CARLIST[i].id===e.id)k=i;if(k>=0){if(!e.peintures)delete e.peintures;Object.assign(CARLIST[k],e)}else CARLIST.push(e);CARNOMS[e.id]=e.nom})}
+window.onCarCat=function(){catLoad();_carC={t:0,v:{}};try{if(window.__carsRedraw)window.__carsRedraw()}catch(e){}};
 var CARNOMS={golf6:'Volkswagen Golf 6',p207:'Peugeot 207'};
+/* 3.6 : la Golf 6 est incluse dans l'appli : à la première ouverture, la 3D est allumée d'office */
+try{if(localStorage.getItem('m3d')===null&&carOk('golf6'))localStorage.setItem('m3d','1')}catch(e){}
+catLoad();try{if(window.Android&&Android.carCatalogueRefresh)setTimeout(function(){try{Android.carCatalogueRefresh()}catch(e){}},8000)}catch(e){}
 
 function get(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
 function byId(id){for(var i=0;i<SHOWROOMS.length;i++)if(SHOWROOMS[i].id===id)return SHOWROOMS[i];return null}
@@ -125,7 +141,7 @@ var REGIONS={'Auvergne-Rhône-Alpes':'01 03 07 15 26 38 42 43 63 69 73 74','Bour
 var DEPS=[];Object.keys(REGIONS).forEach(function(r){REGIONS[r].split(' ').forEach(function(d){DEPS.push({d:d,r:r})})});
 DEPS.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});
 
-window.CockpitLook={SHOWROOMS:SHOWROOMS,PEINTURES:PEINTURES,PEINTURES_207:PEINTURES_207,car:car,paints:paints,carInstalled:carInstalled,CARLIST:CARLIST,carRefresh:function(){_carC={t:0,v:{}}},CARNOMS:CARNOMS,BASE_PAINT:BASE_PAINT,DEPS:DEPS,
+window.CockpitLook={PEINTURES_STD:PEINTURES_STD,catLoad:catLoad,SHOWROOMS:SHOWROOMS,PEINTURES:PEINTURES,PEINTURES_207:PEINTURES_207,car:car,paints:paints,carInstalled:carInstalled,CARLIST:CARLIST,carRefresh:function(){_carC={t:0,v:{}}},CARNOMS:CARNOMS,BASE_PAINT:BASE_PAINT,DEPS:DEPS,
   showroom:showroom,byId:byId,paint:paint,plateStyle:plateStyle,plateText:plateText,plateDep:plateDep,plateValid:plateValid,plateCanvas:plateCanvas,PL:PL,
   hasBadge:function(d,st){return !!(deps.idx&&deps.idx[(st==='noire'?'n':'b')+'_'+d])}};
 })();
