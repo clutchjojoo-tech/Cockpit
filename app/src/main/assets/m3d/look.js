@@ -85,10 +85,23 @@ var atlas=null,atlasJ=null,imgs={},deps={};
 function img(src){if(imgs[src])return imgs[src];var i=new Image();i.decoding='async';i.src=src;imgs[src]=i;return i}
 function ready(i){return i&&i.complete&&i.naturalWidth>0}
 function plateStyle(){var s=get('plStyle','bleue');return s==='noire'||s==='masquee'?s:'bleue'}
-function plateText(){var t=String(get('plNum','')).toUpperCase().replace(/[^A-Z0-9-]/g,'');return t||'AB-123-CD'}
+/* 3.6.2 : plaques d'autres pays (fond, couleur du texte, bande européenne, format conseillé) */
+var PAYS={F:{n:'France',ex:'AB-123-CD'},
+ B:{n:'Belgique',ex:'1-ABC-123',re:/^(\d-[A-Z]{3}-\d{3}|[A-Z]{3}-\d{3})$/,fg:'#b3122e',bd:'#b3122e'},
+ CH:{n:'Suisse',ex:'VD 123456',re:/^[A-Z]{2} \d{1,6}$/,band:0,ch:1},
+ D:{n:'Allemagne',ex:'M AB 1234',re:/^[A-Z]{1,3}[ -][A-Z]{1,2} \d{1,4}[EH]?$/},
+ L:{n:'Luxembourg',ex:'AB 1234',re:/^[A-Z]{0,2} ?\d{3,4}$/,bg:'#f6cf1c'},
+ I:{n:'Italie',ex:'AB 123 CD',re:/^[A-Z]{2} \d{3} [A-Z]{2}$/,bandR:1},
+ E:{n:'Espagne',ex:'1234 BCD',re:/^\d{4} [B-DF-HJ-NP-TV-Z]{3}$/},
+ P:{n:'Portugal',ex:'AA-00-AA',re:/^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/},
+ NL:{n:'Pays-Bas',ex:'AB-123-C',re:/^[A-Z0-9]{1,3}-[A-Z0-9]{1,3}-[A-Z0-9]{1,3}$/,bg:'#f6cf1c'},
+ GB:{n:'Royaume-Uni',ex:'AB12 CDE',re:/^[A-Z]{2}\d{2} [A-Z]{3}$/,bg:'#f6cf1c',band:0,uk:1}};
+function platePays(){var k=get('plPays','F');return PAYS[k]?k:'F'}
+function plateText(){var k=platePays(),t=String(get('plNum','')).toUpperCase();t=k==='F'?t.replace(/[^A-Z0-9-]/g,''):t.replace(/[^A-Z0-9 -]/g,'').replace(/\s+/g,' ').trim();return t||PAYS[k].ex}
 function plateDep(){var d=String(get('plDep',''));return /^(\d{2,3}|2A|2B)$/.test(d)?d:''}
 var SIV=/^[A-HJ-NP-TV-Z]{2}-(?!000)\d{3}-[A-HJ-NP-TV-Z]{2}$/;   // format français (lettres I, O et U exclues)
-function plateValid(t){return SIV.test(t)}
+function plateValid(t){return platePays()==='F'?SIV.test(t):/^[A-Z0-9][A-Z0-9 -]{1,9}$/.test(t)}
+function plateFormatOk(t){var P=PAYS[platePays()];return P.re?P.re.test(t):SIV.test(t)}
 /* 3.2 : police agrandie ×4 une seule fois, avec bords redurcis (sinon les lettres, tirées d'images de 64 px, sont floues) */
 var crispC=null;function crisp(at){if(crispC)return crispC;try{var K=4,c=document.createElement('canvas');c.width=at.naturalWidth*K;c.height=at.naturalHeight*K;
   var x=c.getContext('2d');x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(at,0,0,c.width,c.height);
@@ -97,6 +110,7 @@ var crispC=null;function crisp(at){if(crispC)return crispC;try{var K=4,c=documen
 /* fabrique l'image de la plaque ; renvoie null tant que les fichiers ne sont pas chargés */
 function plateCanvas(cv){
   var st=plateStyle();if(st==='masquee')return null;
+  if(platePays()!=='F')return plateAutre(cv,st);
   var tpl=img('m3d/plaque/'+(st==='noire'?'noire':'bleue')+'.webp'),at=img('m3d/plaque/police.png');
   if(!atlasJ){atlasJ='…';var x=new XMLHttpRequest();x.open('GET','m3d/plaque/police.json');x.onload=function(){try{atlas=JSON.parse(x.responseText)}catch(e){}};x.send()}
   if(!ready(tpl)||!ready(at)||!atlas)return null;
@@ -129,6 +143,34 @@ function plateCanvas(cv){
     else{/* pas de badge pour ce département (absent ou faux dans les planches d'origine) : le numéro seul, en blanc */
       var cx=(X(1912)+X(2124))/2;c.fillStyle='#fff';c.font='bold '+Math.round(PL.H*.34)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.save();c.translate(cx,Y(470));c.scale(1/F,1);c.fillText(dep,0,0);c.restore()}}
   return cv}
+
+/* plaque dessinée (pays autres que la France) : même police, proportions réelles une fois étirée sur la plaque (4,68:1) */
+function plateAutre(cv,st){var at=img('m3d/plaque/police.png');
+  if(!atlasJ){atlasJ='…';var x=new XMLHttpRequest();x.open('GET','m3d/plaque/police.json');x.onload=function(){try{atlas=JSON.parse(x.responseText)}catch(e){}};x.send()}
+  if(!ready(at)||!atlas)return null;at=crisp(at);
+  var P=PAYS[platePays()],noir=st==='noire',W=PL.W,H=PL.H,F=(1040/222)/(W/H);
+  cv=cv||document.createElement('canvas');cv.width=W;cv.height=H;var c=cv.getContext('2d');c.clearRect(0,0,W,H);
+  var bg=noir?'#0d0d0f':(P.bg||'#f7f7f4'),fg=noir?'#e9e9ea':(P.fg||'#111'),bd=noir?'#6b6b70':(P.bd||'#1b1b1b');
+  function rr(x,y,w,h,r){c.beginPath();c.moveTo(x+r/F,y);c.lineTo(x+w-r/F,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r/F,y+h);c.lineTo(x+r/F,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r/F,y);c.closePath()}
+  rr(2,2,W-4,H-4,H*.12);c.fillStyle=bd;c.fill();var m=H*.045;rr(2+m/F,2+m,W-4-2*m/F,H-4-2*m,H*.09);c.fillStyle=bg;c.fill();
+  var x0=2+m/F,x1=W-2-m/F,bw=(x1-x0)*.088,y0=2+m,y1=H-2-m;
+  function bande(xa,droite){c.save();rr(xa,y0,bw,y1-y0,H*.06);c.clip();c.fillStyle='#0a3a9e';c.fillRect(xa,y0,bw,y1-y0);c.restore();if(droite)return;
+    if(P.band===0)return;var cx=xa+bw/2,cy=y0+(y1-y0)*.34,R=(y1-y0)*.17;c.fillStyle='#f6cf1c';
+    for(var i=0;i<12;i++){var a=i*Math.PI/6,sx=cx+Math.cos(a)*R/F,sy=cy+Math.sin(a)*R;c.save();c.translate(sx,sy);c.scale(1/F,1);c.beginPath();
+      for(var j=0;j<10;j++){var rr2=j%2?R*.075:R*.17,b=-Math.PI/2+j*Math.PI/5;c.lineTo(Math.cos(b)*rr2,Math.sin(b)*rr2)}c.closePath();c.fill();c.restore()}
+    var code=platePays();c.save();c.translate(cx,y0+(y1-y0)*.78);c.scale(1/F,1);c.fillStyle='#fff';c.font='bold '+Math.round((y1-y0)*(code.length>1?.27:.34))+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(code,0,0);c.restore()}
+  var zx0=x0+bw*.35,zx1=x1-bw*.35;
+  if(P.band!==0){bande(x0);zx0=x0+bw*1.18}
+  if(P.bandR){bande(x1-bw,true);zx1=x1-bw*1.18}
+  if(P.uk){c.save();c.translate(x0+bw*.7,y0+(y1-y0)*.5);c.scale(1/F,1);c.fillStyle=noir?'#e9e9ea':'#111';c.font='bold '+Math.round((y1-y0)*.26)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('UK',0,0);c.restore();zx0=x0+bw*1.3}
+  if(P.ch){/* écusson suisse simplifié (croix blanche sur fond rouge) à gauche */var cx=x0+bw*.65,cy=y0+(y1-y0)/2,S=(y1-y0)*.42;c.save();c.translate(cx,cy);c.scale(1/F,1);c.fillStyle='#d52b1e';c.fillRect(-S/2,-S/2,S,S);c.fillStyle='#fff';c.fillRect(-S*.1,-S*.32,S*.2,S*.64);c.fillRect(-S*.32,-S*.1,S*.64,S*.2);c.restore();zx0=x0+bw*1.35}
+  var t=plateText(),h=(y1-y0)*.66,s=h/atlas.h,gap=.09*h/F,sp=.42*h/F,w=0,G=[];
+  for(var i=0;i<t.length;i++){if(t[i]===' '){G.push(null);w+=sp;continue}var g=atlas.g[t[i]];if(!g)continue;G.push(g);w+=g[1]*s/F+gap}w=Math.max(1,w-gap);
+  var k=Math.min(1,(zx1-zx0)/w),tx0=zx0+((zx1-zx0)-w*k)/2,ty0=y0+((y1-y0)-h*k)/2;
+  var tc=document.createElement('canvas');tc.width=Math.ceil(w*k)+2;tc.height=Math.ceil(h*k)+2;var tx=tc.getContext('2d'),xx=0,AS=at.__k||1;tx.imageSmoothingQuality='high';
+  G.forEach(function(g){if(!g){xx+=sp*k;return}tx.drawImage(at,g[0]*AS,0,g[1]*AS,atlas.h*AS,xx,0,g[1]*s*k/F,h*k);xx+=(g[1]*s/F+gap)*k});
+  tx.globalCompositeOperation='source-in';tx.fillStyle=fg;tx.fillRect(0,0,tc.width,tc.height);c.drawImage(tc,tx0,ty0);
+  return cv}
 (function(){var x=new XMLHttpRequest();x.open('GET','m3d/plaque/dep.json');x.onload=function(){try{deps.idx=JSON.parse(x.responseText)}catch(e){}};x.send()})();
 
 /* départements : numéro → région (texte écrit par Cockpit dans le menu, sans l'image d'origine) */
@@ -142,6 +184,6 @@ var DEPS=[];Object.keys(REGIONS).forEach(function(r){REGIONS[r].split(' ').forEa
 DEPS.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});
 
 window.CockpitLook={PEINTURES_STD:PEINTURES_STD,catLoad:catLoad,SHOWROOMS:SHOWROOMS,PEINTURES:PEINTURES,PEINTURES_207:PEINTURES_207,car:car,paints:paints,carInstalled:carInstalled,CARLIST:CARLIST,carRefresh:function(){_carC={t:0,v:{}}},CARNOMS:CARNOMS,BASE_PAINT:BASE_PAINT,DEPS:DEPS,
-  showroom:showroom,byId:byId,paint:paint,plateStyle:plateStyle,plateText:plateText,plateDep:plateDep,plateValid:plateValid,plateCanvas:plateCanvas,PL:PL,
+  showroom:showroom,byId:byId,paint:paint,plateStyle:plateStyle,plateText:plateText,platePays:platePays,PAYS:PAYS,plateFormatOk:plateFormatOk,plateDep:plateDep,plateValid:plateValid,plateCanvas:plateCanvas,PL:PL,
   hasBadge:function(d,st){return !!(deps.idx&&deps.idx[(st==='noire'?'n':'b')+'_'+d])}};
 })();

@@ -107,6 +107,27 @@ public class MainActivity extends Activity {
         // 3.2 : voix, OBD et GPS démarrent à la fin de la vidéo d'intro (introDone). 3.6 : au plus tard 30 s après.
         handler.postDelayed(demarrageServices, 30000);   // 3.6 : vidéo d'intro de 9 s : rien ne démarre derrière elle (secours à 30 s)
 
+        creerWeb();
+        setContentView(web);
+
+        appliquerLuminosite(prefs.getInt("bright", 80));
+        if (Build.VERSION.SDK_INT >= 31
+                && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 2);
+        }
+        if (Build.VERSION.SDK_INT >= 23
+                && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        }
+        // obdDemarrer() : lancé par servicesDemarrer() (fin de l'intro)
+    }
+
+    // 3.6.2 : création de la page (aussi utilisée pour la relancer si elle plante)
+    private void creerWeb() {
         web = new WebView(this);
         web.setBackgroundColor(Color.BLACK);
         // 3.2 : plus de calque matériel forcé (hardwareAccelerated=true suffit, et ce calque coûte un tampon plein écran)
@@ -128,29 +149,32 @@ public class MainActivity extends Activity {
                 return r != null ? r : super.shouldInterceptRequest(view, request);
             }
 
+            // 3.6.2 : si l'affichage (moteur de la page) plante ou est tué par Android, on le recrée au lieu de laisser l'appli bloquée
+            @Override
+            public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                if (view != web) return true;
+                try {
+                    android.view.ViewGroup parent = (android.view.ViewGroup) web.getParent();
+                    if (parent != null) parent.removeView(web);
+                    web.destroy();
+                } catch (Exception e) { }
+                web = null;
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        try { creerWeb(); setContentView(web); } catch (Exception e) { }
+                    }
+                }, 500);
+                return true;
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 sendLocation();
                 sendZlink();
             }
         });
-        setContentView(web);
         web.loadUrl("file:///android_asset/index.html?night=" + (isSystemNight() ? "1" : "0"));
-
-        appliquerLuminosite(prefs.getInt("bright", 80));
-        if (Build.VERSION.SDK_INT >= 31
-                && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 2);
-        }
-        if (Build.VERSION.SDK_INT >= 23
-                && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-        }
-        // obdDemarrer() : lancé par servicesDemarrer() (fin de l'intro)
     }
 
     // ---------- 3.2 : services lourds lancés après l'intro ----------
@@ -192,6 +216,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
+        try { web.onResume(); } catch (Exception e) { }   // 3.6.2 : reprend animations et vidéos
         try { web.evaluateJavascript("window.onBg&&onBg(false)", null); } catch (Exception e) { }
     }
 
@@ -199,11 +224,13 @@ public class MainActivity extends Activity {
     protected void onStop() {
         super.onStop();
         try { web.evaluateJavascript("window.onBg&&onBg(true)", null); } catch (Exception e) { }
+        try { web.onPause(); } catch (Exception e) { }   // 3.6.2 : Cockpit caché (GPS, CarPlay…) : animations et vidéos en pause (le JavaScript continue)
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        try { web.onResume(); } catch (Exception e) { }
         try { web.evaluateJavascript("window.onBg&&onBg(false)", null); } catch (Exception e) { }   // 3.2 : toujours rappelé au retour
         ecouteEcran();
         pleinEcran();
@@ -1958,6 +1985,106 @@ public class MainActivity extends Activity {
         return o.toString();
     }
 
+
+    // ---------- 3.6.2 : lecteur YouTube Music / Spotify / Deezer (et autres) ----------
+    private static final String[] MU_PKG = {"deezer.android.app", "com.google.android.apps.youtube.music", "com.spotify.music"};
+    private String muArtKey = "";
+    private String muArtData = "";
+
+    private MediaController controleurDe(String pkg) {
+        try {
+            android.media.session.MediaSessionManager msm =
+                    (android.media.session.MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE);
+            java.util.List<MediaController> l = msm.getActiveSessions(new ComponentName(this, MediaListener.class));
+            for (MediaController c : l) if (pkg.equals(c.getPackageName())) return c;
+        } catch (Exception e) { }
+        return null;
+    }
+
+    private String nomAppli(String pkg) {
+        try {
+            PackageManager pm = getPackageManager();
+            return pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String infosLecteur(String pref) {
+        org.json.JSONObject o = new org.json.JSONObject();
+        try {
+            boolean acces = accesNotifications();
+            o.put("access", acces);
+            org.json.JSONObject inst = new org.json.JSONObject();
+            for (String p : MU_PKG) inst.put(p, getPackageManager().getLaunchIntentForPackage(p) != null);
+            o.put("installed", inst);
+            if (!acces) return o.toString();
+            MediaController c = null;
+            if (pref != null && pref.length() > 0) c = controleurDe(pref);
+            if (c == null) c = controleurActif();
+            org.json.JSONArray act = new org.json.JSONArray();
+            try {
+                android.media.session.MediaSessionManager msm =
+                        (android.media.session.MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE);
+                for (MediaController x : msm.getActiveSessions(new ComponentName(this, MediaListener.class))) act.put(x.getPackageName());
+            } catch (Exception e) { }
+            o.put("active", act);
+            if (c == null) { o.put("has", false); return o.toString(); }
+            MediaMetadata m = c.getMetadata();
+            PlaybackState st = c.getPlaybackState();
+            String titre = m == null ? null : m.getString(MediaMetadata.METADATA_KEY_TITLE);
+            String artiste = m == null ? null : m.getString(MediaMetadata.METADATA_KEY_ARTIST);
+            if (artiste == null && m != null) artiste = m.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST);
+            long duree = m == null ? 0 : m.getLong(MediaMetadata.METADATA_KEY_DURATION);
+            o.put("has", true);
+            o.put("pkg", c.getPackageName());
+            o.put("app", nomAppli(c.getPackageName()));
+            o.put("title", titre == null ? "" : titre);
+            o.put("artist", artiste == null ? "" : artiste);
+            o.put("playing", st != null && st.getState() == PlaybackState.STATE_PLAYING);
+            o.put("dur", duree);
+            if (st != null) {
+                long pos = st.getPosition();
+                if (st.getState() == PlaybackState.STATE_PLAYING && st.getLastPositionUpdateTime() > 0) {
+                    pos += (long) ((android.os.SystemClock.elapsedRealtime() - st.getLastPositionUpdateTime()) * st.getPlaybackSpeed());
+                }
+                o.put("pos", Math.max(0, pos));
+                o.put("seek", (st.getActions() & PlaybackState.ACTION_SEEK_TO) != 0);
+            }
+            o.put("artKey", c.getPackageName() + "|" + titre + "|" + artiste);
+        } catch (Exception e) { }
+        return o.toString();
+    }
+
+    private String pochette(String pkg) {
+        try {
+            MediaController c = (pkg != null && pkg.length() > 0) ? controleurDe(pkg) : controleurActif();
+            if (c == null) return "";
+            MediaMetadata m = c.getMetadata();
+            if (m == null) return "";
+            String key = c.getPackageName() + "|" + m.getString(MediaMetadata.METADATA_KEY_TITLE) + "|" + m.getString(MediaMetadata.METADATA_KEY_ARTIST);
+            if (key.equals(muArtKey)) return muArtData;
+            Bitmap b = m.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+            if (b == null) b = m.getBitmap(MediaMetadata.METADATA_KEY_ART);
+            if (b == null) b = m.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
+            String data = "";
+            if (b != null) {
+                int w = b.getWidth(), h = b.getHeight(), t = 320;
+                float k = Math.min(1f, (float) t / Math.max(w, h));
+                Bitmap r = k < 1f ? Bitmap.createScaledBitmap(b, Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k)), true) : b;
+                ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                r.compress(Bitmap.CompressFormat.JPEG, 85, bo);
+                if (r != b) r.recycle();
+                data = "data:image/jpeg;base64," + Base64.encodeToString(bo.toByteArray(), Base64.NO_WRAP);
+            }
+            muArtKey = key;
+            muArtData = data;
+            return data;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     // ---------- Localisation (météo) ----------
 
     private void sendLocation() {
@@ -2825,6 +2952,54 @@ public class MainActivity extends Activity {
                 public void run() {
                     if (!servicesLances) { gpsVoulu = on; return; }   // 3.2 : attend la fin de l'intro
                     gpsActif(on);
+                }
+            });
+        }
+
+        // 3.6.2 : lecteur YouTube Music / Spotify / Deezer
+        @JavascriptInterface
+        public String muInfo(String pref) {
+            return infosLecteur(pref);
+        }
+
+        @JavascriptInterface
+        public String muArt(String pkg) {
+            return pochette(pkg);
+        }
+
+        @JavascriptInterface
+        public String muIcon(String pkg) {
+            try {
+                return iconeEnBase64(getPackageManager().getApplicationIcon(pkg));
+            } catch (Exception e) {
+                return "";
+            }
+        }
+
+        @JavascriptInterface
+        public void muCmd(final String cmd, final String pkg, final String arg) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if ("open".equals(cmd)) {
+                            Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
+                            if (i != null) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); }
+                            return;
+                        }
+                        MediaController c = (pkg != null && pkg.length() > 0) ? controleurDe(pkg) : controleurActif();
+                        if (c == null) return;
+                        MediaController.TransportControls tc = c.getTransportControls();
+                        if ("next".equals(cmd)) tc.skipToNext();
+                        else if ("prev".equals(cmd)) tc.skipToPrevious();
+                        else if ("play".equals(cmd)) tc.play();
+                        else if ("pause".equals(cmd)) tc.pause();
+                        else if ("seek".equals(cmd)) tc.seekTo(Long.parseLong(arg));
+                        else {
+                            PlaybackState st = c.getPlaybackState();
+                            if (st != null && st.getState() == PlaybackState.STATE_PLAYING) tc.pause(); else tc.play();
+                        }
+                    } catch (Exception e) { }
                 }
             });
         }

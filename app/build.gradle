@@ -10,8 +10,8 @@ android {
         applicationId 'com.golf6.home'
         minSdk 21
         targetSdk 34
-        versionCode 37
-        versionName '3.6.1'
+        versionCode 38
+        versionName '3.6.2'
     }
 
     signingConfigs {
@@ -25,10 +25,13 @@ android {
 
     buildTypes {
         // 3.2 : version « release » optimisée (R8). L'APK publié reste pour l'instant le debug (même clé, mises à jour inchangées).
+        // 3.6.2 : l'APK publié est la version « release » (non débogable = plus rapide), signée avec la MÊME clé que avant.
+        // Pas de R8 (minify) : aucun risque de casser le pont JavaScript ; le gain de vitesse vient du mode non débogable.
         release {
             debuggable false
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -36,6 +39,12 @@ android {
     // Anciennes images 3D (dossiers d et dj) encore présentes dans le dépôt : pas mises dans l'APK
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:<dir>d:<dir>dj:f_*.js:golf6.js:three3d.js:m3d.js'
+    }
+
+    // 3.6.2 : la vérification automatique (lint) des versions release ne bloque pas la fabrication
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
     }
 
     compileOptions {

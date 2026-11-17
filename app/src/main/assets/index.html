@@ -289,13 +289,49 @@ body.hideL #cardL,body.hideR #cardR,body.hideLt #lights{display:none!important}
 #cardS .sp b{font-size:calc(40px*var(--fz,1));font-weight:700;line-height:1;letter-spacing:-.5px}
 #cardS .sp span{font-size:calc(16px*var(--fz,1));color:var(--sub)}
 #cardS .spm{display:flex;gap:14px;font-size:calc(15px*var(--fz,1));color:var(--sub);margin-top:4px}
-#cardM{right:12px;bottom:46px;width:234px;height:84px;padding:0 14px 0 18px;display:none;align-items:center;gap:8px;border-radius:24px;z-index:4}
-body.showM #cardM{display:flex}
-#cardM .mt{flex:1;min-width:0}
-#cardM .mt b{display:block;font-size:calc(17px*var(--fz,1));font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#cardM .mt span{display:block;font-size:calc(14px*var(--fz,1));color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-#cardM button{width:38px;height:38px;border-radius:19px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-#cardM button svg{width:20px;height:20px;fill:#fff;stroke:none}
+
+/* 3.6.2 : lecteur musique YouTube Music / Spotify / Deezer (déplaçable, remplace l'ancien) */
+#muW{position:absolute;left:396px;top:380px;width:536px;height:200px;padding:14px;display:none;gap:18px;align-items:stretch;border-radius:32px;z-index:3;
+  background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.05)),var(--card);border:1px solid rgba(255,255,255,.32);box-shadow:0 12px 34px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35)}
+body.showM #muW{display:flex}
+#stage:not([data-page="home"]) #muW{display:none!important}
+body.parked #muW{display:none!important}
+#muW .muArt{position:relative;flex:none;width:172px;height:172px;border-radius:22px;overflow:hidden;background:linear-gradient(150deg,#2a3b66,#141b30);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+#muW .muArt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}#muW .muArt.has img{display:block}#muW .muArt.has .muPh{display:none}
+#muW .muPh{position:absolute;left:50%;top:50%;width:64px;height:64px;transform:translate(-50%,-50%);fill:none;stroke:rgba(255,255,255,.55);stroke-width:1.6}
+#muW .muR{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between}
+#muW .muTabs{display:flex;gap:6px;padding:4px;border-radius:22px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+#muW .muTabs button{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 8px;border-radius:18px;border:0;background:none;color:inherit;font:inherit;font-size:calc(14px*var(--fz,1));font-weight:600;white-space:nowrap;overflow:hidden;opacity:.8}
+#muW .muTabs button span{overflow:hidden;text-overflow:ellipsis}
+#muW .muTabs button img,#muW .muTabs button .muDot{flex:none;width:22px;height:22px;border-radius:50%}
+#muW .muTabs button .muDot{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.18);font-size:12px}
+#muW .muTabs button.on{opacity:1;background:linear-gradient(180deg,#4f8dff,var(--blue));color:#fff;box-shadow:0 4px 14px rgba(47,109,246,.45)}
+#muW .muTabs button.off{opacity:.38}
+#muW .muInfo{display:flex;align-items:center;gap:12px;margin-top:4px}
+#muW .muTx{flex:1;min-width:0}
+#muW .muTx b{display:block;font-size:calc(24px*var(--fz,1));font-weight:800;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#muW .muTx span{display:block;font-size:calc(17px*var(--fz,1));color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+#muW .muEq{flex:none;display:flex;align-items:flex-end;gap:3px;height:26px}
+#muW .muEq s{display:block;width:5px;height:40%;border-radius:2px;background:var(--accent);text-decoration:none}
+#muW.play .muEq s{animation:muEq 1s ease-in-out infinite}
+#muW.play .muEq s:nth-child(2){animation-delay:-.4s}#muW.play .muEq s:nth-child(3){animation-delay:-.7s}#muW.play .muEq s:nth-child(4){animation-delay:-.2s}#muW.play .muEq s:nth-child(5){animation-delay:-.55s}
+@keyframes muEq{0%,100%{height:30%}50%{height:100%}}
+#muW .muCtl{display:flex;align-items:center;justify-content:center;gap:26px}
+#muW .muB{width:76px;height:46px;border-radius:23px;border:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 4px 10px rgba(0,0,0,.18)}
+#muW .muB svg{width:24px;height:24px;fill:currentColor;color:inherit}
+#muW .muB.muPl{width:62px;height:62px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#5d97ff,var(--blue));color:#fff;box-shadow:0 6px 18px rgba(47,109,246,.5)}
+#muW .muB.muPl svg{width:28px;height:28px;fill:#fff}
+#muW .muB:active{transform:scale(.94)}
+#muW .muPr{display:flex;align-items:center;gap:12px;font-size:calc(15px*var(--fz,1));font-variant-numeric:tabular-nums;color:var(--sub)}
+#muW .muBar{position:relative;flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.22)}
+#muW .muBar i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;background:var(--blue)}
+#muW .muBar b{position:absolute;top:50%;left:0;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.35)}
+#muW.noseek .muBar b{display:none}
+#muW .muNo{display:none;font-size:calc(15px*var(--fz,1));color:var(--sub)}
+#muW.need .muNo{display:block}#muW.need .muCtl,#muW.need .muPr{display:none}
+body.th-mini #muW .muB{background:#e9ecf1;color:#111827}body.th-mini #muW .muTabs{background:#eef0f4}
+body.th-luxe #muW .muTabs button.on,body.th-luxe #muW .muB.muPl{background:linear-gradient(135deg,#d4af37,#8a6d1c);color:#1a1405}
+body.lite #muW.play .muEq s{animation:none;height:70%}
 body.hideS #cardS{display:none!important}
 #cardT{left:46px;top:446px;width:333px;height:112px;padding:10px 22px;border-radius:26px;z-index:4}
 #cardT .th{display:flex;justify-content:space-between;align-items:center;font-size:calc(14px*var(--fz,1));color:var(--sub);height:30px;font-weight:600;letter-spacing:.3px}
@@ -521,6 +557,7 @@ body.hc small{opacity:.95}
 #pers.on{transform:none}
 #pers .pHd{display:flex;flex-direction:column;gap:10px}
 #pers .pTabs{display:flex;gap:8px;flex-wrap:wrap}
+#pers .pTabs svg.pTi{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.8}#pers .pMuI{width:40px;height:40px;border-radius:10px}#pers .pHint{padding:6px 4px 14px;color:rgba(230,238,255,.75);font-size:16px;line-height:1.4;width:100%}
 #pers .pTabs button,#pers .pX{padding:10px 16px;border-radius:20px;background:rgba(255,255,255,.12);border:0;color:#fff;font-size:calc(17px*var(--fz,1));white-space:nowrap}
 #pers .pTabs button.on{background:var(--blue)}#pers .pX.pri{background:var(--blue)}
 #pers .pBt{display:flex;gap:10px;justify-content:flex-end}
@@ -577,8 +614,9 @@ body.cine #tiles,body.cine #top,body.cine .gc{display:none!important}
 .dpRow .val{font-size:54px;font-weight:700;min-width:84px;text-align:center}
 .dpRow .step{display:flex;align-items:center;gap:12px}
 
-#thBar{position:absolute;left:50%;bottom:26px;transform:translateX(-50%) translateY(160px);z-index:95;display:flex;align-items:center;gap:14px;padding:12px 16px 12px 26px;border-radius:30px;background:rgba(16,24,42,.97);border:1px solid var(--stroke);color:#fff;font-size:calc(20px*var(--fz,1));transition:transform .35s}
-#thBar.on{transform:translateX(-50%)}
+#thBar{position:absolute;left:50%;bottom:26px;transform:translateX(-50%) translateY(24px);opacity:0;visibility:hidden;pointer-events:none;z-index:9500;display:flex;align-items:center;gap:14px;padding:12px 16px 12px 26px;border-radius:30px;background:rgba(16,24,42,.97);border:1px solid var(--stroke);color:#fff;font-size:calc(20px*var(--fz,1));transition:transform .3s,opacity .3s,visibility 0s .3s}
+/* 3.6.2 : le bandeau ne sort plus de l'écran quand il est caché (sinon l'écran défilait vers lui et les boutons ne répondaient plus) */
+#thBar.on{transform:translateX(-50%);opacity:1;visibility:visible;pointer-events:auto;transition:transform .3s,opacity .3s,visibility 0s}
 #thBar button{padding:12px 24px;border-radius:22px;background:rgba(255,255,255,.14);color:#fff;font-size:calc(18px*var(--fz,1));border:0}
 #thBar button.pri{background:var(--blue)}
 /* ---- Thème Sport : rouge vif, angles, police lourde italique, rapide, plus sombre ---- */
@@ -1016,6 +1054,13 @@ body.m3dOn.lay2 #ident{left:639px!important}
 #o3b .chev{width:22px;height:22px;stroke:#cfe2ff;stroke-width:2;transition:transform .3s}
 #o3.on #o3b .chev{transform:rotate(180deg)}
 #o3p{position:absolute;right:0;top:64px;width:340px;padding:6px 0;border-radius:24px;background:linear-gradient(180deg,rgba(20,30,50,.92),rgba(10,16,30,.94));border:1.5px solid rgba(70,150,255,.75);box-shadow:0 0 22px rgba(40,130,255,.35),0 24px 60px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);opacity:0;transform:translateY(-10px) scale(.97);transform-origin:top right;pointer-events:none;transition:opacity .25s,transform .3s cubic-bezier(.2,.9,.25,1.15)}
+.mqBar{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin:0 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}.mqBar::-webkit-scrollbar{display:none}
+.mqC{flex:none;display:flex;align-items:center;gap:8px;height:46px;padding:0 14px 0 8px;border-radius:23px;background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:inherit;font:inherit;font-size:16px;white-space:nowrap}
+.mqC:first-child{padding-left:16px}.mqC small{opacity:.6;font-size:13px}.mqC.on{background:rgba(74,163,255,.2);border-color:#4aa3ff}
+.mqB{flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;font-style:normal;font-weight:700;font-size:12px;letter-spacing:.5px;color:#fff;background:linear-gradient(160deg,#3a4458,#1a2030);border:1.5px solid rgba(160,190,230,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.mqB.s{font-size:9.5px;letter-spacing:0}
+.mqH{display:flex;align-items:center;gap:10px;margin:12px 2px 2px;font-size:15px;font-weight:700;letter-spacing:.3px}.mqH small{font-weight:500;opacity:.6;font-size:13px}.mqH:first-child{margin-top:0}
+body.clair .mqB{color:#13233f;background:linear-gradient(160deg,#fff,#e4eaf3);border-color:rgba(61,140,255,.45)}body.clair .mqC{background:rgba(0,0,0,.04)}
 input.carSearch{display:block;width:100%;box-sizing:border-box;height:52px;margin:0 0 10px;padding:0 18px;border-radius:26px;font-size:18px} .carNone{padding:12px 6px;opacity:.7;font-size:15px}
 #o3.on #o3p{opacity:1;transform:none;pointer-events:auto} #o3:not(.on) #o3p,#o3:not(.on) #o3p *{pointer-events:none!important;visibility:hidden}
 .o3r{display:flex;align-items:center;gap:14px;height:64px;padding:0 16px;color:#fff;font-size:calc(17px*var(--fz,1));font-weight:500;pointer-events:auto}.o3r .o3n{margin-left:auto;padding-left:10px;font-weight:500;font-size:14px;opacity:.65;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
@@ -1268,10 +1313,7 @@ if(window.__freshBoot){(function(){var v=document.getElementById('introV');try{v
 <div class="gc" id="cardS"><div class="sp"><b id="spV">--</b><span id="spU">km/h</span></div><div class="spm"><span id="spD">--</span><span id="spA"></span></div>
 <div id="dial"><img id="dialImg" alt=""><img id="dLogo" alt=""><div id="dKm">km/h</div><svg id="dialN" viewBox="0 0 400 400"><g id="ndl"><path d="M-5 0L0 -168L5 0z" fill="#ff3b30"/><circle r="9" fill="#111"/></g></svg><div id="dV">0</div><div id="dO">-- km</div></div></div>
 <div class="gc" id="cardT"><div class="th"><span>Trajet</span><button id="tReset" aria-label="Remettre à zéro"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v5h5"/></svg></button></div><div class="tg"><div><b id="tD">0.0</b><small id="tDu">km</small></div><div><b id="tT">0:00</b><small>Durée</small></div><div><b id="tA">--</b><small><span>Moy.</span> <span id="tAu">km/h</span></small></div></div></div>
-<div class="gc" id="cardM"><div class="mt"><b id="mT">Aucune lecture</b><span id="mA"></span></div>
-<button id="mPrev" aria-label="Précédent"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM20 6v12L9.5 12z"/></svg></button>
-<button id="mPlay" aria-label="Lecture"><svg viewBox="0 0 24 24" id="mIc"><path d="M8 5v14l11-7z"/></svg></button>
-<button id="mNext" aria-label="Suivant"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM4 6v12l10.5-6z"/></svg></button></div>
+<div class="gc" id="muW"><div class="muArt"><img id="muImg" alt=""><svg class="muPh" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></div><div class="muR"><div class="muTabs" id="muTabs"></div><div class="muInfo"><div class="muTx"><b id="muTi">Aucune lecture</b><span id="muAr"></span></div><i class="muEq"><s></s><s></s><s></s><s></s><s></s></i></div><div class="muCtl"><button class="muB" data-c="prev" aria-label="Précédent"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM20 6v12L9.5 12z"/></svg></button><button class="muB muPl" data-c="toggle" aria-label="Lecture"><svg viewBox="0 0 24 24" id="muIc"><path d="M8 5v14l11-7z"/></svg></button><button class="muB" data-c="next" aria-label="Suivant"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM4 6v12l10.5-6z"/></svg></button></div><div class="muPr"><span id="muP0">0:00</span><div class="muBar" id="muBar"><i id="muFill"></i><b id="muKnob"></b></div><span id="muP1">0:00</span></div><div class="muNo" id="muNo"></div></div></div>
 </section>
 
 <!-- VÉHICULE -->
@@ -1351,8 +1393,9 @@ if(window.__freshBoot){(function(){var v=document.getElementById('introV');try{v
 <div class="sr"><div class="l">Compteurs de vitesse<small>36 cadrans réels, rangés par marque</small></div><button class="mini" data-pgo="dial" type="button">Ouvrir</button></div>
 <div class="sr"><div class="l">Montres<small>19 montres avec aiguilles à l'heure réelle</small></div><button class="mini" data-pgo="wt" type="button">Ouvrir</button></div>
 <div class="sr"><div class="l">Horloges<small>15 horloges numériques, heure et date en direct</small></div><button class="mini" data-pgo="dk" type="button">Ouvrir</button></div>
-<div class="sr"><div class="l">Widgets voiture<small>24 widgets : autonomie, consommation, batterie, températures, régime, carburant, pneus, boussole, musique, trajet, vitesse</small></div><button class="mini" data-pgo="cw" type="button">Ouvrir</button></div>
+<div class="sr"><div class="l">Widgets voiture<small>22 widgets : autonomie, consommation, batterie, températures, régime, carburant, pneus, boussole, trajet, vitesse</small></div><button class="mini" data-pgo="cw" type="button">Ouvrir</button></div>
 <div class="sr"><div class="l">Météo<small>9 widgets météo + le widget classique</small></div><button class="mini" data-pgo="wx" type="button">Ouvrir</button></div>
+<div class="sr"><div class="l">Musique<small>Lecteur YouTube Music, Spotify et Deezer, à placer où tu veux</small></div><button class="mini" data-pgo="mu" type="button">Ouvrir</button></div>
 <div class="sr"><div class="l">Mode parking<small>Voiture, style et couleur</small></div><button class="mini" data-pgo="rad" type="button">Ouvrir</button></div>
 <div class="sh">Compteur de vitesse</div>
 <div class="sr"><div class="l">Compteur de vitesse<small>Simple ou cadran avec ton kilométrage. 16 cadrans au choix</small></div><div class="seg" data-cs="dial"><button data-val="off">Simple</button><button data-val="on">Cadran</button></div></div>
@@ -1481,7 +1524,7 @@ if(window.__freshBoot){(function(){var v=document.getElementById('introV');try{v
 <div class="sr"><div class="l">Carte d'infos<small>Carburant, batterie, température extérieure</small></div><button class="sw" id="swL" aria-label="Carte d'infos"></button></div>
 <div class="sr"><div class="l">Météo animée<small>Température, prévisions et animation</small></div><button class="sw" id="swR" aria-label="Météo animée"></button></div>
 <div class="sr"><div class="l">Vitesse GPS<small>Vitesse, direction et altitude du poste</small></div><button class="sw" id="swS" aria-label="Vitesse GPS"></button></div>
-<div class="sr"><div class="l">Lecteur de musique<small>Titre en cours et boutons (désactivé par défaut)</small></div><button class="sw" id="swM" aria-label="Lecteur de musique"></button></div>
+<div class="sr"><div class="l">Lecteur de musique<small>YouTube Music, Spotify, Deezer : pochette, titre, boutons. Se règle dans Personnaliser › Musique</small></div><button class="sw" id="swM" aria-label="Lecteur de musique"></button></div>
 <div class="sr" id="rowNotif" style="display:none"><div class="l">Autoriser l'accès aux notifications<small>Nécessaire pour lire le titre et piloter la musique</small></div><button class="mini" id="btnNotif">Ouvrir</button></div>
 <div class="sr"><div class="l">Bouton des phares</div><button class="sw" id="swLt" aria-label="Bouton des phares"></button></div>
 <div class="sr"><div class="l">Compteur de trajet<small>Distance, durée et vitesse moyenne</small></div><button class="sw" id="swT" aria-label="Compteur de trajet"></button></div>
@@ -1680,6 +1723,8 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   /* Android signale un manque de mémoire : on libère le guide, la 3D arrêtée et les images cachées */
   window.onLowMem=function(){
     try{var g=document.getElementById('guideOv');if(!g||!g.classList.contains('on')){if(window.__guideFree)window.__guideFree()}}catch(e){}
+    /* 3.6.2 : en arrière-plan (GPS, CarPlay…), la 3D est arrêtée et libérée ; elle revient au retour sur l'accueil */
+    try{if(window.M3DV&&document.body.classList.contains('inBg')&&M3DV.stop){M3DV.stop();window.__m3dFreed=1}}catch(e){}
     try{if(window.M3DV&&M3DV.free)M3DV.free()}catch(e){}
     try{window.__bgSync()}catch(e){}
     /* 3.3 : les miniatures de la galerie restent chargées (elles sont petites) : les vider les laissait cassées */
@@ -2370,7 +2415,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
 
   /* ===== Étape 8 : À propos, vitesse GPS, musique, raccourcis, luminosité auto, styles ===== */
-  var APP_VERSION='3.6.1';
+  var APP_VERSION='3.6.2';
   function updateAbout(){$('#aboutTxt').textContent=T('Version')+' '+APP_VERSION}
 
   /* Vitesse GPS */
@@ -2394,34 +2439,60 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   },2000);
   $('#spU').textContent=UNIT==='imperial'?'mph':'km/h';
 
-  /* Lecteur de musique (facultatif) */
-  var mTimer=null;
-  function drawMedia(o){
-    var t=$('#mT'),a=$('#mA');
-    if(!o.access){t.textContent=T('Accès requis');a.textContent='';return}
-    if(!o.has){t.textContent=T('Aucune lecture');a.textContent='';$('#mIc').innerHTML='<path d="M8 5v14l11-7z"/>';return}
-    t.textContent=o.title||'—';a.textContent=o.artist||'';
-    $('#mIc').innerHTML=o.playing?'<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>':'<path d="M8 5v14l11-7z"/>';
-  }
-  function pollMedia(){
-    if(!A||!A.getMedia)return;
-    var o={};try{o=JSON.parse(A.getMedia())}catch(e){}
-    drawMedia(o);
-    $('#rowNotif').style.display=(o.access===false)?'flex':'none';
-  }
+  /* 3.6.2 : lecteur YouTube Music / Spotify / Deezer (remplace l'ancien lecteur) */
+  var MU=[['deezer.android.app','Deezer'],['com.google.android.apps.youtube.music','YouTube Music'],['com.spotify.music','Spotify']];
+  var mTimer=null,muO={},muArtK='',muIcons={},muT0=0,muDrag=false;
+  function muFmt(ms){ms=Math.max(0,ms|0);var s=Math.round(ms/1000),m=Math.floor(s/60);s%=60;return m+':'+(s<10?'0':'')+s}
+  function muSrc(){return get('muSrc','')}
+  function muIcon(pkg){if(muIcons[pkg]!==undefined)return muIcons[pkg];var d='';try{d=A&&A.muIcon?A.muIcon(pkg):''}catch(e){}muIcons[pkg]=d;return d}
+  function muTabs(o){var box=$('#muTabs');if(!box)return;var inst=o.installed||{},act=o.active||[],cur=o.has?o.pkg:muSrc(),list=MU.slice();
+    if(o.has&&!MU.some(function(m){return m[0]===o.pkg}))list.push([o.pkg,o.app||T('Autre')]);
+    var h='';list.forEach(function(m){var ic=A?muIcon(m[0]):'',dispo=inst[m[0]]!==false||act.indexOf(m[0])>=0;
+      h+='<button data-p="'+m[0]+'" class="'+(m[0]===cur?'on':'')+(dispo?'':' off')+'">'+(ic?'<img src="'+ic+'" alt="">':'<i class="muDot">♪</i>')+'<span>'+(m[1]==='YouTube Music'?'YT Music':m[1])+'</span></button>'});
+    if(box.__h!==h){box.__h=h;box.innerHTML=h}}
+  function muDraw(o){muO=o||{};var w=$('#muW');if(!w)return;
+    w.classList.toggle('need',o.access===false);
+    if(o.access===false){$('#muTi').textContent=T('Accès requis');$('#muAr').textContent='';$('#muNo').textContent=T('Autorise l\'accès aux notifications dans Personnaliser › Musique.');w.classList.remove('play');muTabs(o);return}
+    muTabs(o);
+    if(!o.has){$('#muTi').textContent=T('Aucune lecture');$('#muAr').textContent=T('Choisis ton appli ci-dessus');w.classList.remove('play');$('#muIc').innerHTML='<path d="M8 5v14l11-7z"/>';
+      $('#muP0').textContent='0:00';$('#muP1').textContent='0:00';muBarSet(0);$('.muArt',w).classList.remove('has');return}
+    $('#muTi').textContent=o.title||'—';$('#muAr').textContent=o.artist||o.app||'';
+    w.classList.toggle('play',!!o.playing);w.classList.toggle('noseek',!o.seek||!o.dur);
+    $('#muIc').innerHTML=o.playing?'<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>':'<path d="M8 5v14l11-7z"/>';
+    if(o.artKey!==muArtK){muArtK=o.artKey;var d='';try{d=A&&A.muArt?A.muArt(o.pkg):''}catch(e){}var im=$('#muImg');if(d){im.src=d}$('.muArt',w).classList.toggle('has',!!d)}
+    muT0=Date.now();muTick()}
+  function muBarSet(k){k=Math.max(0,Math.min(1,k||0));$('#muFill').style.width=(k*100)+'%';$('#muKnob').style.left=(k*100)+'%'}
+  function muTick(){var o=muO;if(!o.has||muDrag)return;var pos=(o.pos||0)+(o.playing?Date.now()-muT0:0);if(o.dur)pos=Math.min(pos,o.dur);
+    $('#muP0').textContent=muFmt(pos);$('#muP1').textContent=o.dur?muFmt(o.dur):'--:--';muBarSet(o.dur?pos/o.dur:0)}
+  function pollMedia(){if(!A||!A.muInfo)return;var o={};try{o=JSON.parse(A.muInfo(muSrc()))}catch(e){}window.__muLast=o;muDraw(o);
+    $('#rowNotif').style.display=(o.access===false)?'flex':'none';}
+  function muVisible(){return get('wgM','0')==='1'&&!document.body.classList.contains('inBg')&&!document.body.classList.contains('parked')}
+  var muTk=0;
   function applyMusic(){
     var on=get('wgM','0')==='1';
     document.body.classList.toggle('showM',on);
     $('#swM').classList.toggle('on',on);
     if(mTimer){clearInterval(mTimer);mTimer=null}
-    if(on&&A){pollMedia();mTimer=setInterval(pollMedia,2000)}
-    else{$('#rowNotif').style.display='none';if(!A&&on)drawMedia({access:true,has:false})}
+    if(on&&A){pollMedia();mTimer=setInterval(function(){if(!muVisible())return;muTk++;if(muTk%2===0)pollMedia();else muTick()},1000)}
+    else{$('#rowNotif').style.display='none';if(!A&&on)muDraw({access:true,has:false,installed:{}})}
   }
+  window.__muApply=applyMusic;window.__muPoll=pollMedia;window.__MU=MU;window.__muIcon=muIcon;
   $('#swM').addEventListener('click',function(){put('wgM',get('wgM','0')==='1'?'0':'1');applyMusic()});
   $('#btnNotif').addEventListener('click',function(){if(A&&A.openNotifAccess)A.openNotifAccess()});
-  $('#mPlay').addEventListener('click',function(){if(A&&A.mediaCmd){A.mediaCmd('toggle');setTimeout(pollMedia,400)}});
-  $('#mNext').addEventListener('click',function(){if(A&&A.mediaCmd){A.mediaCmd('next');setTimeout(pollMedia,600)}});
-  $('#mPrev').addEventListener('click',function(){if(A&&A.mediaCmd){A.mediaCmd('prev');setTimeout(pollMedia,600)}});
+  function muEdit(){return document.body.classList.contains('edit')||document.body.classList.contains('persOn')}
+  $('#muW').addEventListener('click',function(e){if(muEdit())return;
+    var b=e.target.closest('.muB'),t=e.target.closest('.muTabs button');
+    if(t){e.stopPropagation();var pk=t.getAttribute('data-p');put('muSrc',pk);var act=(muO.active||[]);
+      if(act.indexOf(pk)<0&&A&&A.muCmd)A.muCmd('open',pk,'');setTimeout(pollMedia,300);return}
+    if(b){e.stopPropagation();if(!A||!A.muCmd)return;var c=b.getAttribute('data-c'),pk2=muO.has?muO.pkg:'';
+      if(c==='toggle'){muO.playing=!muO.playing;muO.pos=(muO.pos||0)+(muO.playing?0:Date.now()-muT0);muDraw(muO)}
+      A.muCmd(c,pk2,'');setTimeout(pollMedia,c==='toggle'?500:800);return}
+    if(e.target.closest('.muArt')&&muO.has&&A&&A.muCmd){A.muCmd('open',muO.pkg,'')}});
+  (function(){var bar=$('#muBar');if(!bar)return;function k(e){var r=bar.getBoundingClientRect();return Math.max(0,Math.min(1,((e.touches?e.touches[0].clientX:e.clientX)-r.left)/r.width))}
+    var last=0;function mv(e){if(!muDrag)return;last=k(e);muBarSet(last);$('#muP0').textContent=muFmt(last*(muO.dur||0))}
+    function up(){if(!muDrag)return;muDrag=false;document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);
+      if(A&&A.muCmd&&muO.dur){var ms=Math.round(last*muO.dur);A.muCmd('seek',muO.pkg,String(ms));muO.pos=ms;muT0=Date.now();setTimeout(pollMedia,500)}}
+    bar.addEventListener('pointerdown',function(e){if(muEdit()||!muO.has||!muO.seek||!muO.dur)return;e.stopPropagation();muDrag=true;last=k(e);muBarSet(last);document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up)})})();
 
   /* Interrupteur vitesse */
   function applySpeed(){
@@ -2538,10 +2609,11 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     ['sport','luxe','mini'].forEach(function(n){document.body.classList.toggle('th-'+n,v===n)});applyTheme()}
   $$('[data-seg="style"] button').forEach(function(b){b.addEventListener('click',function(){
     var v=b.getAttribute('data-val');if(!thPrev)thPrev={s:get('style','def'),c:get('acc','#2f6df6'),o:cardOp,a:anim};
-    thApply(v);$('#thBar').classList.add('on');
+    thApply(v);$('#thBar').classList.add('on');thStage0();
   })});
-  $('#thKeep').addEventListener('click',function(){thPrev=null;$('#thBar').classList.remove('on')});
-  $('#thUndo').addEventListener('click',function(){if(thPrev){thApply(thPrev.s);put('acc',thPrev.c);applyAcc(thPrev.c);cardOp=thPrev.o;put('cardOp',cardOp);anim=thPrev.a;put('anim',anim);applyAnim()}thPrev=null;$('#thBar').classList.remove('on')});
+  function thStage0(){try{var st=$('#stage');st.scrollTop=0;st.scrollLeft=0;document.documentElement.scrollTop=0;document.body.scrollTop=0}catch(e){}}
+  $('#thKeep').addEventListener('click',function(){thPrev=null;$('#thBar').classList.remove('on');thStage0()});
+  $('#thUndo').addEventListener('click',function(){if(thPrev){thApply(thPrev.s);put('acc',thPrev.c);applyAcc(thPrev.c);cardOp=thPrev.o;put('cardOp',cardOp);anim=thPrev.a;put('anim',anim);applyAnim()}thPrev=null;$('#thBar').classList.remove('on');thStage0()});
   (function(){var v=get('style','def');if(v==='chic')v='luxe';if(v==='soft')v='def';put('style',v);['sport','luxe','mini'].forEach(function(n){document.body.classList.toggle('th-'+n,v===n)})})();
   segSet('style',get('style','def'));
 
@@ -3646,6 +3718,14 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
   /* Nouveautés */
   var NEWS=[
+    ['Nouveau lecteur musique','YouTube Music, Spotify et Deezer : pochette, titre, boutons et barre de lecture. À placer où tu veux (Personnaliser › Musique).'],
+    ['3D bien plus fluide','Chaque voiture est allégée au chargement : beaucoup moins de travail pour la carte graphique. Plus d\'ombre recalculée, éclairage adapté au poste.'],
+    ['Voitures par marque','Choisis d\'abord la marque, puis le modèle. Noms propres, année et nombre de portes.'],
+    ['Bien posée','La voiture est posée sur la plateforme, elle ne flotte plus.'],
+    ['Plaques d\'autres pays','Belgique, Suisse, Allemagne, Luxembourg, Italie, Espagne, Portugal, Pays-Bas, Royaume-Uni.'],
+    ['Agrandir le trajet','Le bouton « Agrandir » du widget Trajet en direct remarche.'],
+    ['Thèmes','Le bandeau « Garder ce thème ? » ne bloque plus l\'écran.'],
+    ['Plus stable','Si l\'affichage plante, Cockpit se relance tout seul. Animations en pause quand Cockpit est caché.'],
     ['Voitures plus claires','Meilleur éclairage de la 3D : les voitures ne sont plus sombres.'],
     ['Plus fluide','La 3D et l\'animation de démarrage demandent moins au poste.'],
     ['Recherche','Une case de recherche pour trouver ta voiture 3D parmi toutes les autres.'],
@@ -4015,7 +4095,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   });
   applyFonts();
 
-  var STDW={cardL:['Infos voiture',1],cardR:['Météo',.8],cardT:['Trajet',1],cardS:['Compteur',1],cardM:['Musique',1],trW:['Trajet en direct',1],plW:['Plaque',1]};
+  var STDW={cardL:['Infos voiture',1],cardR:['Météo',.8],cardT:['Trajet',1],cardS:['Compteur',1],muW:['Musique',1],trW:['Trajet en direct',1],plW:['Plaque',1]};
   var CWT={sty:['Style'],clock:['Horloge'],compass:['Boussole'],note:['Note'],chrono:['Chrono'],vmax:['Vitesse max']};
   var wpos={},cws=[],edSel='';
   try{wpos=JSON.parse(get('wpos','{}'))||{}}catch(e){wpos={}}
@@ -4304,7 +4384,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   [["Profil","Profile"],["Sélectionnez votre utilisateur","Select your user"],["Ajouter un profil","Add a profile"],["Invité","Guest"],["Entre ton code","Enter your code"],["Maintiens ton doigt","Hold your finger"],["Analyse en cours…","Scanning…"],["Code incorrect","Wrong code"],["Volant","Steering wheel"],["Couleur du halo","Halo color"],["Verrouillage","Lock"],["Aucun","None"],["Code","Code"],["Iron Scan","Iron Scan"],["Prénom ou nom","Name"],["Enregistrer","Save"],["Supprimer","Delete"],["Annuler","Cancel"],["Changer de profil","Switch profile"],["Mon profil","My profile"],["Profils","Profiles"],["Gérer les profils","Manage profiles"],["Code à 4 chiffres","4-digit code"],["Choisis un code à 4 chiffres","Pick a 4-digit code"],["Message d'accueil","Welcome message"],["Voir le message","Preview"],["Remettre par défaut","Reset"]].forEach(function(r){TR[r[0]]={en:r[1]}});
   [["Ton compteur","Your speedometer"],["Ta météo","Your weather"],["Ton horloge","Your clock"],["Ta montre","Your watch"],["Ta voiture","Your car"],["Feux éteints : allume les feux de croisement","Lights off: switch on the dipped beams"],["Les feux sont éteints au départ. Allume les feux de croisement, puis appuie sur « C'est fait ».","Lights start off. Switch on the dipped beams, then tap “Done”."],["Allume les feux de route","Switch on the high beams"],["Allume les feux de route, puis appuie sur « C'est fait ».","Switch on the high beams, then tap “Done”."],["Éteins les feux","Switch the lights off"],["Éteins-les, puis appuie sur « C'est fait ».","Switch them off, then tap “Done”."],["Feux de route","High beams"],["Allume les warnings","Switch on the hazard lights"],["Éteins les warnings","Switch off the hazard lights"],["Warnings","Hazard lights"],["Appuie sur le bouton des warnings, puis sur « C'est fait ».","Press the hazard button, then tap “Done”."],["Volant choisi","Wheel chosen"],["Plus petit","Smaller"],["Plus grand","Bigger"],["Aucun","None"],["Choisis ton compteur de vitesse.","Pick your speedometer."],["Choisis un widget météo. Il s'ajoute sur l'accueil.","Pick a weather widget. It is added to the home screen."],["Choisis une horloge : elle remplace l'heure en haut à gauche.","Pick a clock: it replaces the time at the top left."],["Choisis une montre. Elle s'ajoute sur l'accueil.","Pick a watch. It is added to the home screen."],["Choisis un widget voiture. Il s'ajoute sur l'accueil.","Pick a car widget. It is added to the home screen."],["Tu pourras tout déplacer et changer la taille avec le bouton de modification de l'accueil.","You can move everything and resize it with the home edit button."],["Voiture 3D","3D car"],["Voiture 3D sur l'accueil","3D car on the home screen"],["Ta Golf en 3D dans un showroom. Elle tourne, ses portes s'ouvrent avec les vraies et la vue plonge dans l'habitacle sur la page Véhicule.","Your car in 3D in a showroom. It turns, its doors open with the real ones and the view dives into the cabin on the Vehicle page."],["Couleur de la voiture 3D","3D car colour"],["Warnings sur la voiture 3D","Hazard lights on the 3D car"],["Les clignotants de la 3D clignotent. Ils suivent aussi les vrais si ton poste les détecte.","The 3D indicators blink. They also follow the real ones if your unit detects them."],["Crédits","Credits"],["Touche un élément dans l'aperçu pour le déplacer","Tap an item in the preview to move it"],["Widget voiture","Car widget"],["Montre","Watch"],["Horloge","Clock"],["Aperçu en direct","Live preview"],["Couleur des icônes","Icon colour"],["Change le bleu des icônes et des boutons","Changes the blue of icons and buttons"],["Opacité","Opacity"],["Assistant plus simple","Simpler wizard"],["Fermer","Close"],["Passer","Skip"],["Effacer","Clear"]].forEach(function(r){if(!TR[r[0]])TR[r[0]]={en:r[1]}});
   if(LANG!=='fr')trTree(document.body);
-  var PF_KEYS=['homeVr','trW','trWop','plW','tiles','theme','fs','dialK','dial','smTitle','smLine1','smLine2','smart','snd','brand','prenom','mood','font','cws','wpos','dsz','lay','amb','big','hc','acc','mode','style','anim','cardOp','fclk','fall','radC','radCar','radS','m3d','m3dWarn','m3dAuto','icHue','wgL','wgR','wgS','wgT','wgM','wgLt','wg','sunOn','nf','df','lN','lD','ice','brk','brkH','sa','saV','beep','revOv','vOn','vVol','lang','unit','clk','sroomN','sroomJ','m3dCol','plStyle','plNum','plDep','radN','radU','m3dCar','signX','signY','signS'];
+  var PF_KEYS=['homeVr','trW','trWop','plW','tiles','theme','fs','dialK','dial','smTitle','smLine1','smLine2','smart','snd','brand','prenom','mood','font','cws','wpos','dsz','lay','amb','big','hc','acc','mode','style','anim','cardOp','fclk','fall','radC','radCar','radS','m3d','m3dWarn','m3dAuto','icHue','wgL','wgR','wgS','wgT','wgM','wgLt','wg','sunOn','nf','df','lN','lD','ice','brk','brkH','sa','saV','beep','revOv','vOn','vVol','lang','unit','clk','sroomN','sroomJ','m3dCol','plStyle','plNum','plDep','plPays','radN','radU','m3dCar','signX','signY','signS'];
   var PF_HALO=['46,142,255','60,220,120','190,90,255','255,74,74','255,154,46','255,210,60','55,224,224','255,255,255'];
   function pfList(){try{var a=JSON.parse(get('profiles','[]'));return a instanceof Array?a:[]}catch(e){return[]}}
   function pfSave(a){put('profiles',JSON.stringify(a))}
@@ -4731,10 +4811,12 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   /* widgets de style ajoutables (même système que les autres widgets) */
   var STYG={wt:['Montre',WATCH.length],dk:['Horloge',DK.length],cw:['Voiture',CW.length],wx:['Météo',10]};
   window.__STYG=STYG;
+  /* 3.6.2 : anciens widgets musique (style voiture) retirés de l'accueil */
+  (function(){var rm=cws.filter(function(c){return c.t==='sty'&&c.g==='cw'&&CWI[c.i]&&/^cw[ab]09$/.test(CWI[c.i][1])});if(!rm.length)return;rm.forEach(function(c){var e=wEl(c.id);if(e)e.remove();delete wpos[c.id]});cws=cws.filter(function(c){return rm.indexOf(c)<0});wSave()})();
 
   /* ---------- Fenêtre « Personnaliser » : aperçu direct sur l'accueil ---------- */
   var persTab='dial',persEl=null;
-  var TABS=[['dial','Compteurs'],['wt','Montres'],['dk','Horloges'],['cw','Voiture'],['wx','Météo'],['plus','Autres'],['rad','Radar']];
+  var TABS=[['dial','Compteurs'],['wt','Montres'],['dk','Horloges'],['cw','Voiture'],['wx','Météo'],['mu','Musique'],['plus','Autres'],['rad','Radar']];
   function styPlace(g,i){
     var id='cwp_'+g,c=null;cws.forEach(function(x){if(x.id===id)c=x});
     if(c){c.g=g;c.i=i;var e=wEl(id);if(e){e.innerHTML=styHTML(g,i);e.setAttribute('data-h','')}}
@@ -4775,6 +4857,22 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
       $$('[data-add]',row).forEach(function(b){b.addEventListener('click',function(){var t=b.getAttribute('data-add'),c={id:'cw'+Date.now(),t:t,x:560+(cws.length%4)*20,y:250+(cws.length%4)*20};cws.push(c);cwBuild(c);cwUpdate();wSave();if(window.__wSetSel)window.__wSetSel(c.id);toast('Ajouté : glisse-le où tu veux dans l\'aperçu');persDraw()})});
       $$('[data-back]',row).forEach(function(b){b.addEventListener('click',function(){var id=b.getAttribute('data-back'),o=wEnsure(id);delete o.h;wApply(id);wSave();if(window.__wSetSel)window.__wSetSel(id);persDraw()})});
       var rs=row.querySelector('#pReset');rs.addEventListener('click',function(){if(!rs.classList.contains('sure')){rs.classList.add('sure');rs.querySelector('small').textContent=T('Touche encore pour confirmer');return}$('#edReset').click();if(window.__wSetSel)window.__wSetSel('');persDraw()});
+    }else if(persTab==='mu'){
+      var A=window.Android,MU=window.__MU||[],on=get('wgM','0')==='1',src=get('muSrc',''),o=window.__muLast||{};
+      var h='<div class="pSec">'+T('Lecteur de musique')+'</div>'+
+        '<button class="pIt pAdd'+(on?' on':'')+'" id="muOn"><span class="pEm">'+(on?'✓':'＋')+'</span><small>'+T(on?'Affiché sur l\'accueil':'Afficher sur l\'accueil')+'</small></button>';
+      if(on)h+='<button class="pIt pAdd" id="muOff"><span class="pEm">✕</span><small>'+T('Retirer de l\'accueil')+'</small></button>';
+      if(o.access===false)h+='<div class="pSec">'+T('Autorisation')+'</div><button class="pIt pAdd" id="muAcc"><span class="pEm">🔔</span><small>'+T('Autoriser l\'accès aux notifications (pour lire le titre et piloter la musique)')+'</small></button>';
+      h+='<div class="pSec">'+T('Appli au démarrage')+'</div>';
+      [['','Automatique (celle qui joue)']].concat(MU).forEach(function(m){var inst=!o.installed||o.installed[m[0]]!==false||!m[0];
+        h+='<button class="pIt pAdd'+(src===m[0]?' on':'')+'" data-mus="'+m[0]+'"><span class="pEm">'+(m[0]&&window.__muIcon&&window.__muIcon(m[0])?'<img class="pMuI" src="'+window.__muIcon(m[0])+'" alt="">':'♪')+'</span><small>'+T(m[1])+(inst?'':' — '+T('pas installée'))+'</small></button>'});
+      h+='<div class="pSec">'+T('Placer le lecteur')+'</div><div class="pHint">'+T('Fais glisser le lecteur sur l\'accueil pour le placer où tu veux. Les boutons − et + changent sa taille.')+'</div>';
+      row.innerHTML=h;
+      var b1=row.querySelector('#muOn');if(b1)b1.addEventListener('click',function(){put('wgM','1');var o2=wEnsure('muW');delete o2.h;wApply('muW');wSave();window.__muApply();if(window.__wSetSel)window.__wSetSel('muW');persDraw()});
+      var b2=row.querySelector('#muOff');if(b2)b2.addEventListener('click',function(){put('wgM','0');window.__muApply();if(window.__wSetSel)window.__wSetSel('');persDraw()});
+      var b3=row.querySelector('#muAcc');if(b3)b3.addEventListener('click',function(){if(A&&A.openNotifAccess)A.openNotifAccess()});
+      $$('[data-mus]',row).forEach(function(b){b.addEventListener('click',function(){put('muSrc',b.getAttribute('data-mus'));window.__muPoll();persDraw()})});
+      if(on&&window.__wSetSel&&!window.__wSelId)window.__wSetSel('muW');
     }else if(persTab==='rad'){
       var RC=['46,142,255','60,220,120','255,74,74','255,154,46','255,210,60','190,90,255','255,255,255','55,224,224'];
       var CN=['Citadine','Compacte','Berline','Break','SUV','Premium','Coupé','Cabriolet','Sportive','Utilitaire','4x4','Camping-car'];
@@ -4791,6 +4889,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     }else{
       var n=STYG[persTab][1],c=null;cws.forEach(function(x){if(x.id==='cwp_'+persTab)c=x});
       for(var j=0;j<n;j++){(function(j){
+        if(persTab==='cw'&&CWI[j]&&/^cw[ab]09$/.test(CWI[j][1]))return;   /* 3.6.2 : anciens widgets musique retirés */
         var b=document.createElement('button');b.className='pIt'+(c&&c.i===j?' on':'');
         b.appendChild(persPrev(persTab,j));
         var nm=persTab==='wt'?WATCH[j][0]:persTab==='dk'?DK[j][0]:persTab==='cw'?CW[j][0]:WXN[j];var sm=document.createElement('small');sm.textContent=T(nm);b.appendChild(sm);
@@ -4801,7 +4900,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
     if(!persEl){
       persEl=document.createElement('div');persEl.id='pers';
       var TI={dial:'b10',wt:'c41',dk:'b01',cw:'c12',wx:'c42',plus:'a30',rad:'b14'};
-      persEl.innerHTML='<div class="pRail pTabs">'+TABS.map(function(t){return '<button data-t="'+t[0]+'"><img src="ic/'+TI[t[0]]+'.webp" alt=""><span>'+T(t[1])+'</span></button>'}).join('')+'<button data-more="1" class="pMore"><img src="ic/a01.webp" alt=""><span>'+T('Autres réglages')+'</span></button></div><div class="pMain"><div class="pTop"><b id="pTitle"></b><button id="pOk" class="pDone">'+T('Terminé')+'</button></div><div class="pRow"></div><div class="pBt"><span id="pSel"></span><label class="pOp">'+T('Opacité')+'<input type="range" id="pOpR" min="20" max="100" step="5" value="100" disabled></label><button id="pMn" class="pX">−</button><button id="pPl" class="pX">+</button><button id="pRm" class="pX">'+T('Retirer')+'</button></div></div>';
+      persEl.innerHTML='<div class="pRail pTabs">'+TABS.map(function(t){return '<button data-t="'+t[0]+'">'+(TI[t[0]]?'<img src="ic/'+TI[t[0]]+'.webp" alt="">':'<svg class="pTi" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>')+'<span>'+T(t[1])+'</span></button>'}).join('')+'<button data-more="1" class="pMore"><img src="ic/a01.webp" alt=""><span>'+T('Autres réglages')+'</span></button></div><div class="pMain"><div class="pTop"><b id="pTitle"></b><button id="pOk" class="pDone">'+T('Terminé')+'</button></div><div class="pRow"></div><div class="pBt"><span id="pSel"></span><label class="pOp">'+T('Opacité')+'<input type="range" id="pOpR" min="20" max="100" step="5" value="100" disabled></label><button id="pMn" class="pX">−</button><button id="pPl" class="pX">+</button><button id="pRm" class="pX">'+T('Retirer')+'</button></div></div>';
       stage.appendChild(persEl);
       persEl.querySelector('.pMore').addEventListener('click',function(e){e.stopPropagation();if(window.__wSetSel)window.__wSetSel('');persEl.classList.remove('on');document.body.classList.remove('persOn');radDemo(true);window.__persList=true;go('menu:perso')});
       $$('.pTabs button:not(.pMore)',persEl).forEach(function(b){b.addEventListener('click',function(){persTab=b.getAttribute('data-t');persDraw();if(persTab==='rad')radDemo()})});
@@ -5028,15 +5127,34 @@ var b3=document.getElementById('m3b3d');if(b3)b3.addEventListener('click',functi
     if(LK.carRefresh)LK.carRefresh();p('m3d','1');if(window.m3dApply)window.m3dApply();carsRedraw();drawCols();look()}
   /* 3.6.1 : recherche dans la liste des voitures (sans accents, sans tirets, mots dans n'importe quel ordre) */
   var carQ='';function carNorm(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
-  function carMatch(x){if(!carQ)return true;var n=carNorm(x.nom+' '+(x.court||'')+' '+x.id),nz=n.replace(/ /g,'');return carNorm(carQ).split(' ').every(function(w){return !w||n.indexOf(w)>=0||nz.indexOf(w)>=0})}
-  function carHTML(){var c=LK.car(),h='',nb=0;
-    LK.CARLIST.forEach(function(x){if(!carMatch(x)&&x.id!==c)return;nb++;var st=carSt(x.id),dl=CDL[x.id],btn,cls='mini';
+  function carMatch(x){if(!carQ)return true;var n=carNorm((x.marque||'')+' '+x.nom+' '+(x.court||'')+' '+x.id),nz=n.replace(/ /g,'');return carNorm(carQ).split(' ').every(function(w){return !w||n.indexOf(w)>=0||nz.indexOf(w)>=0})}
+  /* 3.6.2 : voitures rangées par marque (badge, compteur), filtre par marque + recherche */
+  var MQ=['Alfa Romeo','Aston Martin','Land Rover','Range Rover','Mercedes-Benz','Mercedes','Rolls-Royce','Abarth','Audi','BMW','Citroën','Citroen','Cupra','Dacia','DS','Fiat','Ford','Honda','Hyundai','Jaguar','Jeep','Kia','Lamborghini','Lancia','Lexus','Mazda','Mini','Mitsubishi','Nissan','Opel','Peugeot','Porsche','Renault','Seat','Skoda','Smart','Subaru','Suzuki','Tesla','Toyota','Volkswagen','VW','Volvo','Ferrari','Maserati','Bentley','McLaren','Bugatti','Chevrolet','Dodge','Alpine','MG','BYD'];
+  var MQN={'Mercedes':'Mercedes-Benz','Citroen':'Citroën','VW':'Volkswagen'};
+  function carMq(x){if(x.marque)return x.marque;var n=String(x.nom||'').replace(/^\s*\d{4}(\s*-\s*\d{4})?\s+/,''),nn=carNorm(n);
+    for(var i=0;i<MQ.length;i++){var m=carNorm(MQ[i]);if(nn===m||nn.indexOf(m+' ')===0)return MQN[MQ[i]]||MQ[i]}return TT('Autres')}
+  function carMod(x){var m=carMq(x),n=String(x.court||x.nom||'');if(carNorm(n).indexOf(carNorm(m)+' ')===0)n=n.slice(m.length).trim();return n||x.nom}
+  var MQA={'Volkswagen':'VW','Mercedes-Benz':'MB','Alfa Romeo':'AR','Land Rover':'LR','Rolls-Royce':'RR','Aston Martin':'AM'};
+  function mqBadge(m){var w=m.replace(/-/g,' ').split(/\s+/).filter(Boolean),t=MQA[m]||(w.length>1?w[0][0]+w[1][0]:(m.length<=3?m:m.slice(0,2)));t=t.toUpperCase().replace(/[<>&"]/g,'');return '<i class="mqB'+(t.length>2?' s':'')+'">'+t+'</i>'}
+  var carM='';
+  function carList(){return LK.CARLIST.slice().sort(function(a,b){var x=carMq(a).localeCompare(carMq(b),'fr'),y;if(x)return x;return carMod(a).localeCompare(carMod(b),'fr',{numeric:true})})}
+  function mqHTML(){var cnt={},L=carList();L.forEach(function(x){var m=carMq(x);cnt[m]=(cnt[m]||0)+1});var ms=Object.keys(cnt).sort(function(a,b){return a.localeCompare(b,'fr')});
+    if(ms.length<2)return '';
+    var h='<button class="mqC'+(carM?'':' on')+'" data-m="">'+TT('Toutes')+'<small>'+L.length+'</small></button>';
+    ms.forEach(function(m){h+='<button class="mqC'+(carM===m?' on':'')+'" data-m="'+m.replace(/"/g,'&quot;')+'">'+mqBadge(m)+m+'<small>'+cnt[m]+'</small></button>'});return h}
+  function carRow(x,c,full){var st=carSt(x.id),dl=CDL[x.id],btn,cls='mini';
       if(dl!=null)btn=TT('Téléchargement')+' '+dl+' %';else if(!st.installed){btn=TT('Télécharger')+' · '+x.mo+' Mo';cls+=' dlB'}else if(c===x.id&&g('m3d','0')==='1')btn='✓ '+TT('Choisie');else btn=TT('Choisir');
-      h+='<div class="carR'+(c===x.id?' on':'')+'"><div><b>'+x.nom+'</b><small>'+TT(x.info)+(st.inclus?' · '+TT('incluse'):st.installed?' · '+TT('sur le poste'):'')+'</small></div><div class="carB">'+
-        (st.installed&&!st.inclus&&c!==x.id?'<button class="mini carDel" data-c="'+x.id+'">'+TT('Supprimer')+'</button>':'')+'<button class="'+cls+' carGo" data-c="'+x.id+'"'+(dl!=null?' disabled':'')+'>'+btn+'</button></div></div>'});
-    if(carQ&&nb<=1)h+='<div class="carNone">'+TT('Aucune autre voiture ne correspond. Essaie la marque ou le modèle seul.')+'</div>';
+      return '<div class="carR'+(c===x.id?' on':'')+'"><div>'+(full?'<b>'+carMq(x)+' '+carMod(x)+'</b>':'<b>'+carMod(x)+'</b>')+'<small>'+TT(x.info||'')+(st.inclus?' · '+TT('incluse'):st.installed?' · '+TT('sur le poste'):'')+'</small></div><div class="carB">'+
+        (st.installed&&!st.inclus&&c!==x.id?'<button class="mini carDel" data-c="'+x.id+'">'+TT('Supprimer')+'</button>':'')+'<button class="'+cls+' carGo" data-c="'+x.id+'"'+(dl!=null?' disabled':'')+'>'+btn+'</button></div></div>'}
+  function carHTML(){var c=LK.car(),h='',nb=0,last=null,L=carList(),grp=!carQ;
+    var cur=c&&L.filter(function(x){return x.id===c})[0];
+    if(cur&&!carQ&&!carM){h+='<div class="mqH">'+TT('Ta voiture')+'</div>'+carRow(cur,c,true)}
+    L.forEach(function(x){if(cur&&x===cur&&!carQ&&!carM)return;if(carM&&carMq(x)!==carM)return;if(!carMatch(x))return;nb++;
+      var m=carMq(x);if(grp&&m!==last){last=m;var n=L.filter(function(y){return carMq(y)===m}).length;h+='<div class="mqH">'+mqBadge(m)+m+'<small>'+n+' '+TT(n>1?'modèles':'modèle')+'</small></div>'}
+      h+=carRow(x,c,!grp)});
+    if(carQ&&!nb)h+='<div class="carNone">'+TT('Aucune voiture ne correspond. Essaie la marque ou le modèle seul.')+'</div>';
     return h}
-  function carsRedraw(){CUI=CUI.filter(function(e){return document.body.contains(e)});CUI.forEach(function(e){e.innerHTML=carHTML()});drawCar();homeCard()}
+  function carsRedraw(){CUI=CUI.filter(function(e){return document.body.contains(e)});CUI.forEach(function(e){e.innerHTML=carHTML();if(e.__mqb)e.__mqb.innerHTML=mqHTML()});drawCar();homeCard()}
   window.__carsRedraw=function(){carsRedraw();drawCols()};
   function carAct(e){var b=e.target.closest('button');if(!b)return;var c=b.getAttribute('data-c');if(!c)return;
     if(b.classList.contains('carDel')){if(A2&&A2.carDelete)try{A2.carDelete(c)}catch(x){}if(LK.carRefresh)LK.carRefresh();if(!LK.car()&&window.m3dApply)window.m3dApply();look();carsRedraw();return}
@@ -5045,9 +5163,11 @@ var b3=document.getElementById('m3b3d');if(b3)b3.addEventListener('click',functi
     pick(c)}
   window.__carUI=function(el){if(!el)return;
     /* une case de recherche au-dessus de la liste dès qu'il y a beaucoup de voitures */
-    if(LK.CARLIST.length>6&&!el.__cq){el.__cq=1;var q=document.createElement('input');q.type='search';q.className='vIn carSearch';q.placeholder=TT('Rechercher une voiture (ex. Golf, 308, BMW)');q.value=carQ;q.autocomplete='off';
+    if(LK.CARLIST.length>6&&!el.__cq){el.__cq=1;var q=document.createElement('input');q.type='search';q.className='vIn carSearch';q.placeholder=TT('Rechercher un modèle (ex. Golf, 308, Série 1)');q.value=carQ;q.autocomplete='off';
       el.parentNode.insertBefore(q,el);q.addEventListener('input',function(){carQ=q.value;[].forEach.call(document.querySelectorAll('.carSearch'),function(o){if(o!==q)o.value=carQ});carsRedraw()})}
-    el.classList.add('carL');el.innerHTML=carHTML();if(!el.__ca){el.__ca=1;el.addEventListener('click',carAct)}CUI.push(el)};
+    if(!el.__mq){el.__mq=1;var mb=document.createElement('div');mb.className='mqBar';el.parentNode.insertBefore(mb,el);el.__mqb=mb;
+      mb.addEventListener('click',function(e){var b=e.target.closest('.mqC');if(!b)return;carM=b.getAttribute('data-m')||'';carsRedraw();if(carM&&el.scrollIntoView)try{el.parentNode.scrollTop=0}catch(x){}})}
+    el.classList.add('carL');el.innerHTML=carHTML();if(el.__mqb)el.__mqb.innerHTML=mqHTML();if(!el.__ca){el.__ca=1;el.addEventListener('click',carAct)}CUI.push(el)};
   var NET="Connecte d'abord le poste à internet (Wi-Fi ou partage de connexion du téléphone), puis touche Télécharger.";
   window.__carPanel=function(){if(!window.__infoOpen)return;window.__infoOpen(TT('Voiture 3D'),'<div class="note">'+TT(NET)+'</div><div id="carP"></div>');window.__carUI(document.getElementById('carP'))};
   function drawCar(){var n=document.getElementById('m3carN');if(!n)return;var c=LK.car();
@@ -5068,7 +5188,7 @@ var b3=document.getElementById('m3b3d');if(b3)b3.addEventListener('click',functi
       document.getElementById('carLater').addEventListener('click',function(){try{sessionStorage.setItem('carLater','1')}catch(x){}homeCard()})}}
   window.__homeCard=homeCard;setTimeout(homeCard,600);
   function plSum(){plWidget();var e=document.getElementById('plSum');if(!e)return;var st=LK.plateStyle();
-    e.textContent=st==='masquee'?TT('Masquée'):TT(st==='noire'?'Noire':'Bleue')+' · '+LK.plateText()+(LK.plateDep()?' · '+LK.plateDep():'')}
+    e.textContent=st==='masquee'?TT('Masquée'):TT(st==='noire'?'Noire':'Normale')+' · '+LK.plateText()+(LK.platePays()==='F'?(LK.plateDep()?' · '+LK.plateDep():''):' · '+LK.platePays())}
   /* 3.5 : plaque en widget sous l'heure */
   function plWidget(){var c=document.getElementById('plW');if(!c)return;
     var on=g('plW','1')==='1'&&LK.plateStyle()!=='masquee'&&!!g('plNum','')&&LK.plateValid(LK.plateText());
@@ -5080,22 +5200,26 @@ var b3=document.getElementById('m3b3d');if(b3)b3.addEventListener('click',functi
   function plForm(el){if(!el)return;
     var opts=LK.DEPS.map(function(x){return '<option value="'+x.d+'"'+(x.d===LK.plateDep()?' selected':'')+'>'+x.d+' · '+x.r+'</option>'}).join('');
     el.innerHTML=(
-      '<div class="plSeg" id="plSt"><button data-s="bleue">'+TT('Bleue')+'</button><button data-s="noire">'+TT('Noire')+'</button><button data-s="masquee">'+TT('Masquée')+'</button></div>'+
+      '<div class="plRow"><select class="vIn" id="plPays">'+Object.keys(LK.PAYS).map(function(k){return '<option value="'+k+'"'+(k===LK.platePays()?' selected':'')+'>'+TT(LK.PAYS[k].n)+' ('+k+')</option>'}).join('')+'</select></div>'+
+      '<div class="plSeg" id="plSt"><button data-s="bleue">'+TT('Normale')+'</button><button data-s="noire">'+TT('Noire')+'</button><button data-s="masquee">'+TT('Masquée')+'</button></div>'+
       '<canvas id="plPrev" width="1040" height="348"></canvas>'+
-      '<div class="plRow"><input class="vIn" id="plNum" type="text" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="AB-123-CD" value="'+String(g('plNum','')||'').replace(/[^A-Z0-9-]/g,'')+'"><span class="plOk" id="plOk"></span></div>'+
-      '<div class="plRow"><select class="vIn" id="plDep"><option value="">'+TT('Aucun département')+'</option>'+opts+'</select></div>');
+      '<div class="plRow"><input class="vIn" id="plNum" type="text" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="'+LK.PAYS[LK.platePays()].ex+'" value="'+String(g('plNum','')||'').replace(/[^A-Z0-9 -]/g,'')+'"><span class="plOk" id="plOk"></span></div>'+
+      '<div class="plRow" id="plDepR"><select class="vIn" id="plDep"><option value="">'+TT('Aucun département')+'</option>'+opts+'</select></div>');
     function seg(){[].forEach.call(document.querySelectorAll('#plSt button'),function(b){b.classList.toggle('on',b.getAttribute('data-s')===LK.plateStyle())})}
     function prev(){var cv=document.getElementById('plPrev');if(!cv)return;var c=cv.getContext('2d');
       if(LK.plateStyle()==='masquee'){c.clearRect(0,0,cv.width,cv.height);cv.style.opacity=.25;return}cv.style.opacity=1;
       if(!LK.plateCanvas(cv))setTimeout(prev,300)}
     function ok(){var v=(document.getElementById('plNum').value||'').toUpperCase(),o=document.getElementById('plOk');
-      if(!v){o.textContent=TT('Plaque type');o.style.color='#9aa3b2'}else if(LK.plateValid(v)){o.textContent=TT('✓ Format valide');o.style.color='#43d17a'}
-      else{o.textContent=TT('Format AB-123-CD');o.style.color='#ffb020'}}
+      var fr=LK.platePays()==='F',ex=LK.PAYS[LK.platePays()].ex;document.getElementById('plDepR').style.display=fr?'':'none';document.getElementById('plNum').placeholder=ex;
+      if(!v){o.textContent=TT('Plaque type');o.style.color='#9aa3b2'}else if(LK.plateFormatOk(v)){o.textContent=TT('✓ Format valide');o.style.color='#43d17a'}
+      else{o.textContent=TT('Format')+' '+ex;o.style.color='#ffb020'}}
     document.getElementById('plSt').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;p('plStyle',b.getAttribute('data-s'));seg();prev();plSum();look()});
     var inp=document.getElementById('plNum');inp.addEventListener('input',function(){
       /* mise en forme pendant la frappe : AB123CD -> AB-123-CD */
+      if(LK.platePays()!=='F'){var f2=inp.value.toUpperCase().replace(/[^A-Z0-9 -]/g,'').replace(/\s+/g,' ').slice(0,10);if(f2!==inp.value)inp.value=f2;ok();var t2=f2.trim();if(!t2||LK.plateValid(t2)){p('plNum',t2);prev();plSum();look()}return}
       var r=inp.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,7),f=r;if(r.length>2)f=r.slice(0,2)+'-'+r.slice(2);if(r.length>5)f=r.slice(0,2)+'-'+r.slice(2,5)+'-'+r.slice(5);
       inp.value=f;ok();if(!f||LK.plateValid(f)){p('plNum',f);prev();plSum();look()}});
+    document.getElementById('plPays').addEventListener('change',function(){p('plPays',this.value);var t=String(g('plNum','')||'');if(this.value==='F'&&!LK.plateValid(t.replace(/ /g,'-')))p('plNum','');inp.value=String(g('plNum','')||'');ok();prev();plSum();look()});
     document.getElementById('plDep').addEventListener('change',function(){p('plDep',this.value);prev();plSum();look()});
     seg();ok();prev()}
   var po=document.getElementById('plOpen');if(po)po.addEventListener('click',plPanel);
@@ -5135,6 +5259,7 @@ if(g('m3d','0')==='1')(window.__afterIntro||function(f){f()})(function(){setTime
 <script>(function(){var st=document.getElementById('stage'),hw=document.createElement('div');hw.id='hw';
 var ids=['bg','scrim','amb','p-home','top','lights','pill','tiles','homebar','smart','parkBig','edBtn','rev','brk'];
 var first=document.getElementById('bg');st.insertBefore(hw,first);ids.forEach(function(id){var e=document.getElementById(id);if(e)hw.appendChild(e)});Array.prototype.forEach.call(st.querySelectorAll(':scope>.gc.cw'),function(e){hw.appendChild(e)});
+(function(){var m=document.getElementById('muW');if(m)hw.appendChild(m)})();   /* 3.6.2 : lecteur musique au-dessus des pages, comme le trajet en direct */
 var l=document.createElement('div');l.id='persLbl';l.innerHTML='<span class="plT">'+(window.T?T('Modifier l\'écran d\'accueil'):'Modifier l\'écran d\'accueil')+'</span><span class="plS"><i>1</i>'+(window.T?T('Choisis un widget à gauche'):'Choisis un widget à gauche')+'<i>2</i>'+(window.T?T('Glisse-le dans l\'aperçu'):'Glisse-le dans l\'aperçu')+'<i>3</i>'+(window.T?T('Règle sa taille en bas'):'Règle sa taille en bas')+'</span>';st.appendChild(l);
 window.__hw=hw})();</script>
 <script>(function(){var M={fuel:'v_fuel',volt:'vr_volt',ext:'vr_air',eng:'v_eng',range:'v_range',odoK:'v_odo',belt:'v_belt'};
@@ -5208,8 +5333,19 @@ window.__scDemo=function(lock){var T=window.T||function(t){return t};
 
 <style>
 /* 3.5 : trajet en direct (widget + écran agrandi) */
+/* 3.6.2 : fluidité en 3D — ce qui est caché sous le canvas opaque n'est plus dessiné, et plus de flou recalculé au-dessus de la voiture qui tourne */
+body.m3dLive #bg img{visibility:hidden}
+body.m3dLive #m3d{background-image:none!important}
+body.m3dOn #st .stB,body.m3dOn #smart,body.m3dOn #m3btn,body.m3dOn #o3p{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.m3dOn #o3p{background:linear-gradient(180deg,rgba(20,30,50,.97),rgba(10,16,30,.98))}
+body.lite #cc,body.lite #smart,body.lite .pcard,body.lite #p-menu .tint,body.lite .ov,body.lite #m3btn,body.lite #rvDist,body.lite #volOv,body.lite #st .stB,body.lite #o3p,body.lite #signPad,body.lite .licLk{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.lite #cc{background:rgba(40,46,64,.97)!important}body.lite .ov{background:rgba(3,6,14,.88)!important}body.lite #volOv{background:rgba(20,26,40,.95)!important}
 #trW{position:absolute;left:940px;top:390px;width:310px;height:185px;padding:0;overflow:hidden;cursor:pointer;display:none}
 #trW.on{display:block}
+/* 3.6.2 : au-dessus de la page d'accueil (sinon l'appui tombait dans le vide), mais sous le menu Options 3D quand il est ouvert */
+#trW{z-index:3;pointer-events:auto}
+#stage:has(#o3.on) #trW{z-index:auto;pointer-events:none}
+#stage:not([data-page="home"]) #trW{display:none!important}
 #trW.trOp{background:rgba(12,20,40,calc(.75*var(--trOp,1)))!important;border-color:rgba(255,255,255,calc(.16*var(--trOp,1)))!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 body.clair #trW.trOp{background:rgba(255,255,255,calc(.8*var(--trOp,1)))!important}
 #trW canvas{position:absolute;inset:0;width:100%;height:100%}
