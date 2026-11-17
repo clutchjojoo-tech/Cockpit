@@ -39,7 +39,9 @@ function short(from,to){var d=wrap(to-from);return d>Math.PI?d-2*Math.PI:d}
 
 /* ---------- Qualité (baisse toute seule si le poste peine, mémorisée 7 jours) ---------- */
 var QL=[{pr:1,sh:1024},{pr:.85,sh:1024},{pr:.75,sh:0},{pr:.6,sh:0}];
-var qi=(function(){var v=String(lsGet('m3dQ','0')).split('|'),n=parseInt(v[0],10)||0,t=parseInt(v[1],10)||0;if(n&&t&&t<Date.now()-7*864e5){lsPut('m3dQ','0');return 0}return clamp(n,0,QL.length-1)})();
+var GPU=(function(){try{var c=document.createElement('canvas'),g=c.getContext('webgl');if(!g)return '';var x=g.getExtension('WEBGL_debug_renderer_info'),r=x?g.getParameter(x.UNMASKED_RENDERER_WEBGL):g.getParameter(g.RENDERER);var l=g.getExtension('WEBGL_lose_context');if(l)l.loseContext();return String(r||'')}catch(e){return ''}})();
+var WEAK=/powervr|imagination|ge8\d{3}|mali-[gt]?[4-7]\d|adreno \(tm\) [3-5]\d\d/i.test(GPU);
+var qi=(function(){var v=String(lsGet('m3dQ','0')).split('|'),n=parseInt(v[0],10)||0,t=parseInt(v[1],10)||0;if(n&&t&&t<Date.now()-7*864e5){lsPut('m3dQ','0');n=0}n=clamp(n,0,QL.length-1);return WEAK?Math.max(n,2):n})();
 ST.q=qi;
 
 /* ---------- Éléments ---------- */
@@ -47,12 +49,12 @@ box.insertAdjacentHTML('beforeend','<div id="m3v" style="visibility:hidden;point
 var V=document.getElementById('m3v'),CV=document.getElementById('m3gl');
 CV.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1;opacity:0;transition:opacity .45s';
 
-var R=null;try{R=new T.WebGLRenderer({canvas:CV,alpha:false,antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:false})}catch(e){ST.err='WebGL indisponible : '+e}
+var R=null;try{R=new T.WebGLRenderer({canvas:CV,alpha:false,antialias:!WEAK,powerPreference:'high-performance',preserveDrawingBuffer:false})}catch(e){ST.err='WebGL indisponible : '+e}
 if(!R){/* sans carte graphique : l'accueil reste en 2D, rien ne casse */
   window.M3DV={start:function(){},stop:function(){},free:function(){},setColor:function(){},look:function(){},car:function(){return null},cars:function(){return []},hasCar:function(){return null},theme:function(){},explode:function(){return false},inside:function(){return false},lite:function(){return ''},opens:function(){return []},cfg:CFG};
   window.__m3dOk=1;return}
 try{var gl0=R.getContext(),dx=gl0.getExtension('WEBGL_debug_renderer_info');ST.renderer=dx?gl0.getParameter(dx.UNMASKED_RENDERER_WEBGL):gl0.getParameter(gl0.RENDERER)}catch(e){}
-R.setPixelRatio(1);R.outputColorSpace=T.SRGBColorSpace;R.toneMapping=T.ACESFilmicToneMapping;R.toneMappingExposure=1.05;R.autoClear=false;
+R.setPixelRatio(1);R.outputColorSpace=T.SRGBColorSpace;R.toneMapping=T.ACESFilmicToneMapping;R.toneMappingExposure=1.4;R.autoClear=false;
 R.shadowMap.type=T.PCFSoftShadowMap;R.shadowMap.enabled=QL[qi].sh>0;
 
 /* décor : deux plans en fondu, cadrés comme le fond de la page (center/cover) */
@@ -62,8 +64,11 @@ var BG0=bgPlane(),BG1=bgPlane();BG1.renderOrder=1;
 
 /* scène : même éclairage que le kit */
 var S=new T.Scene();var pm=new T.PMREMGenerator(R);S.environment=pm.fromScene(new C.RoomEnvironment(),.04).texture;pm.dispose();
+/* 3.6.1 : éclairage d'appoint (certaines puces gèrent mal le reflet d'environnement : la voiture paraissait noire) */
+S.add(new T.HemisphereLight(0xffffff,0x3a3f4a,1.1));S.add(new T.AmbientLight(0xffffff,.35));
+var FL=new T.DirectionalLight(0xffffff,1.2);FL.position.set(2,4,8);S.add(FL);var BL=new T.DirectionalLight(0xffffff,.8);BL.position.set(-3,3,-7);S.add(BL);
 var cam=new T.PerspectiveCamera(28,1280/720,.05,100);
-var DL=new T.DirectionalLight(0xffffff,1.6);DL.position.set(0.4,10,0.8);DL.castShadow=QL[qi].sh>0;DL.shadow.mapSize.set(1024,1024);DL.shadow.radius=4;var sc=DL.shadow.camera;sc.left=-4;sc.right=4;sc.top=4;sc.bottom=-4;S.add(DL);
+var DL=new T.DirectionalLight(0xffffff,2.0);DL.position.set(0.4,10,0.8);DL.castShadow=QL[qi].sh>0;DL.shadow.mapSize.set(1024,1024);DL.shadow.radius=4;var sc=DL.shadow.camera;sc.left=-4;sc.right=4;sc.top=4;sc.bottom=-4;S.add(DL);
 var b1=new T.PointLight(0xffffff,6,10);b1.position.set(-3,.4,1);S.add(b1);var b2=new T.PointLight(0xffffff,6,10);b2.position.set(3,.4,-1);S.add(b2);
 var cs=(function(){var c=document.createElement('canvas');c.width=c.height=128;var x=c.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(.6,'rgba(0,0,0,.75)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return new T.CanvasTexture(c)})();
 var ao=new T.Mesh(new T.PlaneGeometry(2.3,4.7),new T.MeshBasicMaterial({map:cs,transparent:true,depthWrite:false}));ao.rotation.x=-Math.PI/2;ao.position.y=.003;ao.scale.set(1.05,1,1.02);
@@ -94,6 +99,8 @@ function loadCar(id){if(!id||id===CAR&&carObj||loadingCar===id)return;loadingCar
       carObj.traverse(function(o){var u=o.userData||{};
         if(u.part&&K.indexOf(u.part)>=0)parts[u.part]={p:o,axis:u.axis==='x'?'x':'y',max:+u.max||0,v:0,from:0,to:0,t0:0};
         if(!o.isMesh)return;o.castShadow=true;var g2=o.geometry;tris+=(g2.index?g2.index.count:g2.attributes.position.count)/3;
+        (Array.isArray(o.material)?o.material:[o.material]).forEach(function(q){if(!q||q.__fix)return;q.__fix=1;
+          if(q.metalness!==undefined&&!q.metalnessMap){q.metalness=Math.min(q.metalness,u.paint?.45:.6)}if(q.roughness!==undefined&&!q.roughnessMap)q.roughness=Math.max(q.roughness,u.paint?.22:.15);if(q.envMapIntensity!==undefined)q.envMapIntensity=1.3});
         var mt=o.material;if(Array.isArray(mt))return;
         if(u.paint&&paintMats.indexOf(mt)<0)paintMats.push(mt);
         if(u.light&&LT[u.light]&&LT[u.light].indexOf(mt)<0)LT[u.light].push(mt);
@@ -175,12 +182,14 @@ function camStep(now){if(!camState.t0)return false;var k=smooth((now-camState.t0
 /* ---------- plateau : rotation lente, régulière ---------- */
 var ang=POSE,vel=0,velT=0,settleTo=null,settleCb=null;
 function turnStep(dt){
-  if(settleTo!==null){var d=short(ang,settleTo);var mv=Math.sign(d)*Math.min(Math.abs(d),Math.max(.35,Math.abs(d)*3)*dt);ang=wrap(ang+mv);vel=0;
-    if(Math.abs(d)<.002){ang=settleTo;settleTo=null;var cb=settleCb;settleCb=null;cb&&cb()}return true}
+  /* 3.6.1 : mise en pose à durée fixe et courbe douce (même rythme que la caméra : plus d'à-coup) */
+  if(settleTo!==null){var k=smooth((performance.now()-stT0)/stDur);ang=wrap(stFrom+stD*k);vel=0;
+    if(k>=1){ang=settleTo;settleTo=null;var cb=settleCb;settleCb=null;cb&&cb()}return true}
   var want=rotating()?2*Math.PI/CFG.TURN_S*CFG.ROT_SPEED:0;
   if(vel!==want){var acc=2*Math.PI/CFG.TURN_S/(CFG.EASE_MS/1000);vel=want>vel?Math.min(want,vel+acc*dt):Math.max(want,vel-acc*3*dt)}
   if(vel){ang=wrap(ang-vel*dt);return true}return false}
-function settle(a,cb){settleTo=wrap(a);settleCb=cb;dirty()}
+var stFrom=0,stD=0,stT0=0,stDur=1;
+function settle(a,cb){settleTo=wrap(a);settleCb=cb;stFrom=ang;stD=short(ang,settleTo);stT0=performance.now();stDur=Math.max(450,Math.min(CFG.CAM_MS,Math.abs(stD)*700));dirty()}
 
 /* ---------- logique d'état ---------- */
 var running=false,mode='rot',drag=null,hold=0,closeT=0,dive=0,posed=false;
@@ -212,7 +221,9 @@ function tick(){
     if(m!==doors.mask){closeT=0;doors.set(m);if(m)vueGo(vueFor(m));return}
     if(!m&&!w){if(!closeT){closeT=Date.now()+CFG.CLOSE_MS}
       else if(Date.now()>closeT){closeT=0;vueCur=null;document.body.classList.remove('m3dTop');
-        camGo('R',function(){mode='rot';dirty()})}}
+        /* 3.6.1 : retour symétrique de l'ouverture : la caméra redescend ET la voiture revient en pose en même temps,
+           puis la rotation reprend en douceur depuis cette pose (plus de second mouvement après coup) */
+        settle(POSE);posed=true;vel=0;camGo('R',function(){mode='rot';hold=Date.now()+600;dirty()})}}
     else closeT=0}
 }
 setInterval(tick,80);
@@ -299,6 +310,6 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden&&run
 CV.addEventListener('webglcontextlost',function(e){e.preventDefault();ST.ctxLost=Date.now()},false);
 CV.addEventListener('webglcontextrestored',function(){try{if(!sessionStorage.getItem('m3dCtx')){sessionStorage.setItem('m3dCtx','1');setTimeout(function(){sessionStorage.removeItem('m3dCtx')},20000);location.reload()}}catch(e){}},false);
 window.__m3dReup=function(){dirty()};
-window.__m3dDbg=function(){return {mode:mode,mask:doors.mask,dive:dive,running:running,ang:+ang.toFixed(3),cam:camState.to,car:CAR,opens:opens(),fps:ST.fps,q:qi,tris:ST.tris,size:[W,H],err:ST.err,paint:paintMats.length,lt:[LT.head.length,LT.tail.length,LT.sig.length],col:paintMats[0]?'#'+paintMats[0].color.getHexString():''}};
+window.__m3dDbg=function(){return {gpu:GPU,weak:WEAK,mode:mode,mask:doors.mask,dive:dive,running:running,ang:+ang.toFixed(3),cam:camState.to,car:CAR,opens:opens(),fps:ST.fps,q:qi,tris:ST.tris,size:[W,H],err:ST.err,paint:paintMats.length,lt:[LT.head.length,LT.tail.length,LT.sig.length],col:paintMats[0]?'#'+paintMats[0].color.getHexString():''}};
 window.__m3dOk=1;
 })();

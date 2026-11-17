@@ -722,7 +722,7 @@ body.fall,body.fall button,body.fall input,body.fall select{font-family:var(--fa
 #smart .smW{display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:calc(40px*var(--fz,1));font-weight:300}
 /* 3.0 : message d'accueil plus petit, seulement en haut à droite */
 #smart{left:auto;right:28px;top:-140px;transform:none;min-width:0;max-width:460px;padding:10px 20px 10px 12px;border-radius:30px}
-#smart.on{top:88px}
+#smart.on{top:88px} #smart{background:#0f1a2e!important;border:1px solid rgba(120,170,255,.35)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;color:#fff;opacity:1!important} body.clair #smart{background:#ffffff!important;color:#0d1a2e;border-color:rgba(40,80,160,.18)!important} body.clair #smart .smW svg{stroke:#0d1a2e}
 #smart .smI{width:54px;height:54px}#smart .smI img{width:46px;height:46px}
 #smart .smT{font-size:calc(22px*var(--fz,1));letter-spacing:-.2px}
 #smart .smL{font-size:calc(15px*var(--fz,1));margin-top:2px}
@@ -1016,7 +1016,8 @@ body.m3dOn.lay2 #ident{left:639px!important}
 #o3b .chev{width:22px;height:22px;stroke:#cfe2ff;stroke-width:2;transition:transform .3s}
 #o3.on #o3b .chev{transform:rotate(180deg)}
 #o3p{position:absolute;right:0;top:64px;width:340px;padding:6px 0;border-radius:24px;background:linear-gradient(180deg,rgba(20,30,50,.92),rgba(10,16,30,.94));border:1.5px solid rgba(70,150,255,.75);box-shadow:0 0 22px rgba(40,130,255,.35),0 24px 60px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);opacity:0;transform:translateY(-10px) scale(.97);transform-origin:top right;pointer-events:none;transition:opacity .25s,transform .3s cubic-bezier(.2,.9,.25,1.15)}
-#o3.on #o3p{opacity:1;transform:none;pointer-events:auto}
+input.carSearch{display:block;width:100%;box-sizing:border-box;height:52px;margin:0 0 10px;padding:0 18px;border-radius:26px;font-size:18px} .carNone{padding:12px 6px;opacity:.7;font-size:15px}
+#o3.on #o3p{opacity:1;transform:none;pointer-events:auto} #o3:not(.on) #o3p,#o3:not(.on) #o3p *{pointer-events:none!important;visibility:hidden}
 .o3r{display:flex;align-items:center;gap:14px;height:64px;padding:0 16px;color:#fff;font-size:calc(17px*var(--fz,1));font-weight:500;pointer-events:auto}.o3r .o3n{margin-left:auto;padding-left:10px;font-weight:500;font-size:14px;opacity:.65;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
 .o3r+.o3r{border-top:1px solid rgba(110,170,255,.18)}
 .o3r i{width:34px;display:flex;justify-content:center}.o3r i svg{width:30px;height:30px;stroke:#58b4ff;stroke-width:1.7;filter:drop-shadow(0 0 5px rgba(60,160,255,.6))}
@@ -2369,7 +2370,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
 
   /* ===== Étape 8 : À propos, vitesse GPS, musique, raccourcis, luminosité auto, styles ===== */
-  var APP_VERSION='3.6';
+  var APP_VERSION='3.6.1';
   function updateAbout(){$('#aboutTxt').textContent=T('Version')+' '+APP_VERSION}
 
   /* Vitesse GPS */
@@ -3645,6 +3646,10 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
 
   /* Nouveautés */
   var NEWS=[
+    ['Voitures plus claires','Meilleur éclairage de la 3D : les voitures ne sont plus sombres.'],
+    ['Plus fluide','La 3D et l\'animation de démarrage demandent moins au poste.'],
+    ['Recherche','Une case de recherche pour trouver ta voiture 3D parmi toutes les autres.'],
+    ['Trajet en direct','Seulement le trajet en cours, zoomé sur ta position, départ en bas et arrivée en haut. Le widget se déplace comme les autres, la plaque aussi.'],
     ['Vraie voiture 3D','La voiture n\'est plus une vidéo : c\'est le vrai modèle 3D, calculé en direct. Rotation fluide, portes qui s\'ouvrent vraiment, phares, warnings, vue du dessus et habitacle.'],
     ['Couleurs en direct','La couleur de carrosserie et celle des LED de la plateforme changent instantanément, sur n\'importe quelle voiture.'],
     ['Plus de voitures','La liste des voitures 3D se met à jour toute seule depuis internet : de nouveaux modèles arrivent sans mise à jour de Cockpit. Téléchargement beaucoup plus léger.'],
@@ -3884,7 +3889,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
       var t=get('ambTest','');if(t)return t;
       if(get('amb',window.__lite?'off':'on')!=='on'||get('anim','full')==='reduced')return '';
       if(!WX.loaded)return '';
-      if(WX.cat==='rain'||WX.cat==='storm')return 'rain';
+      if(WX.cat==='rain'||WX.cat==='storm')return '';   /* 3.6.1 : plus de pluie animée en fond */
       if(WX.cat==='snow')return 'snow';
       if(WX.cat==='fog')return 'fog';
       if(WX.night&&(WX.cat==='clear'||WX.cat==='part'))return 'stars';
@@ -4010,7 +4015,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   });
   applyFonts();
 
-  var STDW={cardL:['Infos voiture',1],cardR:['Météo',.8],cardT:['Trajet',1],cardS:['Compteur',1],cardM:['Musique',1]};
+  var STDW={cardL:['Infos voiture',1],cardR:['Météo',.8],cardT:['Trajet',1],cardS:['Compteur',1],cardM:['Musique',1],trW:['Trajet en direct',1],plW:['Plaque',1]};
   var CWT={sty:['Style'],clock:['Horloge'],compass:['Boussole'],note:['Note'],chrono:['Chrono'],vmax:['Vitesse max']};
   var wpos={},cws=[],edSel='';
   try{wpos=JSON.parse(get('wpos','{}'))||{}}catch(e){wpos={}}
@@ -4066,7 +4071,7 @@ document.querySelectorAll('.si2[data-sec]').forEach(function(b){var k=SI[b.getAt
   window.setGps=function(kmh,b,alt){_sg5(kmh,b,alt);window.__brg=b;window.__spd=kmh;if(kmh>(parseFloat(get('vmax','0'))||0))put('vmax',String(Math.round(kmh)))};
   setInterval(function(){if(cws.length&&window.__homeLive())cwUpdate()},500);
   cws.forEach(cwBuild);
-  Object.keys(STDW).forEach(wApply);
+  Object.keys(STDW).forEach(wApply);window.__wApplyId=function(id){wApply(id)};
 
   /* mode édition */
   function edSelect(id){
@@ -5021,11 +5026,15 @@ var b3=document.getElementById('m3b3d');if(b3)b3.addEventListener('click',functi
   function carSt(c){if(!A2||!A2.carStatus)return {installed:!!(window.__carDev&&window.__carDev[c])};try{return JSON.parse(A2.carStatus(c))||{}}catch(e){return {}}}
   function pick(c){p('m3dCar',c);var cur=LK.paint().toLowerCase();if(!LK.paints(c).some(function(x){return x.hex.toLowerCase()===cur}))p('m3dCol',LK.paints(c)[0].hex);
     if(LK.carRefresh)LK.carRefresh();p('m3d','1');if(window.m3dApply)window.m3dApply();carsRedraw();drawCols();look()}
-  function carHTML(){var c=LK.car(),h='';
-    LK.CARLIST.forEach(function(x){var st=carSt(x.id),dl=CDL[x.id],btn,cls='mini';
+  /* 3.6.1 : recherche dans la liste des voitures (sans accents, sans tirets, mots dans n'importe quel ordre) */
+  var carQ='';function carNorm(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
+  function carMatch(x){if(!carQ)return true;var n=carNorm(x.nom+' '+(x.court||'')+' '+x.id),nz=n.replace(/ /g,'');return carNorm(carQ).split(' ').every(function(w){return !w||n.indexOf(w)>=0||nz.indexOf(w)>=0})}
+  function carHTML(){var c=LK.car(),h='',nb=0;
+    LK.CARLIST.forEach(function(x){if(!carMatch(x)&&x.id!==c)return;nb++;var st=carSt(x.id),dl=CDL[x.id],btn,cls='mini';
       if(dl!=null)btn=TT('Téléchargement')+' '+dl+' %';else if(!st.installed){btn=TT('Télécharger')+' · '+x.mo+' Mo';cls+=' dlB'}else if(c===x.id&&g('m3d','0')==='1')btn='✓ '+TT('Choisie');else btn=TT('Choisir');
       h+='<div class="carR'+(c===x.id?' on':'')+'"><div><b>'+x.nom+'</b><small>'+TT(x.info)+(st.inclus?' · '+TT('incluse'):st.installed?' · '+TT('sur le poste'):'')+'</small></div><div class="carB">'+
         (st.installed&&!st.inclus&&c!==x.id?'<button class="mini carDel" data-c="'+x.id+'">'+TT('Supprimer')+'</button>':'')+'<button class="'+cls+' carGo" data-c="'+x.id+'"'+(dl!=null?' disabled':'')+'>'+btn+'</button></div></div>'});
+    if(carQ&&nb<=1)h+='<div class="carNone">'+TT('Aucune autre voiture ne correspond. Essaie la marque ou le modèle seul.')+'</div>';
     return h}
   function carsRedraw(){CUI=CUI.filter(function(e){return document.body.contains(e)});CUI.forEach(function(e){e.innerHTML=carHTML()});drawCar();homeCard()}
   window.__carsRedraw=function(){carsRedraw();drawCols()};
@@ -5034,7 +5043,11 @@ var b3=document.getElementById('m3b3d');if(b3)b3.addEventListener('click',functi
     if(CDL[c]!=null)return;
     if(!carSt(c).installed){if(A2&&A2.carDownload){CDL[c]=0;try{A2.carDownload(c)}catch(x){}carsRedraw()}return}
     pick(c)}
-  window.__carUI=function(el){if(!el)return;el.classList.add('carL');el.innerHTML=carHTML();if(!el.__ca){el.__ca=1;el.addEventListener('click',carAct)}CUI.push(el)};
+  window.__carUI=function(el){if(!el)return;
+    /* une case de recherche au-dessus de la liste dès qu'il y a beaucoup de voitures */
+    if(LK.CARLIST.length>6&&!el.__cq){el.__cq=1;var q=document.createElement('input');q.type='search';q.className='vIn carSearch';q.placeholder=TT('Rechercher une voiture (ex. Golf, 308, BMW)');q.value=carQ;q.autocomplete='off';
+      el.parentNode.insertBefore(q,el);q.addEventListener('input',function(){carQ=q.value;[].forEach.call(document.querySelectorAll('.carSearch'),function(o){if(o!==q)o.value=carQ});carsRedraw()})}
+    el.classList.add('carL');el.innerHTML=carHTML();if(!el.__ca){el.__ca=1;el.addEventListener('click',carAct)}CUI.push(el)};
   var NET="Connecte d'abord le poste à internet (Wi-Fi ou partage de connexion du téléphone), puis touche Télécharger.";
   window.__carPanel=function(){if(!window.__infoOpen)return;window.__infoOpen(TT('Voiture 3D'),'<div class="note">'+TT(NET)+'</div><div id="carP"></div>');window.__carUI(document.getElementById('carP'))};
   function drawCar(){var n=document.getElementById('m3carN');if(!n)return;var c=LK.car();
@@ -5061,7 +5074,7 @@ var b3=document.getElementById('m3b3d');if(b3)b3.addEventListener('click',functi
     var on=g('plW','1')==='1'&&LK.plateStyle()!=='masquee'&&!!g('plNum','')&&LK.plateValid(LK.plateText());
     c.classList.toggle('on',on);if(!on)return;if(!LK.plateCanvas(c))setTimeout(plWidget,400)}
   window.__plWidget=plWidget;
-  (function(){var c=document.getElementById('plW');if(c)c.addEventListener('click',function(){plPanel()})})();
+  (function(){var c=document.getElementById('plW');if(c)c.addEventListener('click',function(){if(document.body.classList.contains('edit')||document.body.classList.contains('persOn'))return;plPanel()})})();if(window.__wApplyId)window.__wApplyId('plW');
   function plPanel(){if(!window.__infoOpen)return;window.__infoOpen(TT('Plaque d\'immatriculation'),'<div id="plBox"></div>');plForm(document.getElementById('plBox'))}
   window.__plForm=function(el){plForm(el)};
   function plForm(el){if(!el)return;
@@ -5238,7 +5251,7 @@ function g(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){r
 var EXP='<svg viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>';
 var w=document.createElement('div');w.className='gc';w.id='trW';
 w.innerHTML='<canvas width="620" height="370"></canvas><div class="tl">'+T('Trajet en direct')+'</div><div class="tx">'+EXP+T('Agrandir')+'</div><div class="tv" id="trWv">--</div>';
-hw.appendChild(w);
+hw.appendChild(w);if(window.__wApplyId)window.__wApplyId('trW');
 var I={road:'<path d="M8 3L4 21M16 3l4 18M12 4v3M12 10v3M12 16v3"/>',time:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M10 2h4M12 2v3"/>',spd:'<path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4-5M6.5 13.5l1 .6M17.5 13.5l-1 .6M12 9V8"/>',alt:'<path d="M2 20l7-11 4 6 3-4 6 9z"/><path d="M8 11l1.2 1.4 1.3-1.2"/>',den:'<path d="M7 20V4M3 8l4-4 4 4M17 4v16M13 16l4 4 4-4"/>'};
 function card(k,id,lab){return '<div class="tbK"><i><svg viewBox="0 0 24 24">'+I[k]+'</svg></i><div><small>'+T(lab)+'</small><b id="'+id+'">--</b></div></div>'}
 var big=document.createElement('div');big.id='trBig';
@@ -5248,13 +5261,17 @@ big.innerHTML='<button class="tbX" type="button"><svg viewBox="0 0 24 24" width=
 st.appendChild(big);
 var cW=w.querySelector('canvas'),cB=big.querySelector('canvas');
 function fitCv(cv){var b=cv.getBoundingClientRect(),d=window.devicePixelRatio||1,W2=Math.round(b.width*d),H2=Math.round(b.height*d);if(W2>50&&H2>50&&(cv.width!==W2||cv.height!==H2)){cv.width=W2;cv.height=H2}}
-w.addEventListener('click',function(){big.classList.add('on');fitCv(cB);paint(true)});
+w.addEventListener('click',function(){if(document.body.classList.contains('edit')||document.body.classList.contains('persOn'))return;big.classList.add('on');fitCv(cB);paint(true)});
 big.querySelector('.tbX').addEventListener('click',function(){big.classList.remove('on')});
 big.querySelector('.tbHist').addEventListener('click',function(){big.classList.remove('on');if(window.__tripsOpen)window.__tripsOpen()});
 /* ---------- données ---------- */
 var raw='',P=[];
 function read(){if(!A||!A.traceGet)return false;var t='';try{t=A.traceGet('cur')||''}catch(e){}if(t===raw)return false;raw=t;P=[];
-  t.split('\n').forEach(function(l){var a=l.split(',');if(a.length>=4){var p=[+a[0],+a[1],+a[2],+a[3]];if(isFinite(p[0])&&isFinite(p[1]))P.push(p)}});return true}
+  t.split('\n').forEach(function(l){var a=l.split(',');if(a.length>=4){var p=[+a[0],+a[1],+a[2],+a[3],+(a[4]||0)];if(isFinite(p[0])&&isFinite(p[1]))P.push(p)}});
+  /* 3.6.1 : seulement le trajet en cours : on coupe à la dernière pause de plus de 15 min (un ancien trajet non archivé ne s'affiche plus) */
+  for(var i=P.length-1;i>0;i--){if(P[i][4]&&P[i-1][4]&&P[i][4]-P[i-1][4]>900){P=P.slice(i);break}}
+  if(P.length&&P[P.length-1][4]&&Date.now()/1000-P[P.length-1][4]>3*3600)P=[];
+  return true}
 function stats(){var z=null,up=0,last=null;P.forEach(function(p){if(p[2]>-1000){if(last!==null){var d=p[2]-last;if(Math.abs(d)>=3){if(d>0)up+=d;last=p[2]}}else last=p[2];z=p[2]}});
   var tx=function(s){var e=$(s);return e?e.textContent:'--'};
   return {d:tx('#tD'),du:tx('#tDu'),t:tx('#tT'),a:tx('#tA'),au:tx('#tAu'),z:z,up:Math.round(up)}}
@@ -5272,12 +5289,20 @@ function draw(cv,full){var c=cv.getContext('2d'),W=cv.width,H=cv.height,light=do
   for(var j=1;j<=12;j++){var yy=hz+(H-hz)*Math.pow(j/12,1.7);c.beginPath();c.moveTo(0,yy);c.lineTo(W,yy);c.stroke()}
   c.globalAlpha=1;
   if(P.length<2){c.fillStyle=light?'rgba(20,40,80,.55)':'rgba(200,220,255,.6)';c.font=(W/22)+'px sans-serif';c.textAlign='center';c.fillText(T('Le tracé apparaît dès que tu roules'),W/2,H*.55);return}
+  /* 3.6.1 : le widget suit la voiture : seulement les ~2,5 derniers km, bien zoomés (l'écran agrandi garde tout le trajet) */
+  var Pall=P;if(!full){var kxx=111320*Math.cos(P[0][0]*Math.PI/180),acc=0,k0=P.length-1;
+    for(;k0>0;k0--){var ddx=(P[k0][1]-P[k0-1][1])*kxx,ddy=(P[k0][0]-P[k0-1][0])*110540;acc+=Math.sqrt(ddx*ddx+ddy*ddy);if(acc>2500)break}
+    P=P.slice(Math.max(0,Math.min(k0,P.length-2)))}
+  try{
   /* projection : vue inclinée, cadrée automatiquement */
   var la0=P[0][0],lo0=P[0][1],kx=111320*Math.cos(la0*Math.PI/180),ky=110540;
   var Q=P.map(function(p){return [(p[1]-lo0)*kx,-(p[0]-la0)*ky]});
+  /* 3.6.1 : départ en bas, arrivée (position actuelle) en haut */
+  (function(){var a=Q[0],z=Q[Q.length-1],dx=z[0]-a[0],dy=z[1]-a[1];if(dx*dx+dy*dy<50*50)return;var r=-Math.PI/2-Math.atan2(dy,dx),cs=Math.cos(r),sn=Math.sin(r);
+    Q=Q.map(function(q){return [q[0]*cs-q[1]*sn,q[0]*sn+q[1]*cs]})})();
   var tilt=.55,proj=function(q){return [q[0],q[1]*tilt]};
   var b=[1e9,1e9,-1e9,-1e9];Q.forEach(function(q){var a=proj(q);b=[Math.min(b[0],a[0]),Math.min(b[1],a[1]),Math.max(b[2],a[0]),Math.max(b[3],a[1])]});
-  var mx=W*.14,mt=H*(full?.2:.36),mb=H*(full?.2:.27),sc=Math.min((W-2*mx)/Math.max(1,b[2]-b[0]),(H-mt-mb)/Math.max(1,b[3]-b[1]));
+  var mx=W*(full?.14:.1),mt=H*(full?.2:.3),mb=H*(full?.2:.22),sc=Math.min((W-2*mx)/Math.max(1,b[2]-b[0]),(H-mt-mb)/Math.max(1,b[3]-b[1]));
   var ox=W/2-(b[0]+b[2])/2*sc,oy=mt+(H-mt-mb)/2-(b[1]+b[3])/2*sc;
   var S=Q.map(function(q){var a=proj(q);return [ox+a[0]*sc,oy+a[1]*sc]});
   var n=S.length,vmax=Math.max(90,Math.max.apply(null,P.map(function(p){return p[3]}))),lw=full?W/34:W/36,th=lw*.45;
@@ -5310,7 +5335,8 @@ function draw(cv,full){var c=cv.getContext('2d'),W=cv.width,H=cv.height,light=do
   /* écran agrandi : pastille altitude */
   if(full){var s=stats();if(s.z!==null){var tx='▲ +'+s.up+' m  |  '+Math.round(s.z)+' m';c.font='600 '+(W/34)+'px sans-serif';var tw=c.measureText(tx).width,px=W-tw-W*.08,py=H-H*.12;
     c.fillStyle=light?'rgba(255,255,255,.85)':'rgba(10,25,55,.8)';c.strokeStyle='rgba(120,170,255,.4)';c.lineWidth=2;c.beginPath();if(c.roundRect)c.roundRect(px-W*.025,py-H*.05,tw+W*.05,H*.08,H*.04);else c.rect(px-W*.025,py-H*.05,tw+W*.05,H*.08);c.fill();c.stroke();
-    c.fillStyle=light?'#0d1a2e':'#fff';c.textAlign='left';c.textBaseline='middle';c.fillText(tx,px,py-H*.01)}}}
+    c.fillStyle=light?'#0d1a2e':'#fff';c.textAlign='left';c.textBaseline='middle';c.fillText(tx,px,py-H*.01)}}
+  }finally{P=Pall}}
 function paint(force){var ch=read();if(!ch&&!force)return;var s=stats();
   var v=$('#trWv');if(v)v.innerHTML=s.d+' '+s.du+'<small>'+s.t+' · '+T('moy.')+' '+s.a+' '+s.au+'</small>';
   fitCv(cW);draw(cW,false);
